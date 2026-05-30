@@ -1,0 +1,760 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Plus, 
+  Star, 
+  Maximize2, 
+  MapPin, 
+  Grid, 
+  Circle, 
+  Sparkles, 
+  CheckSquare, 
+  Lightbulb, 
+  Trash2, 
+  PenTool, 
+  CheckCircle2, 
+  Calendar,
+  Layers,
+  HelpCircle,
+  Zap,
+  Info
+} from 'lucide-react';
+import { NodeData, ChecklistItem } from '../types';
+import { translations, getLocalizedNode } from '../locales';
+
+// Team member avatars
+const AVATARS = [
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=128&auto=format&fit=crop", // Zhibin
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=128&auto=format&fit=crop", // Ying
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=128&auto=format&fit=crop", // Alex
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop", // David
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=128&auto=format&fit=crop"  // Emma
+];
+
+interface FieldMapCanvasProps {
+  nodes: NodeData[];
+  setNodes: React.Dispatch<React.SetStateAction<NodeData[]>>;
+  selectedNodeId: string | null;
+  setSelectedNodeId: (id: string | null) => void;
+  onAddMapItem: (title: string, type: string) => void;
+  language?: 'en' | 'zh';
+}
+
+export default function FieldMapCanvas({ 
+  nodes, 
+  setNodes, 
+  selectedNodeId, 
+  setSelectedNodeId,
+  onAddMapItem,
+  language = 'en'
+}: FieldMapCanvasProps) {
+  const [zoom, setZoom] = useState<number>(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  
+  // Drag states
+  const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
+  // Connection Builder State (line-drawing option)
+  const [activeTool, setActiveTool] = useState<'select' | 'connection' | 'boundary'>('select');
+  const [connectionSourceId, setConnectionSourceId] = useState<string | null>(null);
+
+  // Task overlays
+  const [focusedTodoNodeId, setFocusedTodoNodeId] = useState<string | null>('todo-list');
+  const [quickTaskText, setQuickTaskText] = useState('');
+  
+  // Add new element state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newType, setNewType] = useState<NodeData['type']>('todo');
+  const [newDesc, setNewDesc] = useState('');
+
+  const tVal = translations[language].fieldmap;
+
+  // Hearth Boundaries specification
+  const boundaries = [
+    { name: tVal.opportunityDomain, id: 'opportunity', color: 'border-[#a855f7]/30 text-[#a855f7]/70', x: 80, y: 150, width: 320, height: 260 },
+    { name: tVal.executionDomain, id: 'execution', color: 'border-[#3b82f6]/25 text-[#3b82f6]/70', x: 260, y: 460, width: 400, height: 250 },
+    { name: tVal.coreTerritory, id: 'core', color: 'border-indigo-500/25 text-indigo-500/70 bg-indigo-500/[0.005]', x: 620, y: 340, width: 340, height: 240 },
+    { name: tVal.futureStation, id: 'future', color: 'border-[#14b8a6]/25 text-[#14b8a6]/70', x: 650, y: 120, width: 340, height: 210 },
+    { name: tVal.designSystemAsset, id: 'assets', color: 'border-orange-500/25 text-orange-500/70', x: 740, y: 560, width: 220, height: 180 },
+  ];
+
+  const handleNodeMouseDown = (e: React.MouseEvent, node: NodeData) => {
+    e.stopPropagation();
+    setSelectedNodeId(node.id);
+
+    if (activeTool === 'connection') {
+      if (!connectionSourceId) {
+        setConnectionSourceId(node.id);
+      } else {
+        if (connectionSourceId !== node.id) {
+          // Join nodes
+          setNodes(prev => prev.map(n => {
+            if (n.id === connectionSourceId && !n.connections.includes(node.id)) {
+              return { ...n, connections: [...n.connections, node.id], updatedAt: '2024/05/30' };
+            }
+            return n;
+          }));
+        }
+        setConnectionSourceId(null);
+        setActiveTool('select');
+      }
+      return;
+    }
+
+    setDraggedNodeId(node.id);
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    setDragOffset({
+      x: (clientX / zoom) - node.x,
+      y: (clientY / zoom) - node.y
+    });
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    if (draggedNodeId) {
+      const newX = Math.round((e.clientX / zoom) - dragOffset.x);
+      const newY = Math.round((e.clientY / zoom) - dragOffset.y);
+      setNodes(prev => prev.map(n => 
+        n.id === draggedNodeId ? { ...n, x: newX, y: newY, updatedAt: '2024/05/30' } : n
+      ));
+    } else if (isPanning) {
+      setPanOffset({
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y
+      });
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    setDraggedNodeId(null);
+    setIsPanning(false);
+  };
+
+  const handleBgMouseDown = (e: React.MouseEvent) => {
+    if (activeTool === 'connection') {
+      setConnectionSourceId(null);
+      setActiveTool('select');
+      return;
+    }
+    setIsPanning(true);
+    setPanStart({
+      x: e.clientX - panOffset.x,
+      y: e.clientY - panOffset.y
+    });
+  };
+
+  // Checklist actions
+  const handleToggleChecklist = (nodeId: string, itemId: string) => {
+    setNodes(prev => prev.map(node => {
+      if (node.id === nodeId) {
+        const updatedChecklist = node.checklist.map(item => 
+          item.id === itemId ? { ...item, done: !item.done } : item
+        );
+        const doneCount = updatedChecklist.filter(item => item.done).length;
+        const totalCount = updatedChecklist.length;
+        const newProgress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : node.progress;
+
+        return {
+          ...node,
+          checklist: updatedChecklist,
+          progress: newProgress,
+          updatedAt: '2024/05/30'
+        };
+      }
+      return node;
+    }));
+  };
+
+  const handleAddMapTaskSubmit = (e: React.FormEvent, nodeId: string) => {
+    e.preventDefault();
+    if (!quickTaskText.trim()) return;
+    setNodes(prev => prev.map(node => {
+      if (node.id === nodeId) {
+        const newItem: ChecklistItem = {
+          id: `task-${Date.now()}`,
+          text: quickTaskText.trim(),
+          done: false,
+          dueDate: '今天'
+        };
+        const updatedChecklist = [...node.checklist, newItem];
+        const doneCount = updatedChecklist.filter(item => item.done).length;
+        const totalCount = updatedChecklist.length;
+        const newProgress = Math.round((doneCount / totalCount) * 100);
+
+        return {
+          ...node,
+          checklist: updatedChecklist,
+          progress: newProgress,
+          updatedAt: '2024/05/30'
+        };
+      }
+      return node;
+    }));
+    setQuickTaskText('');
+  };
+
+  // Header quick nodes creators
+  const handleCreateNodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+    
+    const id = `node-${Date.now()}`;
+    const newNode: NodeData = {
+      id,
+      type: newType,
+      title: newTitle.trim(),
+      description: newDesc.trim() || 'A Hearth network active component.',
+      x: 350 + Math.random() * 100,
+      y: 300 + Math.random() * 100,
+      progress: 0,
+      members: ['Zhibin'],
+      checklist: newType === 'todo' ? [
+        { id: `t-${id}-1`, text: '初始化子任务清单', done: false }
+      ] : [],
+      tags: ['Manual', 'Hearth-1.0'],
+      connections: [],
+      createdAt: '2024/05/30',
+      updatedAt: '2024/05/30'
+    };
+
+    setNodes(prev => [...prev, newNode]);
+    setSelectedNodeId(id);
+    setNewTitle('');
+    setNewDesc('');
+    setShowAddModal(false);
+  };
+
+  const handleDeleteNode = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNodes(prev => prev.filter(n => n.id !== id).map(n => ({
+      ...n,
+      connections: n.connections.filter(c => c !== id)
+    })));
+    setSelectedNodeId(null);
+  };
+
+  const handleToggleStar = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNodes(prev => prev.map(n => 
+      n.id === id ? { ...n, star: !n.star, updatedAt: '2024/05/30' } : n
+    ));
+  };
+
+  return (
+    <div className="flex-1 overflow-hidden relative" onMouseDown={handleBgMouseDown}>
+      
+      {/* Dynamic Grid Background with Panning & Zoom */}
+      <div 
+        className="absolute inset-0 bg-white dot-grid select-none pointer-events-none transition-viewport"
+        style={{
+          transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+          transformOrigin: '0 0'
+        }}
+      >
+        {/* SVG Bezier wires connecting everything precisely */}
+        <svg className="w-[3000px] h-[3000px] overflow-visible absolute top-0 left-0">
+          {nodes.map(node => {
+            return node.connections?.map(targetId => {
+              const target = nodes.find(n => n.id === targetId);
+              if (!target) return null;
+
+              const x1 = node.x + 92; // Half bubble width (184 / 2)
+              const y1 = node.y + 54; // Half bubble height (108 / 2)
+              const x2 = target.x + 92;
+              const y2 = target.y + 54;
+
+              // Cubic Bezier curvatures
+              const cx1 = x1 + (x2 - x1) * 0.45;
+              const cy1 = y1;
+              const cx2 = x1 + (x2 - x1) * 0.55;
+              const cy2 = y2;
+
+              const isHighlighted = selectedNodeId === node.id || selectedNodeId === target.id;
+
+              return (
+                <g key={`${node.id}-${targetId}`}>
+                  {/* Subtle blur backdrop wire */}
+                  <path 
+                    d={`M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`}
+                    fill="none" 
+                    stroke={isHighlighted ? 'rgba(99, 102, 241, 0.4)' : 'rgba(226, 232, 240, 0.5)'}
+                    strokeWidth={8} 
+                    strokeLinecap="round"
+                  />
+                  {/* Primary sharp wire */}
+                  <path 
+                    d={`M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`}
+                    fill="none" 
+                    stroke={isHighlighted ? '#6366f1' : '#cbd5e1'}
+                    strokeWidth={2} 
+                    strokeLinecap="round"
+                    strokeDasharray={node.type === 'muse' || target.type === 'muse' ? '5,5' : 'none'}
+                    className="transition-all duration-300"
+                  />
+                </g>
+              );
+            });
+          })}
+
+          {/* Draw active connecting guidance wire */}
+          {activeTool === 'connection' && connectionSourceId && (() => {
+            const originNode = nodes.find(n => n.id === connectionSourceId);
+            if (!originNode) return null;
+            return (
+              <line 
+                x1={originNode.x + 92}
+                y1={originNode.y + 54}
+                x2={(originNode.x + 220)} // Placeholder end
+                y2={(originNode.y + 100)}
+                stroke="#6366f1"
+                strokeWidth={2}
+                strokeDasharray="4,4"
+              />
+            );
+          })()}
+        </svg>
+      </div>
+
+      {/* Decorative Hearth subfields boundaries layers */}
+      <div 
+        className="absolute inset-0 pointer-events-none transition-viewport select-none"
+        style={{
+          transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+          transformOrigin: '0 0'
+        }}
+      >
+        {boundaries.map((b) => (
+          <div 
+            key={b.id}
+            className={`absolute border border-dashed rounded-[48px] p-6 flex flex-col justify-between transition-all duration-300 ${b.color}`}
+            style={{
+              left: b.x,
+              top: b.y,
+              width: b.width,
+              height: b.height,
+            }}
+          >
+            <div className="flex items-center gap-1.5 opacity-60 font-semibold tracking-wider text-[10px] uppercase">
+              <Layers className="w-3.5 h-3.5" />
+              <span>{b.name}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Canvas Floating Nodes */}
+      <div 
+        className="absolute inset-0 transition-viewport"
+        style={{
+          transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+          transformOrigin: '0 0'
+        }}
+        onMouseMove={handleCanvasMouseMove}
+        onMouseUp={handleCanvasMouseUp}
+      >
+        {nodes.map((node) => {
+          const isSelected = node.id === selectedNodeId;
+          const isHovered = node.id === hoveredNodeId;
+
+          // Compute specific styling parameters based on node type
+          const getThemeAttributes = () => {
+            switch (node.type) {
+              case 'project':
+                return {
+                  gradient: 'from-blue-500/10 to-indigo-500/10 hover:from-blue-500/15 hover:to-indigo-500/15',
+                  accent: 'text-indigo-600',
+                  badge: 'bg-indigo-50 text-indigo-600 border border-indigo-100',
+                  glow: 'glow-purple',
+                  border: isSelected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200/50',
+                  bar: 'bg-gradient-to-r from-indigo-500 to-indigo-600'
+                };
+              case 'todo':
+                return {
+                  gradient: 'from-[#10b981]/10 to-[#34d399]/5 hover:from-[#10b981]/15',
+                  accent: 'text-emerald-600',
+                  badge: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+                  glow: 'glow-green',
+                  border: isSelected ? 'border-emerald-500 ring-2 ring-[#a7f3d0]/60' : 'border-slate-200/50',
+                  bar: 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                };
+              case 'agent':
+                return {
+                  gradient: 'from-purple-500/10 to-pink-500/5',
+                  accent: 'text-purple-600',
+                  badge: 'bg-purple-50 text-purple-600 border border-purple-100',
+                  glow: 'glow-purple',
+                  border: isSelected ? 'border-purple-500 ring-2 ring-purple-200' : 'border-slate-200/50',
+                  bar: 'bg-indigo-500'
+                };
+              case 'muse':
+                return {
+                  gradient: 'from-[#14b8a6]/10 to-[#2dd4bf]/5',
+                  accent: 'text-teal-600',
+                  badge: 'bg-teal-50 text-teal-600 border border-teal-100',
+                  glow: 'glow-blue',
+                  border: isSelected ? 'border-teal-500 ring-2 ring-teal-200' : 'border-slate-200/50',
+                  bar: 'bg-teal-500'
+                };
+              case 'resource':
+              default:
+                return {
+                  gradient: 'from-orange-500/10 to-amber-500/5',
+                  accent: 'text-orange-600',
+                  badge: 'bg-orange-50 text-orange-600 border border-orange-100',
+                  glow: 'glow-orange',
+                  border: isSelected ? 'border-orange-500 ring-2 ring-orange-200' : 'border-slate-200/50',
+                  bar: 'bg-orange-500'
+                };
+            }
+          };
+
+          const ui = getThemeAttributes();
+
+          // Liquid organic blob breath animation choice
+          const animateClass = node.id === 'project-a' 
+            ? 'blob-animate-1' 
+            : node.id === 'project-b'
+              ? 'blob-animate-2'
+              : node.id === 'todo-list'
+                ? 'blob-animate-3'
+                : 'rounded-2xl';
+
+          return (
+            <div 
+              key={node.id}
+              className="absolute cursor-grab active:cursor-grabbing transition-shadow"
+              style={{
+                left: node.x,
+                top: node.y,
+                zIndex: isSelected ? 49 : 10
+              }}
+              onMouseDown={(e) => handleNodeMouseDown(e, node)}
+              onMouseEnter={() => setHoveredNodeId(node.id)}
+              onMouseLeave={() => setHoveredNodeId(null)}
+            >
+              {/* Organic Liquid Bubble matching screenshot precisely */}
+              <div className={`w-[184px] h-[108px] rounded-[36px] bg-white/95 border backdrop-blur-md p-4.5 flex flex-col justify-between select-none relative transition-all duration-300 ${ui.gradient} ${ui.border} ${ui.glow} ${animateClass}`}>
+                
+                {/* Upper line: Badge and percentage info */}
+                <div className="flex items-center justify-between">
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${ui.badge}`}>
+                    {node.type}
+                  </span>
+                  
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={(e) => handleToggleStar(node.id, e)}
+                      className="p-0.5 hover:bg-slate-100/30 rounded"
+                    >
+                      <Star className={`w-3.5 h-3.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : 'text-slate-300 hover:text-slate-500'}`} />
+                    </button>
+                    {node.type !== 'resource' && (
+                      <span className="text-[10px] text-slate-400 font-bold font-mono">
+                        {node.progress}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Core title and quick sub-indicator */}
+                <div className="min-w-0">
+                  <h3 className="text-sm font-extrabold text-slate-800 leading-tight truncate tracking-normal">
+                    {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
+                  </h3>
+                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">
+                    {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
+                  </p>
+                </div>
+
+                {/* Progress bar and members array */}
+                <div className="flex items-center justify-between">
+                  <div className="w-[60%] h-1.5 bg-[#f1f5f9] rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${ui.bar}`}
+                      style={{ width: `${node.progress}%` }}
+                    />
+                  </div>
+                  
+                  {/* Members */}
+                  <div className="flex items-center -space-x-1.5">
+                    {node.members.slice(0, 2).map((member, i) => (
+                      <img 
+                        key={i}
+                        src={AVATARS[i % AVATARS.length]}
+                        alt={member}
+                        className="w-[18px] h-[18px] rounded-full object-cover border border-white"
+                        referrerPolicy="no-referrer"
+                      />
+                    ))}
+                    {node.members.length > 2 && (
+                      <div className="w-[18px] h-[18px] bg-indigo-50 border border-white rounded-full flex items-center justify-center text-[8px] font-extrabold text-indigo-600">
+                        +{node.members.length - 2}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Interactive select to focus details overlay */}
+                {isHovered && activeTool === 'select' && (
+                  <div className="absolute top-1.5 right-1.5 flex gap-1 z-30">
+                    <button 
+                      onClick={(e) => handleDeleteNode(node.id, e)}
+                      className="p-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100/80 hover:scale-105 transition-all"
+                      title="删除此节点"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ACTIVE CHECKLIST MODAL/POPUP OVERLAY - Specifically designed on the Todo List node */}
+              {node.id === focusedTodoNodeId && node.checklist.length > 0 && (
+                <div 
+                  className="absolute top-[116px] left-[10px] w-[240px] bg-white rounded-2xl border border-slate-100 shadow-2xl p-3 z-50 animate-in slide-in-from-top-3 duration-200"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between border-b pb-1.5 mb-2">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      {node.title} checklist
+                    </span>
+                    <button 
+                      onClick={() => setFocusedTodoNodeId(null)}
+                      className="text-[10px] bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded text-slate-400 hover:text-slate-600"
+                    >
+                      Hide
+                    </button>
+                  </div>
+
+                  {/* List content */}
+                  <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                    {node.checklist.map((item) => (
+                      <div 
+                        key={item.id}
+                        onClick={() => handleToggleChecklist(node.id, item.id)}
+                        className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
+                          item.done 
+                            ? 'bg-slate-50/50 border-slate-100 text-slate-400' 
+                            : 'bg-white border-slate-100 hover:border-indigo-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] font-bold ${
+                            item.done 
+                              ? 'bg-emerald-500 border-emerald-500 text-white' 
+                              : 'border-slate-300'
+                          }`}>
+                            {item.done && '✓'}
+                          </span>
+                          <span className={`text-xs font-semibold truncate ${item.done ? 'line-through' : ''}`}>
+                            {item.text}
+                          </span>
+                        </div>
+                        {item.dueDate && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                            item.dueDate === '今天' ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {item.dueDate}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Quick Append list task */}
+                  <form onSubmit={(e) => handleAddMapTaskSubmit(e, node.id)} className="mt-2.5 flex gap-1">
+                    <input 
+                      type="text" 
+                      placeholder="+ 新建任务"
+                      value={quickTaskText}
+                      onChange={(e) => setQuickTaskText(e.target.value)}
+                      className="flex-1 text-xs px-2.5 py-1.5 bg-[#f8fafc] border border-slate-100 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 font-semibold"
+                    />
+                    <button type="submit" className="px-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg">+</button>
+                  </form>
+                </div>
+              )}
+
+              {/* Hidden Checklist Toggle Button */}
+              {!isSelected && node.id === 'todo-list' && !focusedTodoNodeId && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setFocusedTodoNodeId(node.id); }}
+                  className="absolute bottom-[-16px] left-[78px] text-[9px] font-extrabold tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 z-30"
+                >
+                  <span>Checklist</span>
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Viewport Zoom bottom left controller matching screenshot precisely */}
+      <div className="absolute bottom-6 left-6 flex items-center gap-1 px-1 bg-white border border-slate-200 shadow-xl rounded-2xl z-40">
+        <button 
+          onClick={() => setZoom(prev => Math.max(0.5, prev - 0.1))}
+          className="w-8 h-8 rounded-xl font-bold hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all text-sm"
+        >
+          －
+        </button>
+        <span className="text-xs font-bold text-slate-700 min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
+        <button 
+          onClick={() => setZoom(prev => Math.min(1.5, prev + 0.1))}
+          className="w-8 h-8 rounded-xl font-bold hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all text-sm"
+        >
+          ＋
+        </button>
+        <div className="w-px h-5 bg-slate-100 mx-0.5" />
+        <button 
+          onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }}
+          className="w-8 h-8 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-all"
+          title="Reset Canvas View"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Floating Canvas Top Panel to manage line connections tool, boundaries configurations */}
+      <div className="absolute top-4 left-6 flex items-center gap-1 bg-white/95 backdrop-blur-md border border-slate-200/50 p-1 rounded-2xl shadow-xl z-40">
+        <button 
+          onClick={() => { setActiveTool('select'); setConnectionSourceId(null); }}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            activeTool === 'select' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'
+          }`}
+        >
+          <Circle className="w-3.5 h-3.5" />
+          <span>{tVal.selectMode}</span>
+        </button>
+        <button 
+          onClick={() => setActiveTool('connection')}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            activeTool === 'connection' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'
+          }`}
+          title="Click first node, then second node to draw link"
+        >
+          <PenTool className="w-3.5 h-3.5" />
+          <span>{tVal.linkMode}</span>
+        </button>
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-black text-white hover:bg-neutral-800"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>{tVal.newNode}</span>
+        </button>
+      </div>
+
+      {/* Right Corner: Quick Hearth Ecosystem information Box */}
+      <div className="absolute top-4 right-6 bg-white/80 backdrop-blur border border-slate-200 rounded-2xl shadow p-3 z-40 max-w-[280px]">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 mb-1">
+          <Info className="w-4 h-4 text-indigo-500" />
+          <span>{tVal.sandboxHeader}</span>
+        </div>
+        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+          {tVal.sandboxDesc}
+        </p>
+      </div>
+
+      {/* Add node modal */}
+      {showAddModal && (
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white border rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+            <button 
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-indigo-500" />
+              <h3 className="text-base font-bold text-slate-800">{tVal.newComponentHeader}</h3>
+            </div>
+
+            <form onSubmit={handleCreateNodeSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">{tVal.componentTitleLabel}</label>
+                <input 
+                  type="text" 
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="e.g., Marketing Campaign"
+                  className="w-full text-xs px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">{tVal.componentTypeLabel}</label>
+                <select 
+                  value={newType}
+                  onChange={(e) => setNewType(e.target.value as any)}
+                  className="w-full text-xs px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
+                >
+                  <option value="todo">{tVal.todo} (todo)</option>
+                  <option value="project">{tVal.project} (project)</option>
+                  <option value="agent">{tVal.agent} (agent)</option>
+                  <option value="muse">{tVal.muse} (muse)</option>
+                  <option value="resource">{tVal.resource} (resource)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">{tVal.componentDescLabel}</label>
+                <textarea 
+                  rows={2}
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  placeholder="Short description summarizing function..."
+                  className="w-full text-xs p-3 border rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2 border text-xs font-bold rounded-xl text-slate-600 hover:bg-slate-50"
+                >
+                  {tVal.cancel}
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700"
+                >
+                  {tVal.sproutBtn}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+// Inline Close SVG Icon helper if not imported
+function X(props: any) {
+  return (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      fill="none" 
+      viewBox="0 0 24 24" 
+      stroke="currentColor" 
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
