@@ -34,7 +34,7 @@ import { NodeData, MuseIdea, NodeType } from './types';
 
 // Avatars for online collaboration representations
 const AVATARS = [
-  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=128&auto=format&fit=crop", // Zhibin
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=128&auto=format&fit=crop", // ceaserzhao
   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=128&auto=format&fit=crop", // Ying
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=128&auto=format&fit=crop", // Alex
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop", // David
@@ -55,7 +55,7 @@ export default function App() {
       x: 380,
       y: 350,
       progress: 62,
-      members: ['Zhibin', 'Ying', 'Alex', 'David'],
+      members: ['ceaserzhao', 'Ying', 'Alex', 'David'],
       checklist: [
         { id: 'pa-1', text: 'Define system architecture', done: true },
         { id: 'pa-2', text: 'Align styling design norms', done: true },
@@ -75,7 +75,7 @@ export default function App() {
       x: 580,
       y: 220,
       progress: 48,
-      members: ['Zhibin', 'Ying'],
+      members: ['ceaserzhao', 'Ying'],
       checklist: [
         { id: 'pb-1', text: 'Implement WebRTC handshake', done: true },
         { id: 'pb-2', text: 'P2P transport validation', done: false }
@@ -94,7 +94,7 @@ export default function App() {
       x: 480,
       y: 480,
       progress: 25,
-      members: ['Zhibin', 'Alex'],
+      members: ['ceaserzhao', 'Alex'],
       checklist: [
         { id: 't-1', text: '产品原型设计', done: true, dueDate: '今天' },
         { id: 't-2', text: '用户访谈', done: false, dueDate: '明天' },
@@ -130,7 +130,7 @@ export default function App() {
       x: 220,
       y: 280,
       progress: 30,
-      members: ['Zhibin'],
+      members: ['ceaserzhao'],
       checklist: [],
       tags: ['研究', '创意'],
       connections: ['project-a'],
@@ -246,7 +246,7 @@ export default function App() {
             x: 520,
             y: 380,
             progress: 10,
-            members: ['Zhibin'],
+            members: ['ceaserzhao'],
             checklist: [{ id: `item-${freshId}`, text: '分析机会域元数据边界', done: false }],
             tags: ['AI-Proposal'],
             connections: ['todo-list'],
@@ -272,7 +272,7 @@ export default function App() {
       x: 320 + Math.random() * 120,
       y: 280 + Math.random() * 100,
       progress: 0,
-      members: ['Zhibin'],
+      members: ['ceaserzhao'],
       checklist: [],
       tags: ['Muse-Evolved'],
       connections: ['project-a'],
@@ -300,7 +300,7 @@ export default function App() {
       x: 430,
       y: 320,
       progress: 0,
-      members: ['Zhibin'],
+      members: ['ceaserzhao'],
       tags: ['Manual'],
       checklist: [],
       connections: [],

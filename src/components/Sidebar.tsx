@@ -84,15 +84,15 @@ export default function Sidebar({
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-indigo-100 shadow-sm relative">
                 <img 
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" 
-                  alt="Zhibin avatar"
+                  src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256&auto=format&fit=crop" 
+                  alt="ceaserzhao avatar"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
               </div>
               <div className="min-w-0">
                 <div className="text-sm font-bold text-slate-800">
-                  Zhibin
+                  ceaserzhao
                 </div>
                 <div className="text-[11px] font-semibold text-slate-400">
                   Oasis Company

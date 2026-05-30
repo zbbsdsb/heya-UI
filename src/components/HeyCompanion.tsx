@@ -84,7 +84,7 @@ export default function HeyCompanion({
     {
       id: 'd-1',
       sender: 'hey',
-      text: '你好 Zhibin。我刚刚重新计算了我们的 Hearth 拓扑关系链。我注意到 Project A 还是 62% 的完成度，Oasis 公司的接口对齐还没有完全启动。或许我们需要在 Field Map 上额外补充一波 [竞品分析拆解]？我这里有一些准备好的反思。',
+      text: '你好 ceaserzhao。我刚刚重新计算了我们的 Hearth 拓扑关系链。我注意到 Project A 还是 62% 的完成度，Oasis 公司的接口对齐还没有完全启动。或许我们需要在 Field Map 上额外补充一波 [竞品分析拆解]？我这里有一些准备好的反思。',
       timestamp: '11:45'
     },
     {
@@ -126,7 +126,7 @@ export default function HeyCompanion({
     {
       id: 'ref-3',
       time: '前天 11:12',
-      title: '关于 Zhibin 本周创意流动率的元诊断',
+      title: '关于 ceaserzhao 本周创意流动率的元诊断',
       text: '统计显示，由于我们在 Muse 中频繁捕获微光碎片，目前的构思质量极高。建议将去中心化元数据直接广播的构思，迅速进化为 Hearth 的活动产品域。',
       nodeTitle: 'Decentralized Broadcast',
       nodeType: 'project' as NodeType,
@@ -181,8 +181,8 @@ export default function HeyCompanion({
       let actionSuggestion: DialogueMessage['actionNode'] = undefined;
 
       responseText = language === 'en'
-        ? `Received, Zhibin. I have audited our active ${nodes.length} Hearth cards. Guided by my [${companionRole}] mindset, I suggest we continue evolving our topology by materializing thoughts from our Reflections Journal.`
-        : `收到，Zhibin。我读取了当前已激活的 ${nodes.length} 个 Hearth 卡片组件。结合我的角色 [${companionRole}]，我建议继续丰富我们的拓扑。我们可以通过把 “Reflections Journal” 中的心流建议直接物质化为项目节点，来激活下一步协作链路。`;
+        ? `Received, ceaserzhao. I have audited our active ${nodes.length} Hearth cards. Guided by my [${companionRole}] mindset, I suggest we continue evolving our topology by materializing thoughts from our Reflections Journal.`
+        : `收到，ceaserzhao。我读取了当前已激活的 ${nodes.length} 个 Hearth 卡片组件。结合我的角色 [${companionRole}]，我建议继续丰富我们的拓扑。我们可以通过把 “Reflections Journal” 中的心流建议直接物质化为项目节点，来激活下一步协作链路。`;
 
       setDialogues(prev => [...prev, {
         id: `h-${Date.now()}`,
@@ -213,7 +213,7 @@ export default function HeyCompanion({
       x: 350 + Math.floor(Math.random() * randomOffsetOfCoords),
       y: 280 + Math.floor(Math.random() * randomOffsetOfCoords),
       progress: 0,
-      members: ['Zhibin', 'Agent Spark'],
+      members: ['ceaserzhao', 'Agent Spark'],
       checklist: [{ id: `item-inner-${freshId}`, text: language === 'en' ? 'Align metrics with Hey thoughts' : '根据 Hey 的元自省建议对齐指标', done: false }],
       tags: [...tags, 'Hey-Catalyzed'],
       connections: ['project-a', 'todo-list'],
@@ -243,7 +243,7 @@ export default function HeyCompanion({
     }
 
     const feedbacks = language === 'en' ? [
-      "Great to hear your voice Zhibin. I am updating synchronization arrays on our Oermos node structures.",
+      "Great to hear your voice ceaserzhao. I am updating synchronization arrays on our Oermos node structures.",
       "A resonance pulse triggered! Synchronized handshake bandwidth efficiency boosted by 4.2% on our Zurich node.",
       "As your Sovereign Companion, your thought privacy remains my absolute standard. Our Hearth environment protects your work offline.",
       "Our workspace alignment index is higher than 98% of conventional organizations. We are ready to execute Swiss design rules."
@@ -854,7 +854,7 @@ export default function HeyCompanion({
                           )}
                         </div>
                         <div className={`text-[9px] text-slate-400 font-bold font-mono ${isHey ? 'text-left' : 'text-right'}`}>
-                          {isHey ? 'Hey Companion' : 'Zhibin'} • {msg.timestamp}
+                          {isHey ? 'Hey Companion' : 'ceaserzhao'} • {msg.timestamp}
                         </div>
                       </div>
                     </div>

@@ -28,7 +28,7 @@ import { translations, getLocalizedNode } from '../locales';
 
 // Team member avatars
 const AVATARS = [
-  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=128&auto=format&fit=crop", // Zhibin
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=128&auto=format&fit=crop", // ceaserzhao
   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=128&auto=format&fit=crop", // Ying
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=128&auto=format&fit=crop", // Alex
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop", // David
@@ -75,6 +75,7 @@ export default function FieldMapCanvas({
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<NodeData['type']>('todo');
   const [newDesc, setNewDesc] = useState('');
+  const [hudActive, setHudActive] = useState(true);
 
   const tVal = translations[language].fieldmap;
 
@@ -216,7 +217,7 @@ export default function FieldMapCanvas({
       x: 350 + Math.random() * 100,
       y: 300 + Math.random() * 100,
       progress: 0,
-      members: ['Zhibin'],
+      members: ['ceaserzhao'],
       checklist: newType === 'todo' ? [
         { id: `t-${id}-1`, text: '初始化子任务清单', done: false }
       ] : [],
@@ -280,11 +281,13 @@ export default function FieldMapCanvas({
 
               const isHighlighted = selectedNodeId === node.id || selectedNodeId === target.id;
 
+              const pathData = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
+
               return (
                 <g key={`${node.id}-${targetId}`}>
                   {/* Subtle blur backdrop wire */}
                   <path 
-                    d={`M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`}
+                    d={pathData}
                     fill="none" 
                     stroke={isHighlighted ? 'rgba(99, 102, 241, 0.4)' : 'rgba(226, 232, 240, 0.5)'}
                     strokeWidth={8} 
@@ -292,7 +295,7 @@ export default function FieldMapCanvas({
                   />
                   {/* Primary sharp wire */}
                   <path 
-                    d={`M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`}
+                    d={pathData}
                     fill="none" 
                     stroke={isHighlighted ? '#6366f1' : '#cbd5e1'}
                     strokeWidth={2} 
@@ -300,6 +303,10 @@ export default function FieldMapCanvas({
                     strokeDasharray={node.type === 'muse' || target.type === 'muse' ? '5,5' : 'none'}
                     className="transition-all duration-300"
                   />
+                  {/* Glowing flowing energy dot along the wire */}
+                  <circle r={isHighlighted ? "4.5" : "3"} fill={isHighlighted ? "#818cf8" : "#cbd5e1"} className="filter drop-shadow-[0_0_4px_rgba(99,102,241,0.6)]">
+                    <animateMotion dur={isHighlighted ? "3s" : "6s"} repeatCount="indefinite" path={pathData} />
+                  </circle>
                 </g>
               );
             });
@@ -335,7 +342,7 @@ export default function FieldMapCanvas({
         {boundaries.map((b) => (
           <div 
             key={b.id}
-            className={`absolute border border-dashed rounded-[48px] p-6 flex flex-col justify-between transition-all duration-300 ${b.color}`}
+            className={`absolute border border-dashed rounded-[32px] p-5 flex flex-col justify-between transition-all duration-500 bg-slate-500/[0.003] hover:bg-slate-500/[0.015] ${b.color}`}
             style={{
               left: b.x,
               top: b.y,
@@ -343,9 +350,31 @@ export default function FieldMapCanvas({
               height: b.height,
             }}
           >
-            <div className="flex items-center gap-1.5 opacity-60 font-semibold tracking-wider text-[10px] uppercase">
-              <Layers className="w-3.5 h-3.5" />
-              <span>{b.name}</span>
+            {/* Elegant corner tick marks representing technical drawing specs */}
+            <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-current opacity-30 rounded-tl-xl" />
+            <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-current opacity-30 rounded-tr-xl" />
+            <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-current opacity-30 rounded-bl-xl" />
+            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-current opacity-30 rounded-br-xl" />
+
+            {/* Boundary header showing index and location */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 opacity-80 font-mono tracking-widest text-[9px] uppercase px-2 py-0.5 bg-white border border-slate-200/50 rounded-md shadow-sm">
+                <Layers className="w-2.5 h-2.5 text-indigo-500" />
+                <span className="font-bold text-slate-700">{b.name}</span>
+                <span className="text-slate-300">|</span>
+                <span className="text-slate-400 font-extrabold">{b.id.toUpperCase()}</span>
+              </div>
+              
+              {/* Micro-coordinate indicator */}
+              <div className="opacity-40 font-mono text-[8px] tracking-tight">
+                POS: {b.x}X, {b.y}Y
+              </div>
+            </div>
+
+            {/* Technical grid coordinates at the bottom */}
+            <div className="flex justify-between items-center opacity-30 font-mono text-[7px] tracking-widest mt-auto pt-4">
+              <span>W: {b.width}px H: {b.height}px</span>
+              <span>HEARTH_GRID_INDEX // 0x{b.id.toUpperCase().slice(0, 3)}</span>
             </div>
           </div>
         ))}
@@ -442,7 +471,7 @@ export default function FieldMapCanvas({
               onMouseLeave={() => setHoveredNodeId(null)}
             >
               {/* Organic Liquid Bubble matching screenshot precisely */}
-              <div className={`w-[184px] h-[108px] rounded-[36px] bg-white/95 border backdrop-blur-md p-4.5 flex flex-col justify-between select-none relative transition-all duration-300 ${ui.gradient} ${ui.border} ${ui.glow} ${animateClass}`}>
+              <div className={`w-[184px] h-[108px] rounded-[24px] bg-white/95 border backdrop-blur-md p-4.5 flex flex-col justify-between select-none relative transition-all duration-300 ${ui.gradient} ${ui.border} ${ui.glow} ${animateClass}`}>
                 
                 {/* Upper line: Badge and percentage info */}
                 <div className="flex items-center justify-between">
@@ -652,6 +681,19 @@ export default function FieldMapCanvas({
           <Plus className="w-3.5 h-3.5" />
           <span>{tVal.newNode}</span>
         </button>
+        
+        <div className="w-px h-5 bg-slate-200 mx-1" />
+        
+        <button 
+          onClick={() => setHudActive(!hudActive)}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            hudActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'
+          }`}
+          title={language === 'en' ? "Toggle Swiss Layout HUD Scales" : "切换瑞士极简辅助坐标系"}
+        >
+          <Grid className={`w-3.5 h-3.5 ${hudActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+          <span>{language === 'en' ? "Blueprint HUD" : "蓝图 HUD"}</span>
+        </button>
       </div>
 
       {/* Right Corner: Quick Hearth Ecosystem information Box */}
@@ -736,6 +778,73 @@ export default function FieldMapCanvas({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {hudActive && (
+        <div className="absolute inset-0 pointer-events-none z-30 select-none">
+          {/* Top Ruler scale */}
+          <div className="absolute top-0 inset-x-0 h-4 bg-white/50 border-b border-slate-200/50 flex text-[8px] font-mono font-bold text-slate-400 items-center justify-between px-10 transition-all">
+            <span>[0px]</span>
+            <span className="hidden sm:inline">[200px]</span>
+            <span>[400px]</span>
+            <span className="hidden sm:inline">[600px]</span>
+            <span>[800px]</span>
+            <span className="hidden sm:inline">[1000px]</span>
+            <span>[1200px]</span>
+            <span className="hidden sm:inline">[1400px]</span>
+          </div>
+
+          {/* Left Ruler scale */}
+          <div className="absolute left-0 inset-y-0 w-4 bg-white/50 border-r border-slate-200/50 flex flex-col text-[8px] font-mono font-bold text-slate-400 items-center justify-between py-10 transition-all">
+            <span>[0px]</span>
+            <span>[100px]</span>
+            <span>[200px]</span>
+            <span>[300px]</span>
+            <span>[400px]</span>
+            <span>[500px]</span>
+            <span>[600px]</span>
+            <span>[700px]</span>
+          </div>
+
+          {/* Core Axis Lines Crosshair in center */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-[0.04]">
+            <div className="w-full h-px bg-slate-900 absolute" />
+            <div className="h-full w-px bg-slate-900 absolute" />
+            <div className="absolute text-[10px] font-mono border p-1 translate-x-4 bg-white rounded">[CENTRIC POINT AXIS]</div>
+          </div>
+
+          {/* Technical drafting CAD metrics monitor block */}
+          <div className="absolute right-6 bottom-6 bg-slate-900/95 text-white/95 border border-slate-800 rounded-2xl p-4 text-[10px] font-mono shadow-2xl space-y-2 transition-all z-40 max-w-[210px] pointer-events-auto">
+            <div className="flex items-center gap-1 border-b border-slate-800 pb-1.5 font-bold tracking-wider text-slate-400 text-[9px] uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              <span>Viewport Telemetry</span>
+            </div>
+            
+            <div className="space-y-1 text-slate-300">
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500">ENGINE // RENDER</span>
+                <span className="text-indigo-400 font-extrabold">SWISS SECURE // WEBGL</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500">ACTIVE HANDS</span>
+                <span className="text-emerald-400 font-extrabold">P2P_MESH_OK</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500">PAN SHIFT VM</span>
+                <span>{panOffset.x.toFixed(0)}, {panOffset.y.toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500">ACTIVE SCALING</span>
+                <span>{(zoom * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-[8px] text-slate-500 font-semibold tracking-wider">
+              <span>HEARTH COMPANION</span>
+              <span>v1.0.4-PRE</span>
+            </div>
           </div>
         </div>
       )}
