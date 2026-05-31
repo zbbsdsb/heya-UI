@@ -31,10 +31,11 @@ import OermosNetwork from './components/OermosNetwork';
 import RelationsTopology from './components/RelationsTopology';
 
 import { NodeData, MuseIdea, NodeType } from './types';
+import { translations } from './locales';
 
 // Avatars for online collaboration representations
 const AVATARS = [
-  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=128&auto=format&fit=crop", // ceaserzhao
+  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=128&auto=format&fit=crop&sat=-100", // ceaserzhao
   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=128&auto=format&fit=crop", // Ying
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=128&auto=format&fit=crop", // Alex
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop", // David
@@ -44,6 +45,11 @@ const AVATARS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('fieldmap');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('project-a');
+  const [language, setLanguage] = useState<'en' | 'zh'>('en');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [swissTheme, setSwissTheme] = useState(false);
+
+  const tVal = translations[language];
 
   // Hearth core components state (shares across Canvas & Relations)
   const [nodes, setNodes] = useState<NodeData[]>([
@@ -322,6 +328,8 @@ export default function App() {
         onAskHeya={handleAskHeya}
         isAiLoading={isAiLoading}
         chatHistory={chatHistory}
+        language={language}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* 2. Main content block routing */}
@@ -333,13 +341,15 @@ export default function App() {
             <div className="flex gap-1.5">
               <button 
                 className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-400 border border-slate-100"
-                onClick={() => alert('Return back')}
+                onClick={() => alert(tVal.header.returnBack)}
+                title={tVal.header.returnBack}
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
               <button 
                 className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-400 border border-slate-100"
-                onClick={() => alert('Forward direction')}
+                onClick={() => alert(tVal.header.forward)}
+                title={tVal.header.forward}
               >
                 <ArrowRight className="w-4 h-4" />
               </button>
@@ -347,7 +357,7 @@ export default function App() {
 
             <div className="flex items-center gap-1.5 bg-[#f8fafc]/90 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/50 cursor-pointer transition-all">
               <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
-              <span className="text-xs font-bold text-slate-700">Hearth Main Space</span>
+              <span className="text-xs font-bold text-slate-700">{tVal.header.mainSpace}</span>
               <ChevronRight className="w-3 h-3 text-slate-400 rotate-90" />
             </div>
           </div>
@@ -368,10 +378,10 @@ export default function App() {
             {/* Share action */}
             <button className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow shadow-indigo-500/15">
               <Share2 className="w-3.5 h-3.5" />
-              <span>Share</span>
+              <span>{tVal.header.share}</span>
             </button>
 
-            <button className="w-8 h-8 rounded-xl hover:bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+            <button className="w-8 h-8 rounded-xl hover:bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100" title={tVal.header.more}>
               <MoreHorizontal className="w-4 h-4" />
             </button>
           </div>
@@ -386,6 +396,7 @@ export default function App() {
               selectedNodeId={selectedNodeId}
               setSelectedNodeId={setSelectedNodeId}
               onAddMapItem={handleAddMapItemDirectly}
+              language={language}
             />
           )}
 
@@ -395,11 +406,18 @@ export default function App() {
               setNodes={setNodes}
               setSelectedNodeId={setSelectedNodeId}
               setActiveTab={setActiveTab}
+              language={language}
             />
           )}
 
           {activeTab === 'forge' && (
-            <ForgeLogic />
+            <ForgeLogic 
+              nodes={nodes}
+              setNodes={setNodes}
+              setActiveTab={setActiveTab}
+              setSelectedNodeId={setSelectedNodeId}
+              language={language}
+            />
           )}
 
           {activeTab === 'muse' && (
@@ -407,16 +425,18 @@ export default function App() {
               ideas={ideas}
               setIdeas={setIdeas}
               onEvolveNode={handleEvolveNode}
+              language={language}
             />
           )}
 
           {activeTab === 'oermos' && (
-            <OermosNetwork />
+            <OermosNetwork language={language} />
           )}
 
           {activeTab === 'relations' && (
             <RelationsTopology 
               nodes={nodes}
+              language={language}
             />
           )}
 
@@ -498,6 +518,89 @@ export default function App() {
         </div>
 
       </div>
+
+      {/* 3. Settings Preference Overlay */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="bg-white border text-[#0f172a] rounded-2xl w-full max-w-md p-6 shadow-2xl relative space-y-6 mx-4">
+            
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-extrabold text-[#0f172a] flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-indigo-500" />
+                  <span>{tVal.settingsModal.header}</span>
+                </h3>
+                <p className="text-[11px] text-slate-500 font-semibold mt-1">
+                  {tVal.settingsModal.desc}
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4 space-y-4">
+              
+              {/* Language Selection Toggle */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  {tVal.settingsModal.languageLabel}
+                </label>
+                <div className="flex gap-2 mt-2">
+                  <button 
+                    onClick={() => setLanguage('en')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
+                      language === 'en' 
+                        ? 'bg-indigo-600 border-indigo-600 text-white shadow shadow-indigo-600/10' 
+                        : 'bg-[#f8fafc] border-slate-200/60 hover:bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {tVal.settingsModal.langEn}
+                  </button>
+                  <button 
+                    onClick={() => setLanguage('zh')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
+                      language === 'zh' 
+                        ? 'bg-indigo-600 border-indigo-600 text-white shadow shadow-indigo-600/10' 
+                        : 'bg-[#f8fafc] border-slate-200/60 hover:bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {tVal.settingsModal.langZh}
+                  </button>
+                </div>
+              </div>
+
+              {/* Swiss Theme Toggle */}
+              <div className="pt-2 flex justify-between items-start gap-4">
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-700">{tVal.settingsModal.swissTheme}</h4>
+                  <p className="text-[10px] text-slate-500 font-semibold leading-relaxed mt-0.5">
+                    {tVal.settingsModal.swissThemeDesc}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setSwissTheme(!swissTheme)}
+                  className={`w-12 h-6.5 rounded-full p-1 transition-colors duration-200 shrink-0 ${
+                    swissTheme ? 'bg-[#10b981]' : 'bg-slate-200'
+                  }`}
+                >
+                  <div className={`bg-white w-4.5 h-4.5 rounded-full shadow-md transform transition-transform duration-205 ${
+                    swissTheme ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => setIsSettingsOpen(false)}
+                className="px-5 py-2.5 bg-[#0f172a] hover:bg-neutral-800 text-white text-xs font-bold rounded-xl shadow transition-all duration-200"
+              >
+                {tVal.settingsModal.saveBtn}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

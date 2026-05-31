@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  Compass, 
   Grid, 
   Cpu, 
   Settings, 
@@ -17,16 +16,16 @@ import {
   BookOpen,
   ChevronDown,
   Map,
-  MessageSquare
+  Compass
 } from 'lucide-react';
 import { translations } from '../locales';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  onAskHeya: (prompt: string) => void;
-  isAiLoading: boolean;
-  chatHistory: { role: string; content: string }[];
+  onAskHeya?: (prompt: string) => void;
+  isAiLoading?: boolean;
+  chatHistory?: { role: string; content: string }[];
   language?: 'en' | 'zh';
   onOpenSettings?: () => void;
 }
@@ -34,15 +33,9 @@ interface SidebarProps {
 export default function Sidebar({ 
   activeTab, 
   setActiveTab, 
-  onAskHeya, 
-  isAiLoading, 
-  chatHistory,
   language = 'en',
   onOpenSettings
 }: SidebarProps) {
-  const [promptInput, setPromptInput] = useState('');
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-
   const tVal = translations[language].sidebar;
 
   const menuItems = [
@@ -55,14 +48,6 @@ export default function Sidebar({
     { id: 'relations', label: 'Relations', icon: Network },
     { id: 'hey', label: 'Hey Companion', icon: Sparkles },
   ];
-
-
-  const handleAsk = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!promptInput.trim() || isAiLoading) return;
-    onAskHeya(promptInput);
-    setPromptInput('');
-  };
 
   return (
     <div className="w-[280px] h-full flex flex-col justify-between bg-white border-r border-[#eef2f6] shrink-0 select-none font-sans relative">
@@ -84,7 +69,7 @@ export default function Sidebar({
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-indigo-100 shadow-sm relative">
                 <img 
-                  src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256&auto=format&fit=crop" 
+                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&auto=format&fit=crop&sat=-100" 
                   alt="ceaserzhao avatar"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -132,111 +117,79 @@ export default function Sidebar({
 
       {/* Heya AI Section */}
       <div className="px-5 pb-5">
-        <div className="p-4 rounded-2xl bg-[#eff6ff] border border-[#dbeafe] relative overflow-hidden group">
-          {/* Subtle background decoration */}
-          <div className="absolute top-0 right-0 w-16 h-16 bg-blue-200/20 rounded-full blur-xl transition-all group-hover:scale-125" />
+        <button
+          onClick={() => setActiveTab('forge')}
+          className={`w-full text-left p-4.5 rounded-2xl relative overflow-hidden transition-all duration-300 group border flex flex-col justify-between ${
+            activeTab === 'forge'
+              ? 'bg-[#0f172a] text-white border-slate-900 shadow-xl'
+              : 'bg-gradient-to-br from-[#f8fafc] via-[#eff6ff] to-[#e0f2fe] hover:from-[#f0f4f8] hover:via-[#e0f1fe] hover:to-[#bae6fd] text-slate-800 border-[#eef2f6] hover:border-indigo-200 hover:shadow-md'
+          }`}
+          title={language === 'en' ? 'Click to open Official Creation & Forge Workbench' : '点击打开系统官方节点及计算代理创意工坊'}
+        >
+          {/* Pulsing signal background */}
+          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
           
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-bold text-blue-900 tracking-tight flex items-center gap-1">
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              Heya AI
+          <div className="w-full flex items-center justify-between mb-3 pointer-events-none">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className={`w-4 h-4 ${activeTab === 'forge' ? 'text-blue-400' : 'text-indigo-600 animate-pulse'}`} />
+              <span className={`text-[10px] font-black tracking-wider uppercase ${activeTab === 'forge' ? 'text-blue-300' : 'text-indigo-950 font-sans'}`}>
+                {language === 'en' ? 'Hey Portal' : 'Hey 门户'}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+              </span>
+              <span className={`text-[8px] font-mono font-extrabold tracking-wider ${activeTab === 'forge' ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                LIVE
+              </span>
+            </div>
+          </div>
+
+          <div className="pointer-events-none space-y-1 select-none">
+            <h4 className={`text-xs font-black ${activeTab === 'forge' ? 'text-white' : 'text-slate-950 font-sans'}`}>
+              {language === 'en' ? 'Official Design & Forge' : '进入正式创建面板'}
+            </h4>
+            <p className={`text-[10px] font-semibold leading-relaxed ${activeTab === 'forge' ? 'text-slate-400' : 'text-slate-500'}`}>
+              {language === 'en' 
+                ? 'Tactile workspace with AI model optimization to draft nodes & agents directly to Field Map!' 
+                : '一键进入官方高级节点与模型代理设计中心，配置属性并实体化入图！'}
+            </p>
+          </div>
+
+          <div className="w-full flex items-center justify-between mt-3 pt-3 border-t border-slate-200/50 group-hover:border-slate-300/50 transition-colors pointer-events-none">
+            <span className={`text-[9px] font-bold ${activeTab === 'forge' ? 'text-blue-400' : 'text-indigo-600'} flex items-center gap-1`}>
+              <span>{language === 'en' ? 'Enter Forge Studio' : '进入熔铸工坊'}</span>
+              <span className="transform group-hover:translate-x-1 duration-200">→</span>
             </span>
-            <span className="px-1.5 py-0.5 bg-[#dbeafe] text-blue-600 rounded-md text-[9px] font-bold uppercase tracking-wider">
-              Beta
+            <span className={`text-[8px] font-mono font-bold px-1.2 py-0.2 rounded ${
+              activeTab === 'forge' ? 'bg-slate-800 text-slate-400' : 'bg-white/80 border border-slate-200/40 text-slate-500'
+            }`}>
+              ADR-007
             </span>
           </div>
-          
-          <p className="text-xs text-blue-800/80 leading-relaxed font-semibold mb-3">
-            {tVal.analyzePrompt}
-          </p>
-
-          <form onSubmit={handleAsk} className="space-y-2">
-            <input
-              type="text"
-              placeholder={tVal.placeholder}
-              value={promptInput}
-              onChange={(e) => setPromptInput(e.target.value)}
-              className="w-full text-xs px-3 py-2 bg-white/90 border border-blue-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 shadow-sm"
-              disabled={isAiLoading}
-            />
-            
-            <div className="flex gap-1.5">
-              <button
-                type="submit"
-                className="flex-1 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm shadow-blue-400/20 transition-all flex items-center justify-center gap-1 active:scale-95 disabled:opacity-50"
-                disabled={isAiLoading}
-              >
-                {isAiLoading ? tVal.analyzing : tVal.askButton}
-              </button>
-              
-              {chatHistory.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowHistoryModal(true)}
-                  className="px-2 bg-white/80 hover:bg-white text-slate-600 border border-blue-200 rounded-lg text-xs font-bold transition-all relative"
-                  title={tVal.historyTitle}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
+        </button>
 
         {/* Footer actions exactly as shown in screenshot */}
         <div className="flex items-center justify-between mt-5 pt-3 border-t border-slate-100">
           <button 
             onClick={onOpenSettings}
             className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all" 
-            title={tVal.settings}
+            title={language === 'en' ? 'Settings' : '系统设置'}
           >
             <Settings className="w-4 h-4" />
           </button>
-          <button className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all relative" title={tVal.notifications}>
+          <button className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all relative" title={language === 'en' ? 'Notifications' : '通知'}>
             <Bell className="w-4 h-4" />
             <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
           </button>
-          <button className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all" title={tVal.systemLogs}>
+          <button className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all" title={language === 'en' ? 'System Guide' : '指南'}>
             <BookOpen className="w-4 h-4" />
           </button>
         </div>
       </div>
-
-      {/* Dialog for Chat History Response */}
-      {showHistoryModal && (
-        <div className="absolute inset-x-4 bottom-24 bg-white border border-slate-200 rounded-2xl shadow-2xl p-4 z-50 flex flex-col max-h-[320px] animate-in slide-in-from-bottom-5">
-          <div className="flex items-center justify-between border-b pb-2 mb-2">
-            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              {tVal.historyTitle}
-            </span>
-            <button 
-              onClick={() => setShowHistoryModal(false)}
-              className="text-[10px] font-bold text-slate-400 hover:text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded"
-            >
-              {tVal.close}
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2 mt-1 pr-1">
-            {chatHistory.map((item, idx) => (
-              <div 
-                key={idx} 
-                className={`p-2 rounded-xl text-xs leading-relaxed ${
-                  item.role === 'user' 
-                    ? 'bg-slate-50 text-slate-800' 
-                    : 'bg-indigo-50/50 text-slate-700 border border-indigo-100/50'
-                }`}
-              >
-                <div className="font-bold text-[10px] uppercase tracking-wide mb-0.5 text-slate-400">
-                  {item.role === 'user' ? tVal.you : tVal.assistant}
-                </div>
-                <div className="whitespace-pre-wrap font-medium">{item.content}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

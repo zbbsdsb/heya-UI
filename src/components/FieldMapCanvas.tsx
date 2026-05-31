@@ -28,7 +28,7 @@ import { translations, getLocalizedNode } from '../locales';
 
 // Team member avatars
 const AVATARS = [
-  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=128&auto=format&fit=crop", // ceaserzhao
+  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=128&auto=format&fit=crop&sat=-100", // ceaserzhao
   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=128&auto=format&fit=crop", // Ying
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=128&auto=format&fit=crop", // Alex
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop", // David
@@ -77,7 +77,132 @@ export default function FieldMapCanvas({
   const [newDesc, setNewDesc] = useState('');
   const [hudActive, setHudActive] = useState(true);
 
+  // Organic Ecosystem enhancement states
+  const [nodeFilter, setNodeFilter] = useState<'all' | 'project' | 'todo' | 'agent' | 'muse' | 'resource'>('all');
+  const [isSimulating, setIsSimulating] = useState(false);
+  const simulationRef = useRef<number | null>(null);
+
+  // Background mindspore/neural glowing particle flow coordinates in canvas space
+  const [particles] = useState(() => {
+    return Array.from({ length: 40 }).map((_, i) => ({
+      id: i,
+      x: Math.random() * 1400 + 50,
+      y: Math.random() * 900 + 50,
+      r: Math.random() * 2.2 + 0.8,
+      opacity: Math.random() * 0.35 + 0.1,
+      speed: Math.random() * 1.5 + 0.4,
+    }));
+  });
+
   const tVal = translations[language].fieldmap;
+
+  // --- SUBTLE LATTICE SPRING OPTIMIZER ENGINE ---
+  const runLatticeRelaxation = (customFrames = 90) => {
+    if (simulationRef.current) {
+      cancelAnimationFrame(simulationRef.current);
+    }
+    
+    setIsSimulating(true);
+    let framesRemaining = customFrames;
+    
+    const step = () => {
+      setNodes(prev => {
+        const k = 220; // Perfect standard spacing between nodes
+        const decayForce = Math.min(1, framesRemaining / customFrames); // Eased force decay
+        
+        // Vectors for accumulated displacement
+        const dxs = new Array(prev.length).fill(0);
+        const dys = new Array(prev.length).fill(0);
+        
+        // 1. Repulsive forces (prevent clutter and overlap)
+        for (let i = 0; i < prev.length; i++) {
+          for (let j = i + 1; j < prev.length; j++) {
+            const n1 = prev[i];
+            const n2 = prev[j];
+            const dx = n2.x - n1.x;
+            const dy = n2.y - n1.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            // Repulsive range: if closer than 190, push apart gently
+            const minAllowedDist = 194;
+            if (dist < minAllowedDist) {
+              const repelStrength = (minAllowedDist - dist) * 0.12 * decayForce;
+              const forceX = (dx / dist) * repelStrength;
+              const forceY = (dy / dist) * repelStrength;
+              
+              dxs[i] -= forceX;
+              dys[i] -= forceY;
+              dxs[j] += forceX;
+              dys[j] += forceY;
+            }
+          }
+        }
+        
+        // 2. Attractive forces along connection links
+        for (let i = 0; i < prev.length; i++) {
+          const node = prev[i];
+          if (!node.connections) continue;
+          node.connections.forEach(targetId => {
+            const j = prev.findIndex(n => n.id === targetId);
+            if (j === -1) return;
+            const n2 = prev[j];
+            const dx = n2.x - node.x;
+            const dy = n2.y - node.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            // Connected nodes like to stay near ideal distance K
+            if (dist > k) {
+              const attractiveStrength = (dist - k) * 0.03 * decayForce;
+              const forceX = (dx / dist) * attractiveStrength;
+              const forceY = (dy / dist) * attractiveStrength;
+              
+              dxs[i] += forceX;
+              dys[i] += forceY;
+              dxs[j] -= forceX;
+              dys[j] -= forceY;
+            }
+          });
+        }
+
+        // 3. Coordinate bounds clamp & gentle pull to preserve layout integrity
+        return prev.map((node, idx) => {
+          if (node.id === draggedNodeId) return node; // Skip current dragging item
+          
+          let nx = node.x + dxs[idx];
+          let ny = node.y + dys[idx];
+          
+          // Outer canvas bounding safety guard
+          nx = Math.max(40, Math.min(1450, nx));
+          ny = Math.max(40, Math.min(950, ny));
+          
+          return {
+            ...node,
+            x: Math.round(nx),
+            y: Math.round(ny),
+            updatedAt: '2024/05/30'
+          };
+        });
+      });
+      
+      framesRemaining--;
+      if (framesRemaining > 0) {
+        simulationRef.current = requestAnimationFrame(step);
+      } else {
+        setIsSimulating(false);
+      }
+    };
+    
+    simulationRef.current = requestAnimationFrame(step);
+  };
+
+  // Clean up animation ticker on component unmount
+  useEffect(() => {
+    return () => {
+      if (simulationRef.current) {
+        cancelAnimationFrame(simulationRef.current);
+      }
+    };
+  }, []);
 
   // Hearth Boundaries specification
   const boundaries = [
@@ -250,19 +375,58 @@ export default function FieldMapCanvas({
     ));
   };
 
+  const getFilterLabel = (type: string) => {
+    switch (type) {
+      case 'all': return language === 'en' ? 'All' : '全部';
+      case 'project': return tVal.project || 'Project';
+      case 'todo': return tVal.todo || 'Todo';
+      case 'agent': return tVal.agent || 'Agent';
+      case 'muse': return tVal.muse || 'Muse';
+      case 'resource': return tVal.resource || 'Resource';
+      default: return type;
+    }
+  };
+
   return (
-    <div className="flex-1 overflow-hidden relative" onMouseDown={handleBgMouseDown}>
+    <div 
+      className="flex-1 overflow-hidden relative bg-[#fafafa]" 
+      onMouseDown={handleBgMouseDown}
+      onMouseMove={handleCanvasMouseMove}
+      onMouseUp={handleCanvasMouseUp}
+      onMouseLeave={handleCanvasMouseUp}
+    >
       
-      {/* Dynamic Grid Background with Panning & Zoom */}
+      {/* Centered Single Viewport Container - Eliminates viewport desynchronization jitter */}
       <div 
-        className="absolute inset-0 bg-white dot-grid select-none pointer-events-none transition-viewport"
+        className="absolute inset-0 select-none pointer-events-none transition-viewport"
         style={{
           transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
           transformOrigin: '0 0'
         }}
       >
-        {/* SVG Bezier wires connecting everything precisely */}
-        <svg className="w-[3000px] h-[3000px] overflow-visible absolute top-0 left-0">
+        {/* dot grid backdrop */}
+        <div className="absolute inset-[-2000px] bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] [background-size:24px_24px] pointer-events-none opacity-80" />
+
+        {/* Bioluminescent floating mycelium micro-particles representing self-organizing mindspore spores */}
+        <svg className="w-[3000px] h-[3000px] overflow-visible absolute top-0 left-0 pointer-events-none">
+          {/* Glowing biological spores that float and drift */}
+          {particles.map(p => (
+            <circle
+              key={`spore-${p.id}`}
+              cx={p.x}
+              cy={p.y}
+              r={p.r}
+              fill="#818cf8"
+              opacity={p.opacity}
+              className="animate-pulse"
+              style={{
+                animationDelay: `${p.id * 120}ms`,
+                animationDuration: `${3200 / p.speed}ms`
+              }}
+            />
+          ))}
+
+          {/* SVG Bezier wires connecting everything precisely */}
           {nodes.map(node => {
             return node.connections?.map(targetId => {
               const target = nodes.find(n => n.id === targetId);
@@ -280,16 +444,17 @@ export default function FieldMapCanvas({
               const cy2 = y2;
 
               const isHighlighted = selectedNodeId === node.id || selectedNodeId === target.id;
+              const isFilteredOut = (nodeFilter !== 'all' && node.type !== nodeFilter && target.type !== nodeFilter);
 
               const pathData = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
 
               return (
-                <g key={`${node.id}-${targetId}`}>
+                <g key={`${node.id}-${targetId}`} className={`transition-opacity duration-300 ${isFilteredOut ? 'opacity-10' : 'opacity-100'}`}>
                   {/* Subtle blur backdrop wire */}
                   <path 
                     d={pathData}
                     fill="none" 
-                    stroke={isHighlighted ? 'rgba(99, 102, 241, 0.4)' : 'rgba(226, 232, 240, 0.5)'}
+                    stroke={isHighlighted ? 'rgba(99, 102, 241, 0.45)' : 'rgba(226, 232, 240, 0.65)'}
                     strokeWidth={8} 
                     strokeLinecap="round"
                   />
@@ -301,11 +466,11 @@ export default function FieldMapCanvas({
                     strokeWidth={2} 
                     strokeLinecap="round"
                     strokeDasharray={node.type === 'muse' || target.type === 'muse' ? '5,5' : 'none'}
-                    className="transition-all duration-300"
+                    className="transition-all duration-300 animate-pulse"
                   />
                   {/* Glowing flowing energy dot along the wire */}
-                  <circle r={isHighlighted ? "4.5" : "3"} fill={isHighlighted ? "#818cf8" : "#cbd5e1"} className="filter drop-shadow-[0_0_4px_rgba(99,102,241,0.6)]">
-                    <animateMotion dur={isHighlighted ? "3s" : "6s"} repeatCount="indefinite" path={pathData} />
+                  <circle r={isHighlighted ? "5" : "3.5"} fill={isHighlighted ? "#818cf8" : "#94a3b8"} className="filter drop-shadow-[0_0_5px_rgba(99,102,241,0.7)]">
+                    <animateMotion dur={isHighlighted ? "2.5s" : "5.5s"} repeatCount="indefinite" path={pathData} />
                   </circle>
                 </g>
               );
@@ -329,16 +494,8 @@ export default function FieldMapCanvas({
             );
           })()}
         </svg>
-      </div>
 
-      {/* Decorative Hearth subfields boundaries layers */}
-      <div 
-        className="absolute inset-0 pointer-events-none transition-viewport select-none"
-        style={{
-          transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
-          transformOrigin: '0 0'
-        }}
-      >
+        {/* Decorative Hearth subfields boundaries layers */}
         {boundaries.map((b) => (
           <div 
             key={b.id}
@@ -378,21 +535,13 @@ export default function FieldMapCanvas({
             </div>
           </div>
         ))}
-      </div>
 
-      {/* Canvas Floating Nodes */}
-      <div 
-        className="absolute inset-0 transition-viewport"
-        style={{
-          transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
-          transformOrigin: '0 0'
-        }}
-        onMouseMove={handleCanvasMouseMove}
-        onMouseUp={handleCanvasMouseUp}
-      >
-        {nodes.map((node) => {
-          const isSelected = node.id === selectedNodeId;
-          const isHovered = node.id === hoveredNodeId;
+        {/* Floating Node elements layer - pointer events enabled */}
+        <div className="absolute inset-0 pointer-events-auto animate-in fade-in duration-500">
+          {nodes.map((node) => {
+            const isSelected = node.id === selectedNodeId;
+            const isHovered = node.id === hoveredNodeId;
+            const isFilteredOut = nodeFilter !== 'all' && node.type !== nodeFilter;
 
           // Compute specific styling parameters based on node type
           const getThemeAttributes = () => {
@@ -460,18 +609,22 @@ export default function FieldMapCanvas({
           return (
             <div 
               key={node.id}
-              className="absolute cursor-grab active:cursor-grabbing transition-shadow"
+              className={`absolute cursor-grab active:cursor-grabbing transition-all duration-300 ease-out ${
+                isFilteredOut 
+                  ? 'opacity-25 pointer-events-none saturate-50 scale-95' 
+                  : 'hover:-translate-y-1.5 hover:shadow-[0_20px_35px_-10px_rgba(99,102,241,0.18)] hover:scale-[1.02]'
+              }`}
               style={{
                 left: node.x,
                 top: node.y,
                 zIndex: isSelected ? 49 : 10
               }}
-              onMouseDown={(e) => handleNodeMouseDown(e, node)}
-              onMouseEnter={() => setHoveredNodeId(node.id)}
-              onMouseLeave={() => setHoveredNodeId(null)}
+              onMouseDown={(e) => !isFilteredOut && handleNodeMouseDown(e, node)}
+              onMouseEnter={() => !isFilteredOut && setHoveredNodeId(node.id)}
+              onMouseLeave={() => !isFilteredOut && setHoveredNodeId(null)}
             >
               {/* Organic Liquid Bubble matching screenshot precisely */}
-              <div className={`w-[184px] h-[108px] rounded-[24px] bg-white/95 border backdrop-blur-md p-4.5 flex flex-col justify-between select-none relative transition-all duration-300 ${ui.gradient} ${ui.border} ${ui.glow} ${animateClass}`}>
+              <div className={`w-[184px] h-[108px] rounded-[24px] bg-white/95 border backdrop-blur-md p-4.5 flex flex-col justify-between select-none relative transition-all duration-300 ${isSelected ? 'shadow-lg border-indigo-400' : 'shadow-sm'} ${ui.gradient} ${ui.border} ${ui.glow} ${animateClass}`}>
                 
                 {/* Upper line: Badge and percentage info */}
                 <div className="flex items-center justify-between">
@@ -627,6 +780,7 @@ export default function FieldMapCanvas({
           );
         })}
       </div>
+    </div>
 
       {/* Viewport Zoom bottom left controller matching screenshot precisely */}
       <div className="absolute bottom-6 left-6 flex items-center gap-1 px-1 bg-white border border-slate-200 shadow-xl rounded-2xl z-40">
@@ -694,6 +848,40 @@ export default function FieldMapCanvas({
           <Grid className={`w-3.5 h-3.5 ${hudActive ? 'text-indigo-600' : 'text-slate-400'}`} />
           <span>{language === 'en' ? "Blueprint HUD" : "蓝图 HUD"}</span>
         </button>
+      </div>
+
+      {/* Category Filter Deck & Lattice Optimizer physics controls */}
+      <div className="absolute top-[68px] left-6 flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200/50 rounded-2xl shadow-xl z-40 max-w-[calc(100vw-340px)] overflow-x-auto select-none">
+        {/* Lattice Relax Sparkle Button */}
+        <button
+          onClick={() => runLatticeRelaxation(120)}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            isSimulating 
+              ? 'bg-indigo-100 text-indigo-600 animate-pulse' 
+              : 'text-indigo-600 hover:bg-indigo-50 bg-indigo-50/50'
+          }`}
+          title={language === 'en' ? "Simulate self-organizing organic node arrangement" : "一键激发智能晶格避障自适应排列"}
+        >
+          <Sparkles className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
+          <span>{language === 'en' ? "Lattice Relax" : "晶格整理"}</span>
+        </button>
+
+        <div className="w-px h-5 bg-slate-200 mx-1" />
+
+        {/* Local type filters */}
+        {(['all', 'project', 'todo', 'agent', 'muse', 'resource'] as const).map((filterOpt) => (
+          <button
+            key={filterOpt}
+            onClick={() => setNodeFilter(filterOpt)}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
+              nodeFilter === filterOpt
+                ? 'bg-black text-white'
+                : 'text-slate-500 hover:text-slate-950 hover:bg-slate-100/40'
+            }`}
+          >
+            {getFilterLabel(filterOpt)}
+          </button>
+        ))}
       </div>
 
       {/* Right Corner: Quick Hearth Ecosystem information Box */}
