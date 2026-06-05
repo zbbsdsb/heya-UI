@@ -29,6 +29,7 @@ import ForgeLogic from './components/ForgeLogic';
 import MuseIdeation from './components/MuseIdeation';
 import OermosNetwork from './components/OermosNetwork';
 import RelationsTopology from './components/RelationsTopology';
+import ProjectSpace from './components/ProjectSpace';
 
 import { NodeData, MuseIdea, NodeType } from './types';
 import { translations } from './locales';
@@ -43,7 +44,7 @@ const AVATARS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('fieldmap');
+  const [activeTab, setActiveTab] = useState('projectspace');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('project-a');
   const [language, setLanguage] = useState<'en' | 'zh'>('en');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -52,122 +53,175 @@ export default function App() {
   const tVal = translations[language];
 
   // Hearth core components state (shares across Canvas & Relations)
-  const [nodes, setNodes] = useState<NodeData[]>([
-    {
-      id: 'project-a',
-      type: 'project',
-      title: 'Project A',
-      description: '核心开发，对齐 Oasis 公司对接条件。',
-      x: 380,
-      y: 350,
-      progress: 62,
-      members: ['ceaserzhao', 'Ying', 'Alex', 'David'],
-      checklist: [
-        { id: 'pa-1', text: 'Define system architecture', done: true },
-        { id: 'pa-2', text: 'Align styling design norms', done: true },
-        { id: 'pa-3', text: 'Coordinate with Oasis Co.', done: false }
-      ],
-      tags: ['产品', '开发周期'],
-      connections: ['project-b', 'todo-list', 'research'],
-      star: true,
-      createdAt: '2024/05/28',
-      updatedAt: '2024/05/30'
-    },
-    {
-      id: 'project-b',
-      type: 'project',
-      title: 'Project B',
-      description: '重点在 Oermos 协议设计，测试 Zurich 基座握手包。',
-      x: 580,
-      y: 220,
-      progress: 48,
-      members: ['ceaserzhao', 'Ying'],
-      checklist: [
-        { id: 'pb-1', text: 'Implement WebRTC handshake', done: true },
-        { id: 'pb-2', text: 'P2P transport validation', done: false }
-      ],
-      tags: ['核心', '网络协议'],
-      connections: ['project-a', 'user-research', 'todo-list'],
-      star: false,
-      createdAt: '2024/05/20',
-      updatedAt: '2024/05/29'
-    },
-    {
-      id: 'todo-list',
-      type: 'todo',
-      title: 'Todo List',
-      description: '团队双周高频待办追踪面板。',
-      x: 480,
-      y: 480,
-      progress: 25,
-      members: ['ceaserzhao', 'Alex'],
-      checklist: [
-        { id: 't-1', text: '产品原型设计', done: true, dueDate: '今天' },
-        { id: 't-2', text: '用户访谈', done: false, dueDate: '明天' },
-        { id: 't-3', text: '竞品分析', done: false, dueDate: '后天' }
-      ],
-      tags: ['待办', '高优先级'],
-      connections: ['project-a', 'project-b'],
-      star: false,
-      createdAt: '2024/05/25',
-      updatedAt: '2024/05/30'
-    },
-    {
-      id: 'design-system',
-      type: 'resource',
-      title: 'Design System',
-      description: '极简黑白高保真微动效基础规范底座。',
-      x: 720,
-      y: 470,
-      progress: 100,
-      members: ['Alex', 'David', 'Emma'],
-      checklist: [],
-      tags: ['规范', '美学'],
-      connections: ['todo-list'],
-      star: false,
-      createdAt: '2024/05/18',
-      updatedAt: '2024/05/28'
-    },
-    {
-      id: 'research',
-      type: 'muse',
-      title: 'Research',
-      description: '市场契机分析与用户心流追踪研讨。',
-      x: 220,
-      y: 280,
-      progress: 30,
-      members: ['ceaserzhao'],
-      checklist: [],
-      tags: ['研究', '创意'],
-      connections: ['project-a'],
-      star: false,
-      createdAt: '2024/05/10',
-      updatedAt: '2024/05/25'
-    },
-    {
-      id: 'user-research',
-      type: 'agent',
-      title: 'User Research Companion',
-      description: '自动分析、提炼并过滤用户反馈。',
-      x: 760,
-      y: 180,
-      progress: 85,
-      members: ['Agent Spark'],
-      checklist: [],
-      tags: ['Agent', 'AI洞察'],
-      connections: ['project-b'],
-      star: false,
-      createdAt: '2024/05/29',
-      updatedAt: '2024/05/30'
+  const [nodes, setNodes] = useState<NodeData[]>(() => {
+    const saved = localStorage.getItem('hearth_nodes');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing hearth_nodes from localStorage', e);
+      }
     }
-  ]);
+    return [
+      {
+        id: 'project-a',
+        type: 'project',
+        title: 'Project A',
+        description: '核心开发，对齐 Oasis 公司对接条件。',
+        x: 380,
+        y: 350,
+        progress: 62,
+        members: ['ceaserzhao', 'Ying', 'Alex', 'David'],
+        checklist: [
+          { id: 'pa-1', text: 'Define system architecture', done: true },
+          { id: 'pa-2', text: 'Align styling design norms', done: true },
+          { id: 'pa-3', text: 'Coordinate with Oasis Co.', done: false }
+        ],
+        tags: ['产品', '开发周期'],
+        connections: ['project-b', 'todo-list', 'research'],
+        star: true,
+        createdAt: '2024/05/28',
+        updatedAt: '2024/05/30',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'ceaserzhao',
+        version: 1
+      },
+      {
+        id: 'project-b',
+        type: 'project',
+        title: 'Project B',
+        description: '重点在 Oermos 协议设计，测试 Zurich 基座握手包。',
+        x: 580,
+        y: 220,
+        progress: 48,
+        members: ['ceaserzhao', 'Ying'],
+        checklist: [
+          { id: 'pb-1', text: 'Implement WebRTC handshake', done: true },
+          { id: 'pb-2', text: 'P2P transport validation', done: false }
+        ],
+        tags: ['核心', '网络协议'],
+        connections: ['project-a', 'user-research', 'todo-list'],
+        star: false,
+        createdAt: '2024/05/20',
+        updatedAt: '2024/05/29',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'ceaserzhao',
+        version: 1
+      },
+      {
+        id: 'todo-list',
+        type: 'todo',
+        title: 'Todo List',
+        description: '团队双周高频待办追踪面板。',
+        x: 480,
+        y: 480,
+        progress: 25,
+        members: ['ceaserzhao', 'Alex'],
+        checklist: [
+          { id: 't-1', text: '产品原型设计', done: true, dueDate: '今天' },
+          { id: 't-2', text: '用户访谈', done: false, dueDate: '明天' },
+          { id: 't-3', text: '竞品分析', done: false, dueDate: '后天' }
+        ],
+        tags: ['待办', '高优先级'],
+        connections: ['project-a', 'project-b'],
+        star: false,
+        createdAt: '2024/05/25',
+        updatedAt: '2024/05/30',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'ceaserzhao',
+        version: 1
+      },
+      {
+        id: 'design-system',
+        type: 'resource',
+        title: 'Design System',
+        description: '极简黑白高保真微动效基础规范底座。',
+        x: 720,
+        y: 470,
+        progress: 100,
+        members: ['Alex', 'David', 'Emma'],
+        checklist: [],
+        tags: ['规范', '美学'],
+        connections: ['todo-list'],
+        star: false,
+        createdAt: '2024/05/18',
+        updatedAt: '2024/05/28',
+        status: 'completed',
+        syncStatus: 'synced',
+        authorId: 'Alex',
+        version: 1
+      },
+      {
+        id: 'research',
+        type: 'muse',
+        title: 'Research',
+        description: '市场契机 analysis 与用户心流追踪研讨。',
+        x: 220,
+        y: 280,
+        progress: 30,
+        members: ['ceaserzhao'],
+        checklist: [],
+        tags: ['研究', '创意'],
+        connections: ['project-a'],
+        star: false,
+        createdAt: '2024/05/10',
+        updatedAt: '2024/05/25',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'ceaserzhao',
+        version: 1
+      },
+      {
+        id: 'user-research',
+        type: 'agent',
+        title: 'User Research Companion',
+        description: '自动分析、提炼并过滤用户反馈。',
+        x: 760,
+        y: 180,
+        progress: 85,
+        members: ['Agent Spark'],
+        checklist: [],
+        tags: ['Agent', 'AI 洞察'],
+        connections: ['project-b'],
+        star: false,
+        createdAt: '2024/05/29',
+        updatedAt: '2024/05/30',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'system',
+        version: 1
+      }
+    ];
+  });
 
   // Muse original sparks state (shares across Muse & can evolve onto Canvas)
-  const [ideas, setIdeas] = useState<MuseIdea[]>([
-    { id: 'muse-1', content: '使用 WebRTC 进行去中心化分布式元数据直接广播', createdAt: '今天 09:24' },
-    { id: 'muse-2', content: 'Swiss 极简网格排版系统：仅采用黑白对比与粗细线条，零多余圆角', createdAt: '昨天 19:40' },
-    { id: 'muse-3', content: '0ms通讯底座：握手信息通过底层P2P网格自动绕过中心式服务器', createdAt: '前天 11:12' }
-  ]);
+  const [ideas, setIdeas] = useState<MuseIdea[]>(() => {
+    const saved = localStorage.getItem('hearth_ideas');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing hearth_ideas from localStorage', e);
+      }
+    }
+    return [
+      { id: 'muse-1', content: '使用 WebRTC 进行去中心化分布式元数据直接广播', createdAt: '今天 09:24' },
+      { id: 'muse-2', content: 'Swiss 极简网格排版系统：仅采用黑白对比与粗细线条，零多余圆角', createdAt: '昨天 19:40' },
+      { id: 'muse-3', content: '0ms 通讯底座：握手信息通过底层 P2P 网格自动绕过中心式服务器', createdAt: '前天 11:12' }
+    ];
+  });
+
+  // Sync state variations back to localStorage whenever they mutate
+  useEffect(() => {
+    localStorage.setItem('hearth_nodes', JSON.stringify(nodes));
+  }, [nodes]);
+
+  useEffect(() => {
+    localStorage.setItem('hearth_ideas', JSON.stringify(ideas));
+  }, [ideas]);
 
   // AI chat states
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -219,7 +273,11 @@ export default function App() {
             tags: ['AI-Catalyzed'],
             connections: ['project-a'],
             createdAt: '2024/05/30',
-            updatedAt: '2024/05/30'
+            updatedAt: '2024/05/30',
+            status: 'active',
+            syncStatus: 'synced',
+            authorId: 'system',
+            version: 1
           };
           setNodes(prev => [...prev, newNode]);
           setSelectedNodeId(freshId);
@@ -257,7 +315,11 @@ export default function App() {
             tags: ['AI-Proposal'],
             connections: ['todo-list'],
             createdAt: '2024/05/30',
-            updatedAt: '2024/05/30'
+            updatedAt: '2024/05/30',
+            status: 'draft',
+            syncStatus: 'synced',
+            authorId: 'system',
+            version: 1
           }]);
           setSelectedNodeId(freshId);
         }
@@ -283,7 +345,11 @@ export default function App() {
       tags: ['Muse-Evolved'],
       connections: ['project-a'],
       createdAt: '2024/05/30',
-      updatedAt: '2024/05/30'
+      updatedAt: '2024/05/30',
+      status: 'active',
+      syncStatus: 'synced',
+      authorId: 'ceaserzhao',
+      version: 1
     };
 
     setNodes(prev => [...prev, evolvedNode]);
@@ -311,7 +377,11 @@ export default function App() {
       checklist: [],
       connections: [],
       createdAt: '25/05/30',
-      updatedAt: '25/05/30'
+      updatedAt: '25/05/30',
+      status: 'active',
+      syncStatus: 'synced',
+      authorId: 'ceaserzhao',
+      version: 1
     };
 
     setNodes(prev => [...prev, newItem]);
@@ -389,6 +459,14 @@ export default function App() {
 
         {/* Dynamic Inner Tab Router */}
         <div className="flex-1 flex overflow-hidden">
+          {activeTab === 'projectspace' && (
+            <ProjectSpace 
+              nodes={nodes}
+              setNodes={setNodes}
+              language={language}
+            />
+          )}
+
           {activeTab === 'fieldmap' && (
             <FieldMapCanvas 
               nodes={nodes}

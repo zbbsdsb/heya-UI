@@ -28,6 +28,12 @@ export interface NodeData {
   createdAt: string;
   updatedAt: string;
   star?: boolean;
+  status?: 'draft' | 'active' | 'archived' | 'completed';
+  syncStatus?: 'synced' | 'pending' | 'offline';
+  authorId?: string;
+  version?: number;
+  notes?: string;
+  codeSnippet?: string;
 }
 
 export interface SubFieldData {

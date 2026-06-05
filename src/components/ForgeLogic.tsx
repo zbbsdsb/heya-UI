@@ -3,31 +3,38 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Plus, 
-  Trash2, 
-  Settings, 
-  Database, 
+  Sparkles, 
   Cpu, 
-  GitBranch, 
-  Layers, 
+  Database, 
+  Check, 
+  Sliders, 
+  Compass, 
+  Zap, 
+  Eye, 
   Activity, 
-  Play, 
-  CheckCircle, 
-  Sparkles,
+  Radio, 
+  ShieldAlert, 
+  Layers, 
+  ArrowRight, 
   RefreshCw,
-  User,
-  Tag,
-  Sliders,
-  X,
-  Check,
-  CheckSquare,
-  Square,
-  Compass,
-  BookOpen
+  Clock,
+  Layout,
+  BookOpen,
+  RotateCcw,
+  Plus,
+  Trash2,
+  Play,
+  Terminal,
+  Save,
+  Shield,
+  Workflow,
+  Wrench,
+  HelpCircle
 } from 'lucide-react';
-import { ForgeAgent, NodeData, NodeType, ChecklistItem } from '../types';
+import { NodeData, NodeType, ChecklistItem, ForgeAgent } from '../types';
 import { translations } from '../locales';
 
 interface ForgeLogicProps {
@@ -38,16 +45,61 @@ interface ForgeLogicProps {
   language?: 'en' | 'zh';
 }
 
-const COLLABORATORS = [
-  { name: 'ceaserzhao', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=128&auto=format&fit=crop&sat=-100' },
-  { name: 'Ying', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=128&auto=format&fit=crop' },
-  { name: 'Alex', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=128&auto=format&fit=crop' },
-  { name: 'David', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop' },
-  { name: 'Emma', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=128&auto=format&fit=crop' }
-];
-
-const PRESET_TAGS = [
-  'P2P-Mesh', 'WebRTC', 'Aesthetic-Asserted', 'Swiss-Min', 'Local-Gated', 'ECDSA-Secured', 'Hearth-Process'
+const DEFAULT_AGENTS: ForgeAgent[] = [
+  {
+    id: 'agent-feedback',
+    name: 'User Feedback Semantic Analyzer',
+    description: 'Decodes user sentiments and clusters qualitative design concerns into actionable Hearth nodes.',
+    skeleton: 'react-loop',
+    memoryEngine: 'vector',
+    graphNodes: [
+      { id: 'in', label: 'Feedback Input Gate', type: 'input', x: 20, y: 110 },
+      { id: 'pn', label: 'Semantic Clusterer', type: 'tool', x: 170, y: 50 },
+      { id: 'llm', label: 'Gemini Intent Decoder', type: 'llm', x: 170, y: 170 },
+      { id: 'out', label: 'Hearth Sprout Sink', type: 'storage', x: 320, y: 110 }
+    ],
+    graphEdges: [
+      { source: 'in', target: 'pn' },
+      { source: 'in', target: 'llm' },
+      { source: 'pn', target: 'out' },
+      { source: 'llm', target: 'out' }
+    ]
+  },
+  {
+    id: 'agent-watcher',
+    name: 'Oermos P2P Handshake Watchdog',
+    description: 'Actively monitors Zurich networking channel latency and automatically spins alternative WebRTC tunnels.',
+    skeleton: 'simple-reflector',
+    memoryEngine: 'json',
+    graphNodes: [
+      { id: 'in', label: 'Oermos Ping Gate', type: 'input', x: 30, y: 110 },
+      { id: 'check', label: 'Latency Analyzer', type: 'tool', x: 175, y: 110 },
+      { id: 'out', label: 'Tunnel Re-router', type: 'storage', x: 320, y: 110 }
+    ],
+    graphEdges: [
+      { source: 'in', target: 'check' },
+      { source: 'check', target: 'out' }
+    ]
+  },
+  {
+    id: 'agent-auditor',
+    name: 'Swiss Grid Graphic Auditor',
+    description: 'Validates code layout parameters against rigid Swiss typographic norms (monospace, solid lines, flat panels).',
+    skeleton: 'socratic-critique',
+    memoryEngine: 'vector',
+    graphNodes: [
+      { id: 'in', label: 'JSX Grid Stream', type: 'input', x: 20, y: 50 },
+      { id: 'rules', label: 'Aesthetics Standard DB', type: 'storage', x: 170, y: 110 },
+      { id: 'audit', label: 'Socratic Grid Audit', type: 'llm', x: 20, y: 170 },
+      { id: 'out', label: 'Format Fix Gate', type: 'validator', x: 320, y: 110 }
+    ],
+    graphEdges: [
+      { source: 'in', target: 'rules' },
+      { source: 'in', target: 'audit' },
+      { source: 'rules', target: 'out' },
+      { source: 'audit', target: 'out' }
+    ]
+  }
 ];
 
 export default function ForgeLogic({
@@ -57,895 +109,846 @@ export default function ForgeLogic({
   setSelectedNodeId,
   language = 'en'
 }: ForgeLogicProps) {
-  // Localization dictionary helper
   const isEn = language === 'en';
-  const tGlobal = translations[language];
-  const tVal = tGlobal.forge;
+  const tVal = translations[language].forge;
 
-  // Root Sub-tabs
-  // 'sprout' -> Formal Custom Creation Studio
-  // 'sandbox' -> Specialized Agent Workflow sandbox
-  const [subTab, setSubTab] = useState<'sprout' | 'sandbox'>('sprout');
-
-  // FORM STATES (Sprout Center)
-  const [nodeType, setNodeType] = useState<NodeType>('todo');
-  const [nodeTitle, setNodeTitle] = useState('');
-  const [nodeDesc, setNodeDesc] = useState('');
-  const [progress, setProgress] = useState(0);
-  const [selectedOwners, setSelectedOwners] = useState<string[]>(['ceaserzhao']);
-  const [customTags, setCustomTags] = useState<string[]>(['P2P-Mesh']);
-  const [newTagInput, setNewTagInput] = useState('');
-  const [checklist, setChecklist] = useState<string[]>([]);
-  const [newCheckItem, setNewCheckItem] = useState('');
-  const [targetZone, setTargetZone] = useState<'opportunity' | 'execution' | 'core' | 'future'>('opportunity');
-  const [isCopilotGenerating, setIsCopilotGenerating] = useState(false);
-
-  // ORIGINAL AGENTS/SANDBOX STATES
-  const [agents, setAgents] = useState<ForgeAgent[]>([
-    {
-      id: 'agent-1',
-      name: isEn ? 'User Research Companion (访谈代理)' : 'User Research Companion (访谈代理)',
-      description: isEn 
-        ? 'Captures and processes unstructured feedback from opportunity domain interviews.' 
-        : '自动抽取并提炼机会域研究访谈中的不规则非结构化反馈信息。',
-      skeleton: 'heya-agent-v1.0-socrates',
-      memoryEngine: 'vector',
-      graphNodes: [
-        { id: 'start', label: 'User Query', type: 'trigger', x: 40, y: 150 },
-        { id: 'retrieve', label: 'Vector Memory Search', type: 'retrieve', x: 220, y: 80 },
-        { id: 'constraint', label: 'Instruction Boundary Gate', type: 'gate', x: 220, y: 220 },
-        { id: 'synthesis', label: 'Response Compiler', type: 'process', x: 420, y: 150 }
-      ],
-      graphEdges: [
-        { source: 'start', target: 'retrieve' },
-        { source: 'start', target: 'constraint' },
-        { source: 'retrieve', target: 'synthesis' },
-        { source: 'constraint', target: 'synthesis' }
-      ]
-    },
-    {
-      id: 'agent-2',
-      name: isEn ? 'Design System Forge Engine (设计引擎)' : 'Design System Forge Engine (设计引擎)',
-      description: isEn 
-        ? 'Generates atom system guidelines and pushes JSON assets directly into Hearth.'
-        : '实时生产并维护原子设计规范底盘，并通过 JSON 实体数据直推 Hearth 表盘。',
-      skeleton: 'heya-agent-v1.0-forge',
-      memoryEngine: 'json',
-      graphNodes: [
-        { id: 'start', label: 'Forge Stimulus', type: 'trigger', x: 50, y: 150 },
-        { id: 'schema', label: 'JSON Schema Validation', type: 'process', x: 240, y: 150 },
-        { id: 'emit', label: 'Hearth Sprout Catalyst', type: 'emit', x: 430, y: 150 }
-      ],
-      graphEdges: [
-        { source: 'start', target: 'schema' },
-        { source: 'schema', target: 'emit' }
-      ]
+  // Forge Agents List State
+  const [agents, setAgents] = useState<ForgeAgent[]>(() => {
+    const saved = localStorage.getItem('hearth_forge_agents');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing hearth_forge_agents', e);
+      }
     }
-  ]);
+    return DEFAULT_AGENTS;
+  });
 
-  const [selectedAgentId, setSelectedAgentId] = useState<string>('agent-1');
-  const [testConsole, setTestConsole] = useState<string[]>([
+  const [activeAgentId, setActiveAgentId] = useState<string>(DEFAULT_AGENTS[0].id);
+
+  // Active configure state handles
+  const activeAgent = agents.find(a => a.id === activeAgentId) || agents[0] || DEFAULT_AGENTS[0];
+
+  // Forms binding (for active agent)
+  const [agentName, setAgentName] = useState(activeAgent.name);
+  const [agentDesc, setAgentDesc] = useState(activeAgent.description);
+  const [agentSkeleton, setAgentSkeleton] = useState(activeAgent.skeleton);
+  const [agentMemory, setAgentMemory] = useState<any>(activeAgent.memoryEngine);
+  const [systemPrompt, setSystemPrompt] = useState<string>(
     isEn 
-      ? '[System]: Forge Agent Engine Initialized. Ready to simulate workflows.'
-      : '[System]: 仿真铸模中心初始化就绪。随时可执行沙盒验证。'
-  ]);
+      ? `Act as an autonomous agent configured inside the Hearth workspace. Enforce systemic criteria and coordinate deliverables.`
+      : `作为部署在赫斯协作底盘的自主常驻计算代理。负责处理拓扑计算、提供高安校验、保障系统演进。`
+  );
+  const [llmBackbone, setLlmBackbone] = useState<'flash' | 'pro'>('flash');
+
+  // Interactive graph builder node handles
+  const [selectedGraphNodeId, setSelectedGraphNodeId] = useState<string | null>(null);
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  // Creation formulas for new nodes inside active graph
+  const [newNodeName, setNewNodeName] = useState('');
+  const [newNodeType, setNewNodeType] = useState<'input' | 'llm' | 'tool' | 'validator' | 'storage'>('llm');
+
+  // Simulator state handles
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [simTaskText, setSimTaskText] = useState(
+    isEn 
+      ? 'Verify Swiss style alignment borders' 
+      : '校验瑞士美学极简界面边框字距参数'
+  );
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
+  const [simStep, setSimStep] = useState<number>(0);
 
-  // Selected agent helpers
-  const selectedAgent = agents.find(a => a.id === selectedAgentId) || agents[0];
+  // Sync back local updates whenever properties drift
+  useEffect(() => {
+    localStorage.setItem('hearth_forge_agents', JSON.stringify(agents));
+  }, [agents]);
 
-  const handleToggleMemory = () => {
+  // Sync form inputs when switching active agent
+  useEffect(() => {
+    if (activeAgent) {
+      setAgentName(activeAgent.name);
+      setAgentDesc(activeAgent.description);
+      setAgentSkeleton(activeAgent.skeleton);
+      setAgentMemory(activeAgent.memoryEngine);
+    }
+  }, [activeAgentId]);
+
+  // Handler to mutate properties on the active agent
+  const handleUpdateActiveAgent = (updates: Partial<ForgeAgent>) => {
     setAgents(prev => prev.map(a => {
-      if (a.id === selectedAgent.id) {
-        const nextEngine = a.memoryEngine === 'json' ? 'vector' : 'json';
-        setTestConsole(c => [
-          ...c, 
-          isEn 
-            ? `[Forge]: Switched memory engine for "${a.name}" to [${nextEngine.toUpperCase()}] ENGINE`
-            : `[Forge]: 已把 "${a.name}" 的底层检索机制换装为 [${nextEngine.toUpperCase()}] 自研引擎`
-        ]);
-        return { ...a, memoryEngine: nextEngine };
+      if (a.id === activeAgentId) {
+        return { ...a, ...updates };
       }
       return a;
     }));
   };
 
-  const handleSimulateExecution = () => {
-    if (isSimulating) return;
-    setIsSimulating(true);
-    setTestConsole(c => [
-      ...c, 
-      isEn 
-        ? `[Simulation]: Initiating verification pipeline for "${selectedAgent.name}"...`
-        : `[仿真探针]: 正在拉起 "${selectedAgent.name}" 特质专化代理验证流...`
-    ]);
+  // Create a brand new agent framework skele
+  const handleCreateNewAgent = () => {
+    const freshId = `agent-custom-${Date.now()}`;
+    const newAgent: ForgeAgent = {
+      id: freshId,
+      name: isEn ? 'New Custom Agent Core' : '未命名新决策代理框架',
+      description: isEn 
+        ? 'Custom configured multi-agent workflow for sovereign computing.' 
+        : '自主规划的主权计算流，执行特定高安性及审美审计逻辑。',
+      skeleton: 'react-loop',
+      memoryEngine: 'vector',
+      graphNodes: [
+        { id: 'in', label: 'Input Sink', type: 'input', x: 40, y: 110 },
+        { id: 'proc', label: 'Decision Logic', type: 'llm', x: 180, y: 110 },
+        { id: 'out', label: 'Output Sink', type: 'storage', x: 320, y: 110 }
+      ],
+      graphEdges: [
+        { source: 'in', target: 'proc' },
+        { source: 'proc', target: 'out' }
+      ]
+    };
 
-    const steps = [
-      isEn ? '[Trigger]: Input stimuli localized inside Hearth boundaries.' : '[触发极]: 接收来自 Hearth 画布的感知信令。',
-      isEn ? `[Memory]: Querying index database [${selectedAgent.memoryEngine.toUpperCase()}] ... 12 matches found.` : `[记忆体]: 精细扫描 [${selectedAgent.memoryEngine.toUpperCase()}] 本地对齐库 ... 共检索到 12 次历史拟合度。`,
-      selectedAgent.memoryEngine === 'vector' 
-        ? (isEn ? `[Vector]: Calculated semantic proximity cosine distance = 0.89` : `[向量余弦]: 计算语义临近向量夹角 Cosine Proximity = 0.89`) 
-        : (isEn ? `[JSON]: Successfully validated schema templates against ADR-007 schema constraints.` : `[JSON 树]: 语义元树成功跑通 ADR-007 标准契约校验。`),
-      isEn ? `[Boundary]: Executing compliance check. No prohibited boundaries penetrated. Status: PASSED` : `[主流闸]: 边界防御模块复查机制。0次违规刺穿，状态：PASSED`,
-      isEn ? `[Success]: Compiled output sprout emitted into "Hearth Field" successfully.` : `[实体化成果]: 编译完成的实体化决策节点已被成功注入 Hearth 主空间画布！`
-    ];
+    setAgents(prev => [...prev, newAgent]);
+    setActiveAgentId(freshId);
+    setNewNodeName('');
+  };
 
-    steps.forEach((step, index) => {
-      setTimeout(() => {
-        setTestConsole(c => [...c, step]);
-        if (index === steps.length - 1) {
-          setIsSimulating(false);
-          setTestConsole(c => [...c, isEn ? `[Simulation]: Done. 0 errors, pipeline complete.` : `[仿真状态]: 完成。无异常退出码，流水线检验正常。`]);
-        }
-      }, (index + 1) * 550);
+  // Node actions inside visual graph
+  const handleAddGraphNode = () => {
+    if (!newNodeName.trim()) return;
+    const nodeId = `node-${Date.now().toString().slice(-4)}`;
+    const freshNode = {
+      id: nodeId,
+      label: newNodeName.trim(),
+      type: newNodeType,
+      x: 150 + Math.random() * 40,
+      y: 80 + Math.random() * 40
+    };
+
+    handleUpdateActiveAgent({
+      graphNodes: [...activeAgent.graphNodes, freshNode]
+    });
+    setNewNodeName('');
+    setSelectedGraphNodeId(nodeId);
+  };
+
+  const handleRemoveGraphNode = (nodeId: string) => {
+    const filteredNodes = activeAgent.graphNodes.filter(n => n.id !== nodeId);
+    const filteredEdges = activeAgent.graphEdges.filter(e => e.source !== nodeId && e.target !== nodeId);
+    
+    handleUpdateActiveAgent({
+      graphNodes: filteredNodes,
+      graphEdges: filteredEdges
+    });
+    if (selectedGraphNodeId === nodeId) {
+      setSelectedGraphNodeId(null);
+    }
+  };
+
+  // Connect two nodes
+  const handleToggleEdge = (sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return;
+    const exists = activeAgent.graphEdges.some(e => e.source === sourceId && e.target === targetId);
+
+    let updatedEdges;
+    if (exists) {
+      updatedEdges = activeAgent.graphEdges.filter(e => !(e.source === sourceId && e.target === targetId));
+    } else {
+      updatedEdges = [...activeAgent.graphEdges, { source: sourceId, target: targetId }];
+    }
+
+    handleUpdateActiveAgent({
+      graphEdges: updatedEdges
     });
   };
 
-  const handleAddGraphNode = () => {
-    const freshId = `step-${Date.now()}`;
-    setAgents(prev => prev.map(a => {
-      if (a.id === selectedAgent.id) {
-        const nodeCount = a.graphNodes.length;
-        const newNode = {
-          id: freshId,
-          label: isEn ? `Logical Node-${nodeCount + 1}` : `逻辑微进程-${nodeCount + 1}`,
-          type: 'process',
-          x: 260 + Math.random() * 50,
-          y: 110 + Math.random() * 105
-        };
-        
-        // Connect automatically to the last node
-        const lastNode = a.graphNodes[a.graphNodes.length - 1];
-        const newEdge = lastNode ? { source: lastNode.id, target: freshId } : null;
+  // Drag handlers in local workspace coordinate space
+  const handleGraphNodeMouseDown = (nodeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedGraphNodeId(nodeId);
+    setDraggingNodeId(nodeId);
 
-        return {
-          ...a,
-          graphNodes: [...a.graphNodes, newNode],
-          graphEdges: newEdge ? [...a.graphEdges, newEdge] : a.graphEdges
-        };
-      }
-      return a;
-    }));
-    setTestConsole(c => [...c, isEn ? `[Forge]: Added new logical block to "${selectedAgent.name}"` : `[Forge]: 已在 "${selectedAgent.name}" 中增加一个微决策逻辑层`]);
-  };
-
-  const clearConsole = () => {
-    setTestConsole([isEn ? '[Console]: Cleared. Ready.' : '[日志控制台]: 清空完成，待命中。']);
-  };
-
-  // DESIGN FORM INTERACTION CRITICAL LOGIC
-  const handleToggleOwner = (name: string) => {
-    setSelectedOwners(prev => 
-      prev.includes(name) ? prev.filter(o => o !== name) : [...prev, name]
-    );
-  };
-
-  const handleAddTag = () => {
-    if (newTagInput.trim() && !customTags.includes(newTagInput.trim())) {
-      setCustomTags(prev => [...prev, newTagInput.trim()]);
-      setNewTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tag: string) => {
-    setCustomTags(prev => prev.filter(t => t !== tag));
-  };
-
-  const handleAddChecklist = () => {
-    if (newCheckItem.trim() && !checklist.includes(newCheckItem.trim())) {
-      setChecklist(prev => [...prev, newCheckItem.trim()]);
-      setNewCheckItem('');
-    }
-  };
-
-  const handleRemoveCheckItem = (idx: number) => {
-    setChecklist(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleAiCopilotOptimize = () => {
-    if (!nodeTitle.trim()) {
-      alert(isEn ? 'Please provide a title first!' : '请先分配一个正式标题！');
-      return;
-    }
-    setIsCopilotGenerating(true);
-
-    // Dynamic semantic mock generator based on title - extremely realistic and high-end Swiss styling
-    setTimeout(() => {
-      const polishedTitles: Record<string, string> = {
-        en: `Comprehensive strategy mapping layer to audit raw telemetry datasets with high-fidelity Swiss minimalist alignments.`,
-        zh: `高完备度节点资产栈：用以深度对准与审计非结构化 P2P 网格延迟指标，落实严格的瑞士美学设计控制。`
+    const node = activeAgent.graphNodes.find(n => n.id === nodeId);
+    if (node && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      dragOffset.current = {
+        x: e.clientX - rect.left - node.x,
+        y: e.clientY - rect.top - node.y
       };
-
-      const suggestion = polishedTitles[language] + ` (Enhanced via Hey Agentic Copilot v1.0).`;
-      setNodeDesc(suggestion);
-      
-      // Auto-populate checklist with realistic subtasks
-      const defaultTasks = isEn 
-        ? ['Verify ECDSA RSA handshake signatures', 'Establish Oermos socket keep-alive pulse', 'Render localized fallback state containers']
-        : ['验证对等 ECDSA 数字信标安全签名', '跑通 Oermos 信道保持周期脉搏', '渲染局部安全沙盒回置状态机'];
-      
-      setChecklist(defaultTasks);
-
-      // Auto add tags
-      if (!customTags.includes('AI-Catalyzed')) {
-        setCustomTags(t => [...t, 'AI-Catalyzed', 'Aesthetic-Asserted']);
-      }
-
-      setIsCopilotGenerating(false);
-    }, 1100);
+    }
   };
 
-  // ACTION: Forge and Sprout Node Button Click
-  const handleBuildAndSprout = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nodeTitle.trim()) return;
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    if (!draggingNodeId || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    let nextX = e.clientX - rect.left - dragOffset.current.x;
+    let nextY = e.clientY - rect.top - dragOffset.current.y;
 
+    // Boundaries constraints
+    nextX = Math.max(10, Math.min(410, nextX));
+    nextY = Math.max(10, Math.min(235, nextY));
+
+    handleUpdateActiveAgent({
+      graphNodes: activeAgent.graphNodes.map(n => 
+        n.id === draggingNodeId ? { ...n, x: Math.round(nextX), y: Math.round(nextY) } : n
+      )
+    });
+  };
+
+  const handleCanvasMouseUp = () => {
+    setDraggingNodeId(null);
+  };
+
+  // Trigger high-tempo Sandbox simulations
+  const handleTriggerSandboxRun = () => {
+    setIsSimulating(true);
+    setSimStep(0);
+    setConsoleLogs([
+      `[SYS]: Seeding telemetry workspace for model [${activeAgent.name.toUpperCase()}]`,
+      `[INIT]: Mounting model skeleton [${agentSkeleton.toUpperCase()}] onto cognitive sandbox...`,
+      `[COMPILER]: Backbone model assigned -> Gemini 2.5 ${llmBackbone === 'flash' ? 'COMPUTE-FLASH-SPEED' : 'REASONING-PRO-ENGINE'}`,
+      `[MEMORY]: Synchronizing memory routing vectors: [${agentMemory.toUpperCase()}] integration locked.`,
+      `[INPUT]: Trial payload: "${simTaskText}"`
+    ]);
+
+    const logTiers = [
+      () => isEn 
+        ? `[PLANNING]: Decomposing prompt. Decoupled 5 core pipeline constraints based on "${simTaskText}"` 
+        : `[思考规划]: 解析决策条件。根据测试负载 "${simTaskText}" 解构5个核心约束条件。`,
+      () => isEn
+        ? `[RETRIEVAL]: Querying long-term memory engine [${agentMemory.toUpperCase()}]. Retrieved 14 similar architectural compliance patterns.`
+        : `[记忆提取]: 正在加载深层记忆引擎 [${agentMemory.toUpperCase()}]。成功对齐检索到 14 项相似架构指标历史。`,
+      () => {
+        const inputNodes = activeAgent.graphNodes.filter(n => n.type === 'input');
+        return isEn
+          ? `[GRAPH]: Feeding input tokens stream through pipeline entry block [${inputNodes[0]?.label || 'Input'}].`
+          : `[拓扑流转]: 输入元数据流成功注入计算图入口节点 [${inputNodes[0]?.label || 'Input Gate'}]。`;
+      },
+      () => {
+        const toolNodes = activeAgent.graphNodes.filter(n => n.type === 'tool' || n.type === 'validator');
+        const activeTool = toolNodes[0]?.label || (isEn ? 'Semantic Evaluator' : '系统语义审计器');
+        return isEn
+          ? `[TOOL RUN]: Invoking pipeline functional gate [${activeTool}]. Validating input bounds against Swiss alignment rules.`
+          : `[工具调用]: 调用拓扑处理节点 [${activeTool}]。开始校验输入内容是否对齐瑞士极简排版规则。`;
+      },
+      () => {
+        const llmNodes = activeAgent.graphNodes.filter(n => n.type === 'llm');
+        const activeLlm = llmNodes[0]?.label || (isEn ? 'Gemini Auditor Core' : 'Gemini 大模型核心控制器');
+        return isEn
+          ? `[BACKBONE REASONING]: [${activeLlm}] evaluating results... Decision: 100% compliance checked. Zero design overlaps or socket packets delays detected.`
+          : `[核心模型决策]: [${activeLlm}] 执行自省校验。得出结论：100% 对齐规范，零元素重叠或信道包冲突。`;
+      },
+      () => isEn
+        ? `[SINK]: Syncing results to DB storage sink. Telemetry sandbox pipeline finished execution successfully.`
+        : `[写入归档]: 输出状态已更新保存至输出数据端。沙盒管道仿真测试成功终结，管线完全正常。`
+    ];
+
+    let step = 0;
+    const timer = setInterval(() => {
+      if (step < logTiers.length) {
+        setConsoleLogs(prev => [...prev, logTiers[step]()]);
+        setSimStep(step + 1);
+        step++;
+      } else {
+        clearInterval(timer);
+        setIsSimulating(false);
+      }
+    }, 900);
+  };
+
+  // Deploy custom constructed agent to overall application list
+  const handleDeployToHearth = () => {
     if (!setNodes || !setActiveTab || !setSelectedNodeId) {
-      alert('Local space context invalid for sprouting.');
+      alert('Workspace engine failed to load parent scope hooks.');
       return;
     }
 
-    // Determine viewport coordinate mapping center based on chosen target zone
-    // Avoid coordinate stacking by adding micro randomization jitter!
-    let bx = 300, by = 280;
-    if (targetZone === 'opportunity') {
-      bx = 160 + Math.random() * 80;
-      by = 160 + Math.random() * 80;
-    } else if (targetZone === 'execution') {
-      bx = 480 + Math.random() * 80;
-      by = 160 + Math.random() * 80;
-    } else if (targetZone === 'core') {
-      bx = 160 + Math.random() * 80;
-      by = 480 + Math.random() * 80;
-    } else if (targetZone === 'future') {
-      bx = 480 + Math.random() * 80;
-      by = 480 + Math.random() * 80;
-    }
-
-    const freshId = `node-grown-${Date.now()}`;
-    const generatedChecklist: ChecklistItem[] = checklist.map((text, i) => ({
-      id: `check-${freshId}-${i}`,
-      text,
+    const freshNodeId = `agent-node-${Date.now()}`;
+    
+    // Convert graph nodes/edges into sub tasks in node checklist
+    const checklistItems: ChecklistItem[] = activeAgent.graphNodes.map((n, i) => ({
+      id: `task-${freshNodeId}-${i}`,
+      text: isEn 
+        ? `Verify pipeline stage: ${n.label} (${n.type.toUpperCase()})` 
+        : `核验管线节点: ${n.label} [类型: ${n.type.toUpperCase()}]`,
       done: false
     }));
 
-    const sproutedNode: NodeData = {
-      id: freshId,
-      type: nodeType,
-      title: nodeTitle,
-      description: nodeDesc || (isEn ? 'Sprouted via Hearth Creation Center.' : '源自 Hearth 创意工坊。'),
-      x: bx,
-      y: by,
-      progress: progress,
-      members: selectedOwners,
-      checklist: generatedChecklist,
-      tags: customTags.length > 0 ? customTags : ['Custom'],
-      connections: ['project-a'], // default link connection anchor to main Core project node
-      createdAt: '25/05/31',
-      updatedAt: '25/05/31'
+    const deployedNode: NodeData = {
+      id: freshNodeId,
+      type: 'agent',
+      title: activeAgent.name,
+      description: isEn 
+        ? `${activeAgent.description} [Arch: ${agentSkeleton.toUpperCase()}]. Executed on Gemini ${llmBackbone === 'flash' ? 'Flash' : 'Pro'}.` 
+        : `${activeAgent.description} [决策架构: ${agentSkeleton.toUpperCase()}]。依托模型: Gemini ${llmBackbone === 'flash' ? 'Flash' : 'Pro'}。`,
+      x: 480 + Math.random() * 120,
+      y: 280 + Math.random() * 120,
+      progress: 0,
+      members: ['ceaserzhao', activeAgent.name],
+      checklist: [
+        { id: `init-${freshNodeId}`, text: isEn ? 'Verify connection topology and tools input gating' : '核准计算拓扑及首端输入门道', done: true },
+        ...checklistItems
+      ],
+      tags: ['Agent', agentSkeleton, agentMemory === 'vector' ? 'Vector-RAG' : 'JSON-DB'],
+      connections: ['project-a', 'user-research'],
+      star: false,
+      createdAt: new Date().toLocaleDateString([], { year: '2-digit', month: '2-digit', day: '2-digit' }),
+      updatedAt: new Date().toLocaleDateString([], { year: '2-digit', month: '2-digit', day: '2-digit' }),
+      status: 'active',
+      syncStatus: 'synced',
+      authorId: 'ceaserzhao',
+      version: 1
     };
 
-    setNodes(prev => [...prev, sproutedNode]);
-    setSelectedNodeId(freshId);
-    
-    // Redirect user to the Field Map Canvas and focus on their masterpiece!
+    setNodes(prev => [...prev, deployedNode]);
+    setSelectedNodeId(freshNodeId);
+
+    // Prompt user and switch active view
     setActiveTab('fieldmap');
   };
 
+  // Delete an entire agent profile
+  const handleDeleteAgent = (idToDelete: string) => {
+    if (agents.length <= 1) {
+      alert(isEn ? 'Cannot delete last remaining agent core. Hearth needs at least one builder skeleton!' : '不能移除最后一个代理骨架。赫斯生态需要至少保留一台代理基础模型。');
+      return;
+    }
+    const rem = agents.filter(a => a.id !== idToDelete);
+    setAgents(rem);
+    if (activeAgentId === idToDelete) {
+      setActiveAgentId(rem[0].id);
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden h-full bg-[#f8fafc]">
+    <div id="agent-skeleton-forge-studio" className="flex-1 flex flex-col h-full bg-[#fafafa] text-slate-800 overflow-hidden relative font-sans select-none">
       
-      {/* Action Header Banner */}
-      <div className="px-8 py-5 bg-white border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 shadow-sm">
+      {/* Visual top border styling */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-600/10 to-transparent" />
+
+      {/* HEADER STATUS */}
+      <div className="px-8 py-5 border-b border-slate-100 bg-white flex items-center justify-between z-10 shrink-0">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-lg font-black text-[#0f172a] tracking-tight">
-              {isEn ? 'Universal Hearth Creator & Forge' : 'Hearth 核心创意工坊 · 实体化工作台'}
-            </h2>
-            <span className="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-extrabold tracking-widest uppercase">
-              ADR-007 CERTIFIED
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold tracking-widest text-[9.5px] uppercase text-indigo-600 font-mono">
+              {tVal.subLabel}
+            </span>
+            <span className="h-1 w-1 rounded-full bg-slate-300" />
+            <span className="text-[9px] text-[#22c55e] font-mono font-bold tracking-wider">
+              PIPELINE DESIGNS (ADR-007 MODE)
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 font-semibold mt-1 max-w-3xl leading-relaxed">
-            {isEn 
-              ? 'This is the official decentralized workspace creator portal. Forge high-resolution component coordinates, instantiate specialized logical agents, and sprout them raw onto your Active Field Map.' 
-              : '此为系统级官方主权创建门户。在此您可以对进入 Hearth 地图的数据节点、任务、常驻代理和资源进行精细化属性调配，一键将其以最高物理规格实体化注入画布空间。'}
-          </p>
+          <h1 className="text-base font-black text-[#0f172a] uppercase tracking-tight leading-none mt-1">
+            {tVal.title}
+          </h1>
         </div>
 
-        {/* Dynamic workspace sub-tab switch */}
-        <div className="flex bg-slate-150/60 p-1 rounded-xl border border-slate-200/40 self-stretch md:self-auto shrink-0 select-none">
-          <button 
-            onClick={() => setSubTab('sprout')}
-            className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-              subTab === 'sprout' 
-                ? 'bg-[#0f172a] text-white shadow shadow-slate-950/20' 
-                : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-800'
-            }`}
+        <div className="flex gap-2">
+          {/* Create agent button */}
+          <button
+            onClick={handleCreateNewAgent}
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-1.5"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{isEn ? 'Official Creation Studio' : '正式节点实体化中心'}</span>
-          </button>
-          
-          <button 
-            onClick={() => setSubTab('sandbox')}
-            className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-              subTab === 'sandbox' 
-                ? 'bg-[#0f172a] text-white shadow shadow-slate-950/20' 
-                : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-800'
-            }`}
-          >
-            <Cpu className="w-3.5 h-3.5" />
-            <span>{isEn ? 'Agent Schematics' : '子代理自主测试沙盒'}</span>
+            <Plus className="w-4 h-4" />
+            <span>{isEn ? "New Agent Framework" : "自主雕琢新代理解析器"}</span>
           </button>
         </div>
       </div>
 
-      {/* RENDER DYNAMIC SUB-TABS BODY */}
-      <div className="flex-1 overflow-hidden">
+      {/* THREE LAYOUT COLUMNS GRID */}
+      <div className="flex-1 flex overflow-hidden">
         
-        {/* SUBTAB 1: HIGH FIDELITY DESIGN / SPROUT CREATOR FORM */}
-        {subTab === 'sprout' && (
-          <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in-30 duration-300">
-            
-            <form onSubmit={handleBuildAndSprout} className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              
-              {/* Left Form side (2 cols) */}
-              <div className="md:col-span-2 space-y-6">
-                
-                {/* Section A: Category selection */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3.5 rounded bg-indigo-500" />
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {isEn ? '1. Core Component Aggregate Class' : '1. 声明要素的物理特征（大类）'}
-                    </h3>
-                  </div>
+        {/* PANEL A: AGENT DIRECTORY & SKELETON TREE (Grid size 3 equivalent) */}
+        <div className="w-[280px] border-r border-slate-100 bg-[#f8fafc]/90 flex flex-col justify-between shrink-0 overflow-y-auto p-5 space-y-6">
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5" />
+              <span>{tVal.specializedAgents} ({agents.length})</span>
+            </h4>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    {(['todo', 'project', 'agent', 'muse', 'resource'] as NodeType[]).map((type) => {
-                      const isSelected = nodeType === type;
-                      const label = isEn ? type.toUpperCase() : tGlobal.fieldmap[type];
-                      
-                      const style = {
-                        todo: 'border-emerald-200 hover:border-emerald-300 text-emerald-800 bg-emerald-50/20 checked:bg-emerald-500',
-                        project: 'border-indigo-200 hover:border-indigo-300 text-indigo-800 bg-indigo-50/20',
-                        agent: 'border-blue-200 hover:border-blue-300 text-blue-800 bg-blue-50/20',
-                        muse: 'border-amber-200 hover:border-amber-300 text-amber-800 bg-amber-50/20',
-                        resource: 'border-slate-200 hover:border-slate-300 text-slate-800 bg-slate-50/20'
-                      }[type];
-
-                      const activeStyle = {
-                        todo: 'bg-emerald-600 border-emerald-600 text-white shadow shadow-emerald-600/10 hover:border-emerald-600 hover:bg-emerald-600',
-                        project: 'bg-indigo-600 border-indigo-600 text-white shadow shadow-indigo-600/10 hover:border-indigo-600 hover:bg-indigo-600',
-                        agent: 'bg-blue-600 border-blue-600 text-white shadow shadow-blue-600/10 hover:border-blue-600 hover:bg-blue-600',
-                        muse: 'bg-amber-600 border-amber-600 text-white shadow shadow-amber-600/10 hover:border-amber-600 hover:bg-amber-600',
-                        resource: 'bg-slate-850 border-slate-850 text-white shadow shadow-slate-850/10 hover:border-slate-850 hover:bg-slate-850'
-                      }[type];
-
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => setNodeType(type)}
-                          className={`py-3 px-1 text-center text-[11px] font-black tracking-wide rounded-xl border transition-all ${
-                            isSelected ? activeStyle : `bg-white ${style}`
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Section B: Meta input fields */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3.5 rounded bg-indigo-500" />
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {isEn ? '2. Naming & Theoretical Description' : '2. 分配高精标识及行动大纲'}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        {isEn ? 'Sovereign Title / Hub Name' : '该要素在当前维度的注册标题'}
-                      </label>
-                      <input 
-                        type="text"
-                        placeholder={isEn ? 'e.g., Swiss Grid Aesthetic Layout Standards...' : '例如：瑞制设计网格资产验证套件...'}
-                        value={nodeTitle}
-                        onChange={(e) => setNodeTitle(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-205/65 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 relative">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-bold text-slate-700">
-                          {isEn ? 'Functional Strategy Description' : '规划细则与技术指标陈述'}
-                        </label>
+            {/* List of available agents config */}
+            <div className="space-y-2.5">
+              {agents.map((ag) => {
+                const isActive = ag.id === activeAgentId;
+                return (
+                  <div
+                    key={ag.id}
+                    onClick={() => setActiveAgentId(ag.id)}
+                    className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all select-none relative group ${
+                      isActive 
+                        ? 'border-indigo-600 bg-white shadow-sm' 
+                        : 'border-slate-200/50 bg-[#fafafa]/50 hover:bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <span className={`text-xs font-black truncate max-w-[150px] block ${isActive ? 'text-indigo-600' : 'text-slate-800'}`}>
+                          {ag.name}
+                        </span>
                         
                         <button
-                          type="button"
-                          onClick={handleAiCopilotOptimize}
-                          disabled={isCopilotGenerating}
-                          className="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100/50 px-2 py-1 rounded-lg font-bold flex items-center gap-1 active:scale-95 disabled:opacity-50"
-                          title={isEn ? 'Populate polished details using Hey AI' : '使用 Hey AI 智能补全和精细化'}
+                          title={isEn ? "Prune framework" : "裁剪此骨架方案"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAgent(ag.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 hover:text-red-500 text-slate-300 transition-opacity p-0.5"
                         >
-                          <Sparkles className={`w-3 h-3 ${isCopilotGenerating ? 'animate-spin' : ''}`} />
-                          <span>{isCopilotGenerating ? (isEn ? 'Analyzing...' : '研判中...') : (isEn ? 'Hey AI Assist' : 'Hey 创意自动补全')}</span>
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
-                      <textarea 
-                        rows={3}
-                        placeholder={isEn ? 'Write detailed architectural instructions or milestones...' : '阐述该项目的边界定位、涉及数据类型、和希望实现的技术指标成果...'}
-                        value={nodeDesc}
-                        onChange={(e) => setNodeDesc(e.target.value)}
-                        className="w-full p-4 bg-slate-50 border border-slate-205/65 rounded-xl text-xs font-semibold leading-relaxed text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white resize-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section C: Sprint tasks checklist dynamic generator */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3.5 rounded bg-indigo-500" />
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {isEn ? '3. Component Checklist & Deliverables' : '3. 分阶段细分目标 / Checklist 指针'}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-                      {isEn 
-                        ? 'Deconstruct this component or node into modular deliverable tasks. These synchronize as active checkboxes inside the map nodes.'
-                        : '将此行动要素拆解为具体可追踪的里程碑分支。实体化后，可在画布卡片中直接进行勾选、核验及累加。'}
-                    </p>
-
-                    <div className="flex gap-2">
-                      <input 
-                        type="text"
-                        placeholder={isEn ? '+ Define branch task item...' : '+ 追加子目标、微指令或分支任务...'}
-                        value={newCheckItem}
-                        onChange={(e) => setNewCheckItem(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddChecklist())}
-                        className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-150 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddChecklist}
-                        className="px-4 bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors active:scale-95 shrink-0"
-                      >
-                        {isEn ? 'Append' : '追加子任务'}
-                      </button>
+                      <p className="text-[10px] text-slate-400 font-bold leading-normal mt-1 line-clamp-1">
+                        {ag.description}
+                      </p>
                     </div>
 
-                    {/* Display checklist items */}
-                    {checklist.length > 0 ? (
-                      <div className="border border-slate-100 rounded-xl divide-y divide-slate-50 overflow-hidden bg-slate-50/50">
-                        {checklist.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-3 text-xs font-semibold text-slate-700">
-                            <span className="flex items-center gap-2">
-                              <span className="w-4 h-4 rounded-md border border-slate-300 text-slate-400 flex items-center justify-center font-mono text-[9px] font-bold select-none">
-                                {idx + 1}
-                              </span>
-                              <span>{item}</span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCheckItem(idx)}
-                              className="text-slate-400 hover:text-rose-500 transition-colors p-1"
-                              title="Delete item"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-3 text-center border border-dashed border-slate-205 rounded-xl text-[10px] text-slate-400 font-bold uppercase tracking-wider bg-white">
-                        {isEn ? 'NO BRANCH TASKS REGISTERED YET' : '暂未追加任何阶段性子任务'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Right Sidebar Form configurations (1 col) */}
-              <div className="space-y-6">
-                
-                {/* Section D: Sprout location zone */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3.5 rounded bg-indigo-500" />
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {isEn ? '4. Boundary Space Positioning' : '4. 空间落域 / 象限锚定'}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-                      {isEn 
-                        ? 'Select the core quadrant cluster where the new sprouted card element will crystallize.'
-                        : '决定该物理卡片在 Hearth 主空间上将直接物质化降落在哪个战略象限。'}
-                    </p>
-
-                    <div className="space-y-2">
-                      {[
-                        { id: 'opportunity', label: isEn ? 'Opportunity Domain' : '第一象限 · 机会域探究' },
-                        { id: 'execution', label: isEn ? 'Lattice Process Matrix' : '第二象限 · 本地进程执行规矩阵' },
-                        { id: 'core', label: isEn ? 'Core Planning Territory' : '第三象限 · 核心路线总策划区' },
-                        { id: 'future', label: isEn ? 'Future Trajectory Workspace' : '第四象限 · 未来增效演进矩阵' }
-                      ].map((zone) => {
-                        const active = targetZone === zone.id;
-                        return (
-                          <button
-                            key={zone.id}
-                            type="button"
-                            onClick={() => setTargetZone(zone.id as any)}
-                            className={`w-full text-left px-3.5 py-3 rounded-xl border transition-all flex items-center justify-between ${
-                              active 
-                                ? 'bg-indigo-50/50 border-indigo-500 text-indigo-950 font-bold' 
-                                : 'bg-white hover:bg-slate-50/60 border-slate-100 text-slate-600 font-semibold'
-                            }`}
-                          >
-                            <span className="text-[11px] truncate">{zone.label}</span>
-                            {active && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
-                          </button>
-                        );
-                      })}
+                    <div className="flex gap-1.5 mt-2.5.5 border-t border-slate-100/60 pt-2 flex-wrap text-[8.5px] font-mono leading-none">
+                      <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded font-semibold uppercase">
+                        {ag.skeleton}
+                      </span>
+                      <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded font-semibold uppercase">
+                        {ag.memoryEngine}
+                      </span>
                     </div>
                   </div>
-                </div>
-
-                {/* Section E: Owner Assignee */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3.5 rounded bg-indigo-500" />
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {isEn ? '5. Sovereignty Delegation' : '5. 确立主权所有者'}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-                      {isEn 
-                        ? 'Select team coordinators delegated responsible oversight of this node.'
-                        : '将此节点的所有权授予相关主权协同人员，头像直接显示于卡片侧。'}
-                    </p>
-
-                    <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                      {COLLABORATORS.map((collab) => {
-                        const chosen = selectedOwners.includes(collab.name);
-                        return (
-                          <div 
-                            key={collab.name}
-                            onClick={() => handleToggleOwner(collab.name)}
-                            className="flex items-center justify-between p-2 rounded-xl border border-slate-100 bg-[#fbfcfd]/50 hover:bg-[#f1f5f9] cursor-pointer transition-colors"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <img 
-                                src={collab.avatar} 
-                                alt={collab.name} 
-                                className="w-6 h-6 rounded-full border border-slate-200"
-                                referrerPolicy="no-referrer"
-                              />
-                              <span className="text-xs font-bold text-slate-700">{collab.name}</span>
-                            </div>
-                            <span className={`w-4 h-4 rounded flex items-center justify-center transition-colors ${
-                              chosen ? 'bg-indigo-600 text-white' : 'border border-slate-300'
-                            }`}>
-                              {chosen && <Check className="w-3 h-3" />}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section F: Initial parameters custom tags & progress info */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3.5 rounded bg-indigo-500" />
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {isEn ? '6. Metric Initializers & Scope' : '6. 初始性能指标'}
-                    </h3>
-                  </div>
-
-                  {/* Progress slide */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-xs font-bold text-slate-700">
-                      <span>{isEn ? 'Design Completeness Index' : '基准指标完备度'}</span>
-                      <span className="text-indigo-600">{progress}%</span>
-                    </div>
-                    <input 
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={progress}
-                      onChange={(e) => setProgress(Number(e.target.value))}
-                      className="w-full accent-indigo-600"
-                    />
-                  </div>
-
-                  {/* Dynamic Tags */}
-                  <div className="space-y-3 pt-2">
-                    <label className="text-xs font-bold text-slate-700 block">
-                      {isEn ? 'Strategic Tags / Labels' : '关联领域标签组'}
-                    </label>
-                    
-                    <div className="flex flex-wrap gap-1.5">
-                      {customTags.map((tag) => (
-                        <span 
-                          key={tag} 
-                          className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-150/40 rounded text-[9.5px] font-bold flex items-center gap-1.2"
-                        >
-                          <span>{tag}</span>
-                          <button 
-                            type="button" 
-                            onClick={() => handleRemoveTag(tag)}
-                            className="bg-indigo-200/50 hover:bg-rose-100 hover:text-rose-600 w-3 h-3 rounded-full flex items-center justify-center text-[8.5px] ml-0.5"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-1.5 mt-2">
-                      <input 
-                        type="text"
-                        placeholder={isEn ? '+ custom tag' : '+ 标签'}
-                        value={newTagInput}
-                        onChange={(e) => setNewTagInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                        className="flex-1 text-[10px] px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddTag}
-                        className="px-3 bg-slate-100 hover:bg-[#0f172a] hover:text-white border text-[10px] font-bold rounded-lg transition-colors"
-                      >
-                        {isEn ? 'Add' : '加'}
-                      </button>
-                    </div>
-
-                    {/* Presets cloud */}
-                    <div className="pt-2 text-[9px] text-slate-400 font-bold uppercase tracking-wider">{isEn ? 'Presets Cloud' : '推荐标签库'}</div>
-                    <div className="flex flex-wrap gap-1">
-                      {PRESET_TAGS.map((tag) => {
-                        const selected = customTags.includes(tag);
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => {
-                              if (!selected) {
-                                setCustomTags(prev => [...prev, tag]);
-                              } else {
-                                handleRemoveTag(tag);
-                              }
-                            }}
-                            className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold border transition-colors ${
-                              selected 
-                                ? 'bg-indigo-600 text-white border-indigo-600' 
-                                : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
-                            }`}
-                          >
-                            {tag}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* BUILD MAIN ACTION SPROUT */}
-                <button
-                  type="submit"
-                  disabled={!nodeTitle.trim()}
-                  className="w-full py-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-700 hover:from-blue-800 hover:via-indigo-800 hover:to-violet-800 disabled:from-slate-300 disabled:to-slate-350 disabled:cursor-not-allowed text-white text-xs font-black tracking-widest uppercase rounded-2xl transition-all shadow-lg active:scale-98 flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4 animate-pulse fill-white" />
-                  <span>{isEn ? 'Forge & Sprout Component' : '熔铸高精指标并实体化 Sprout'}</span>
-                </button>
-
-              </div>
-
-            </form>
-
+                );
+              })}
+            </div>
           </div>
-        )}
 
-        {/* SUBTAB 2: ORIGINAL INTERACTIVE AGENT WORKFLOW DESIGNER SANDBOX */}
-        {subTab === 'sandbox' && (
-          <div className="flex h-full overflow-hidden">
-            
-            {/* Left lists */}
-            <div className="w-[300px] bg-white border-r border-slate-101 p-4 shrink-0 flex flex-col justify-between">
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
-                  {isEn ? 'Specialized Agents (子代理)' : '专职常驻决策代理'}
-                </h3>
-                
-                <div className="space-y-2">
-                  {agents.map((agt) => {
-                    const active = agt.id === selectedAgentId;
-                    return (
-                      <button 
-                        key={agt.id}
-                        onClick={() => setSelectedAgentId(agt.id)}
-                        className={`w-full text-left p-3.5 rounded-2xl border transition-all flex flex-col gap-1.5 ${
-                          active 
-                            ? 'border-indigo-500 bg-[#eef2ff]/30' 
-                            : 'border-slate-100 hover:border-slate-200 hover:bg-[#f8fafc]/50'
-                        }`}
-                      >
-                        <div className="text-xs font-extrabold text-[#0f172a]">{agt.name}</div>
-                        <p className="text-[10px] font-medium text-slate-400 leading-normal line-clamp-2">
-                          {agt.description}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+          {/* Guide tip box */}
+          <div className="p-4 bg-white border border-slate-200/60 rounded-2xl space-y-1.5 text-[10.5px] font-bold text-slate-400 leading-normal">
+            <HelpCircle className="w-4 h-4 text-indigo-500" />
+            <p>
+              {isEn 
+                ? "Agent configurations build workflows that autonomously process, analyze and check rules inside Project Space, running decoupled from Hey Companion."
+                : "在此构建的决策代理将作为专职的管线节点，在您的大盘、项目面板及各边界工作区内协助跑代码、核验协议，属于多代理系统的自主业务层，不受主体 companion Hey 人格变迁的干预。"}
+            </p>
+          </div>
+        </div>
 
-              {/* Engine configuration details */}
-              <div className="bg-[#f8fafc] border border-slate-100 rounded-2xl p-4.5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">{isEn ? 'Memory Integrator' : '底册记忆检索结构'}</span>
-                  <button 
-                    onClick={handleToggleMemory}
-                    className="text-[9.5px] font-extrabold uppercase px-2 py-1 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5"
-                  >
-                    <Database className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>{selectedAgent.memoryEngine.toUpperCase()} ENGINE</span>
-                  </button>
-                </div>
 
-                <div className="space-y-1">
-                  <div className="text-[9px] text-slate-400 font-bold uppercase">{isEn ? 'Engine Technical Specs' : '引擎技术特性说明'}</div>
-                  <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-                    {selectedAgent.memoryEngine === 'vector' 
-                      ? (isEn ? 'Highly semantic cosine vector database. Resolves raw user utterances to match ADRs.' : '自适应余弦相量存储体系。擅长对齐散放的客户口语叙断并匹配 ADR 文件句柄。')
-                      : (isEn ? 'Predictable structural local key-value JSON schema. Ideal for deterministic state emitters.' : '高容断一阶 key-value 系统约束。更推荐服务于具备可预测特征的结构体广播。')}
-                  </p>
-                </div>
-              </div>
+        {/* PANEL B: WORKBENCH & GRAPH DESIGNER (Middle Column - Flexible space) */}
+        <div className="flex-1 border-r border-slate-100 flex flex-col justify-between overflow-y-auto p-6 bg-white space-y-6">
+          
+          {/* Agent core meta parameters form */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider block">
+                {isEn ? "Agent Identity Label" : "代理注册标识名称"}
+              </label>
+              <input 
+                type="text"
+                value={agentName}
+                onChange={(e) => {
+                  setAgentName(e.target.value);
+                  handleUpdateActiveAgent({ name: e.target.value });
+                }}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-1.5 text-xs text-slate-800 font-bold focus:outline-none focus:bg-white focus:border-indigo-500 transition-colors"
+                placeholder="Data Aggregator Core..."
+              />
             </div>
 
-            {/* Visual canvas + Console outputs */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              
-              {/* Visual flow canvas */}
-              <div className="flex-1 relative bg-white border-b border-slate-100 dot-grid overflow-hidden">
-                <div className="absolute top-4 left-6 flex items-center gap-2 z-10">
-                  <span className="text-[11px] font-extrabold text-slate-400 font-mono uppercase tracking-wider">
-                    {isEn ? `Logical Graph: ${selectedAgent.name}` : `微决策计算图流: ${selectedAgent.name}`}
-                  </span>
-                  <button 
-                    onClick={handleAddGraphNode}
-                    className="px-2 py-1 bg-[#6366f1]/10 text-indigo-700 border border-indigo-100 rounded-lg hover:bg-indigo-50 hover:scale-105 transition-all text-[10px] font-extrabold flex items-center gap-1"
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider block">
+                {isEn ? "Agent Executive Purpose" : "自主执行职责提炼"}
+              </label>
+              <input 
+                type="text"
+                value={agentDesc}
+                onChange={(e) => {
+                  setAgentDesc(e.target.value);
+                  handleUpdateActiveAgent({ description: e.target.value });
+                }}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none focus:bg-white focus:border-indigo-500 transition-colors"
+                placeholder="Identify bottlenecks inside pipeline..."
+              />
+            </div>
+          </div>
+
+          <hr className="border-slate-100" />
+
+          {/* Interactive Topology Graph Canvas */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Workflow className="w-4 h-4 text-indigo-600" />
+                <span className="text-[10.5px] font-black uppercase text-indigo-900 font-mono tracking-wider">
+                  {tVal.logicalGraph}
+                </span>
+                <span className="text-[9.5px] text-slate-400 font-semibold">
+                  {isEn ? "(Drag nodes to reposition; select a node to configure or connect)" : "(拖拽节点调整物理等宽对齐网格; 点击首节点并在右边点击完成连接)"}
+                </span>
+              </div>
+
+              {selectedGraphNodeId && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveGraphNode(selectedGraphNodeId)}
+                  className="text-[10px] font-bold text-red-500 hover:bg-red-50 px-2.5 py-1 rounded-lg border border-red-100 transition-colors"
+                >
+                  {isEn ? "Delete Selected Node" : "裁剪选中的计算块"}
+                </button>
+              )}
+            </div>
+
+            {/* Simulated Interactive SVG Canvas Area */}
+            <div
+              ref={canvasRef}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              className="relative w-full h-[255px] bg-[#0c0d19] border border-slate-900 rounded-2xl overflow-hidden shadow-inner cursor-crosshair select-none"
+              style={{
+                backgroundImage: 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 1.2px, transparent 1.2px)',
+                backgroundSize: '16px 16px'
+              }}
+            >
+              <svg className="absolute inset-0 pointer-events-none w-full h-full">
+                <defs>
+                  <marker
+                    id="arrow-forge"
+                    viewBox="0 0 10 10"
+                    refX="18"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{isEn ? 'Add Node Block' : '追加计算层级'}</span>
-                  </button>
-                </div>
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#6366f1" />
+                  </marker>
+                </defs>
 
-                {/* Simulated test trigger button */}
-                <div className="absolute top-4 right-6 z-10">
-                  <button 
-                    onClick={handleSimulateExecution}
-                    disabled={isSimulating}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10.5px] font-bold rounded-xl transition-all shadow flex items-center gap-1 active:scale-95 disabled:opacity-60"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${isSimulating ? 'animate-spin' : ''}`} />
-                    <span>{isSimulating ? (isEn ? 'Simulating...' : '验证管线校核中...') : (isEn ? 'Trigger Process Test' : '仿真跑通测试')}</span>
-                  </button>
-                </div>
+                {/* Render Directed Connecting Pathways */}
+                {activeAgent.graphEdges.map((edge, index) => {
+                  const sourceNode = activeAgent.graphNodes.find(n => n.id === edge.source);
+                  const targetNode = activeAgent.graphNodes.find(n => n.id === edge.target);
+                  if (!sourceNode || !targetNode) return null;
 
-                {/* SVG lines */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
-                  {selectedAgent.graphEdges.map((edge, i) => {
-                    const source = selectedAgent.graphNodes.find(n => n.id === edge.source);
-                    const target = selectedAgent.graphNodes.find(n => n.id === edge.target);
-                    if (!source || !target) return null;
-
-                    const sx = source.x + 85; 
-                    const sy = source.y + 24;
-                    const tx = target.x;
-                    const ty = target.y + 24;
-
-                    return (
-                      <g key={i}>
-                        <path 
-                          d={`M ${sx} ${sy} C ${sx + 50} ${sy}, ${tx - 50} ${ty}, ${tx} ${ty}`}
-                          fill="none"
-                          stroke="#cbd5e1"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                        />
-                        <polygon 
-                          points={`${tx},${ty} ${tx-6},${ty-4} ${tx-6},${ty+4}`}
-                          fill="#cbd5e1"
-                        />
-                      </g>
-                    );
-                  })}
-                </svg>
-
-                {/* Draggable workflow cards */}
-                {selectedAgent.graphNodes.map((n) => {
-                  const bgClass = n.type === 'trigger' 
-                    ? 'from-emerald-50 to-teal-50/50 border-emerald-200 text-emerald-800'
-                    : n.type === 'retrieve'
-                      ? 'from-blue-50 to-indigo-50/50 border-blue-200 text-blue-850'
-                      : n.type === 'gate'
-                        ? 'from-orange-50 to-red-50/50 border-orange-200 text-orange-950'
-                        : 'from-purple-50 to-pink-50/50 border-purple-200 text-purple-800';
+                  const x1 = sourceNode.x + 60;
+                  const y1 = sourceNode.y + 20;
+                  const x2 = targetNode.x + 60;
+                  const y2 = targetNode.y + 20;
 
                   return (
-                    <div 
-                      key={n.id}
-                      className={`absolute w-[170px] bg-gradient-to-tr border p-3.5 rounded-2xl shadow-sm backdrop-blur-sm select-none transition-shadow hover:shadow ${bgClass}`}
-                      style={{ left: n.x, top: n.y }}
-                    >
-                      <div className="flex items-center gap-2 mb-1 pointer-events-none">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                        <span className="text-[8.5px] uppercase font-bold text-slate-400 font-mono tracking-wider">{n.type}</span>
-                      </div>
-                      <h4 className="text-xs font-extrabold tracking-tight leading-tight truncate pointer-events-none">{n.label}</h4>
-                    </div>
+                    <g key={`edge-${index}`}>
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke="#6366f1"
+                        strokeWidth="3"
+                        strokeOpacity="0.12"
+                      />
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke={selectedGraphNodeId === edge.source ? '#818cf8' : '#4f46e5'}
+                        strokeWidth="1.2"
+                        strokeDasharray="4 3"
+                        markerEnd="url(#arrow-forge)"
+                      />
+                    </g>
                   );
                 })}
-              </div>
+              </svg>
 
-              {/* Console log footer */}
-              <div className="h-[200px] bg-[#1e293b] flex flex-col border-t border-slate-850 shrink-0 select-text">
-                <div className="flex justify-between items-center px-6 py-2 bg-[#0f172a] border-b border-slate-800/60 text-[9.5px] font-extrabold text-slate-400 font-mono shrink-0 select-none">
-                  <span className="flex items-center gap-1.5 uppercase">
-                    <Activity className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>{isEn ? 'SANDBOX SYSTEM INTERPRETATION CONSOLE' : '沙盒集成控制中心实时数据日志'}</span>
-                  </span>
-                  <button onClick={clearConsole} className="hover:text-white transition-all text-[8.5px]">
-                    {isEn ? 'CLEAR OUTPUT' : '清除全部输出'}
-                  </button>
-                </div>
+              {/* Display individual drag nodes */}
+              {activeAgent.graphNodes.map((node) => {
+                const isSelected = selectedGraphNodeId === node.id;
+                
+                let themeClasses = "";
+                switch(node.type) {
+                  case 'input':
+                    themeClasses = "bg-[#0b162a]/95 border-blue-500/80 text-blue-100 hover:border-blue-400";
+                    break;
+                  case 'llm':
+                    themeClasses = "bg-[#180a22]/95 border-purple-500/80 text-purple-100 hover:border-purple-400";
+                    break;
+                  case 'tool':
+                    themeClasses = "bg-[#0a1e1b]/95 border-emerald-500/80 text-emerald-100 hover:border-emerald-400";
+                    break;
+                  case 'validator':
+                    themeClasses = "bg-[#1e190a]/95 border-amber-500/80 text-amber-100 hover:border-amber-400";
+                    break;
+                  case 'storage':
+                    themeClasses = "bg-[#0a1d20]/95 border-cyan-500/80 text-cyan-100 hover:border-cyan-400";
+                    break;
+                }
 
-                <div className="flex-1 p-5 overflow-y-auto space-y-1.5 font-mono text-xs text-slate-350">
-                  {testConsole.map((msg, idx) => {
-                    const isSystem = msg.includes('[System]');
-                    const isError = msg.includes('[Error]') || msg.includes('[仿真探针]');
-                    const isSuccess = msg.includes('[Success]') || msg.includes('[实体化成果]');
+                return (
+                  <div
+                    key={node.id}
+                    onMouseDown={(e) => handleGraphNodeMouseDown(node.id, e)}
+                    className={`absolute w-[120px] rounded-xl border p-2 text-left cursor-grab active:cursor-grabbing transition-shadow duration-150 select-none ${themeClasses} ${
+                      isSelected ? 'ring-2 ring-indigo-500/70 scale-[1.03] shadow-[0_4px_12px_rgba(99,102,241,0.3)] border-indigo-400' : 'shadow-sm'
+                    }`}
+                    style={{ left: node.x, top: node.y }}
+                  >
+                    <div className="flex justify-between items-start mb-0.5 pointer-events-none">
+                      <span className="text-[9.5px] font-black tracking-wide font-sans truncate pr-1">
+                        {node.label}
+                      </span>
+                      <span className="text-[7.5px] font-mono font-black uppercase tracking-widest shrink-0 opacity-80">
+                        {node.type}
+                      </span>
+                    </div>
 
-                    let color = 'text-slate-300';
-                    if (isSystem) color = 'text-indigo-400';
-                    if (isError) color = 'text-sky-300 font-semibold';
-                    if (isSuccess) color = 'text-emerald-400 font-bold';
-
-                    return (
-                      <div key={idx} className={`${color} leading-relaxed`}>
-                        {msg}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
+                    <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-800/40 text-[7px] font-mono leading-none opacity-60">
+                      <span>#{node.id}</span>
+                      {selectedGraphNodeId && selectedGraphNodeId !== node.id && (
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={() => handleToggleEdge(selectedGraphNodeId, node.id)}
+                          className="text-xs text-indigo-400 font-bold hover:text-white px-1"
+                          title={isEn ? "Toggle targeted linkage" : "切换与此节点的连线"}
+                        >
+                          → link
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
+            {/* Graph Node Spawner Toolbar */}
+            <div className="bg-slate-50 border border-slate-150 p-3 rounded-xl flex items-center gap-3">
+              <span className="text-[10px] font-mono font-black text-slate-500 uppercase whitespace-nowrap">
+                {tVal.addBlock}:
+              </span>
+              <input
+                type="text"
+                value={newNodeName}
+                onChange={(e) => setNewNodeName(e.target.value)}
+                placeholder={isEn ? "E.g., CSS Monospace Parser" : "比如: 等等宽布局识别器"}
+                className="flex-1 bg-white border border-slate-250 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-semibold"
+              />
+              <select
+                value={newNodeType}
+                onChange={(e: any) => setNewNodeType(e.target.value)}
+                className="bg-white border border-slate-250 text-slate-600 rounded-lg px-2 py-1 text-[10.5px] focus:outline-none font-bold"
+              >
+                <option value="input">Input Gate</option>
+                <option value="llm">LLM Reasoning</option>
+                <option value="tool">Wrench Tool</option>
+                <option value="validator">Aesthetic Validator</option>
+                <option value="storage">DB Sink</option>
+              </select>
+              <button
+                type="button"
+                onClick={handleAddGraphNode}
+                disabled={!newNodeName.trim()}
+                className="px-3.5 py-1.5 bg-slate-900 hover:bg-black text-white rounded-lg text-[10.5px] font-bold disabled:opacity-40 transition-colors whitespace-nowrap"
+              >
+                {isEn ? "Inject Block" : "加入拓扑"}
+              </button>
+            </div>
           </div>
-        )}
+
+          <hr className="border-slate-100" />
+
+          {/* Prompt logic configurations */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider block">
+                {isEn ? "Agent Primary Role Guidelines / Base prompt instructions" : "常驻代理核心系统提示语设定 (System Prompts Guidelines)"}
+              </label>
+              <span className="text-[9.5px] text-[#22c55e] font-mono flex items-center gap-1">
+                <Check className="w-3 h-3 text-[#22c55e]" /> DECOUPLED SANITY SIGNED
+              </span>
+            </div>
+
+            <textarea
+              rows={3}
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder={isEn ? "Prefix the exact system rules guiding this agent skeleton run..." : "在此输入驱动大模型的底层系统指令 guidelines..."}
+              className="w-full text-xs p-3.5 border rounded-2xl bg-[#fcfeff] text-slate-800 leading-relaxed font-bold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+            />
+          </div>
+
+        </div>
+
+
+        {/* PANEL C: RUN TESTS SIMULATOR & DEPLOY GATEWAY (Right Column - Grid size 4 equivalent) */}
+        <div className="w-[340px] bg-slate-950 text-slate-200 border-l border-slate-900 flex flex-col justify-between shrink-0 overflow-y-auto p-5 space-y-6">
+          
+          {/* Settings Segment panel */}
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{tVal.engineDetails}</span>
+            </h4>
+
+            {/* Backbone Selection buttons */}
+            <div className="space-y-3 p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
+              <div>
+                <label className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-wider block mb-1">
+                  BACKBONE MODEL LAYER
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setLlmBackbone('flash')}
+                    className={`flex-1 py-1 px-2.5 rounded text-[10px] font-bold border transition-all ${
+                      llmBackbone === 'flash'
+                        ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400 font-extrabold'
+                        : 'border-slate-800 text-slate-400 bg-slate-950/40 hover:text-slate-200'
+                    }`}
+                  >
+                    Gemini 2.5 Flash
+                  </button>
+                  <button
+                    onClick={() => setLlmBackbone('pro')}
+                    className={`flex-1 py-1 px-2.5 rounded text-[10px] font-bold border transition-all ${
+                      llmBackbone === 'pro'
+                        ? 'bg-violet-600/20 border-violet-500 text-violet-400 font-extrabold'
+                        : 'border-slate-800 text-slate-400 bg-slate-950/40 hover:text-slate-200'
+                    }`}
+                  >
+                    Gemini 2.5 Pro
+                  </button>
+                </div>
+              </div>
+
+              {/* Layout Skeleton */}
+              <div>
+                <label className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-wider block mb-1">
+                  PLAN SKELETON ARCHITECTURE
+                </label>
+                <select
+                  value={agentSkeleton}
+                  onChange={(e) => {
+                    setAgentSkeleton(e.target.value);
+                    handleUpdateActiveAgent({ skeleton: e.target.value });
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded px-2 py-1 text-xs focus:outline-none font-bold"
+                >
+                  <option value="react-loop">ReAct Plan-Action Loop</option>
+                  <option value="simple-reflector">Simple Reflector Stream</option>
+                  <option value="socratic-critique">Socratic Critical Audit</option>
+                  <option value="orchestrator-swarm">Swarm Orchestrator Cluster</option>
+                </select>
+              </div>
+
+              {/* Memory mode */}
+              <div>
+                <label className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-wider block mb-1">
+                  {tVal.memoryIntegrator}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setAgentMemory('vector');
+                      handleUpdateActiveAgent({ memoryEngine: 'vector' });
+                    }}
+                    className={`flex-1 py-1 px-2 text-[9.5px] rounded border transition-all ${
+                      agentMemory === 'vector'
+                        ? 'bg-indigo-600/30 border-indigo-500 text-white font-extrabold'
+                        : 'border-slate-800 text-slate-400 bg-slate-950/40'
+                    }`}
+                  >
+                    Vector Embeds RAG
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAgentMemory('json');
+                      handleUpdateActiveAgent({ memoryEngine: 'json' });
+                    }}
+                    className={`flex-1 py-1 px-2 text-[9.5px] rounded border transition-all ${
+                      agentMemory === 'json'
+                        ? 'bg-indigo-600/30 border-indigo-500 text-white font-extrabold'
+                        : 'border-slate-800 text-slate-400 bg-slate-950/40'
+                    }`}
+                  >
+                    Deterministic JSON DB
+                  </button>
+                </div>
+                <span className="text-[8.5px] text-slate-500 block leading-normal mt-1.5 font-sans font-semibold">
+                  {agentMemory === 'vector' ? tVal.vectorDetails : tVal.jsonDetails}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* SIMULATOR TEST TRIAL BOX */}
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>{tVal.runSandbox}</span>
+            </h4>
+
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={simTaskText}
+                onChange={(e) => setSimTaskText(e.target.value)}
+                placeholder={isEn ? "E.g., Parse competitive files" : "例如：提炼 Oasis 公司的对接规范文件..."}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-semibold"
+              />
+
+              {/* Simulation button */}
+              <button
+                type="button"
+                onClick={handleTriggerSandboxRun}
+                disabled={isSimulating}
+                className="w-full py-2.5 bg-white hover:bg-[#eef2ff] hover:text-indigo-600 disabled:opacity-40 text-slate-900 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.01]"
+              >
+                {isSimulating ? (
+                  <RefreshCw className="w-4 h-4 text-indigo-600 animate-spin" />
+                ) : (
+                  <Play className="w-3.5 h-3.5 text-indigo-600 fill-indigo-600" />
+                )}
+                <span>{isSimulating ? tVal.simulating : tVal.runSandbox}</span>
+              </button>
+            </div>
+
+            {/* Simulation console terminal logs */}
+            <div className="space-y-1.5">
+              <span className="text-[9px] font-mono font-black text-slate-400 block uppercase">
+                {tVal.consoleTitle}
+              </span>
+              <div className="w-full h-[150px] bg-black border border-slate-900 rounded-2xl p-4 font-mono text-[9px] text-[#22c55e] leading-relaxed overflow-y-auto space-y-1 scrollbar-none shadow-inner border-t border-t-slate-800/40">
+                {consoleLogs.map((log, index) => (
+                  <p key={index} className="transition-all duration-300">
+                    {log}
+                  </p>
+                ))}
+
+                {consoleLogs.length === 0 && (
+                  <div className="text-center text-slate-600 py-10 font-bold">
+                    [CONSOLE EMPTY. READY TO TRAIN AND CALIBRATE]
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-slate-950" />
+
+          {/* SINK SPROUT DEDEPLOYMENT GATE */}
+          <div className="space-y-3.5">
+            <button
+              onClick={handleDeployToHearth}
+              className="w-full py-4 bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 text-white font-extrabold text-xs tracking-widest uppercase rounded-2xl shadow-lg transition-all hover:scale-[1.02] active:scale-97 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Cpu className="w-4 h-4 animate-spin-slow" />
+              <span>{isEn ? "Deploy Agent framework to Canvas" : "部署此代理架至 Field Map 大屏大屏"}</span>
+            </button>
+            <p className="text-[9px] text-slate-500 font-semibold leading-normal font-sans text-center">
+              {isEn 
+                ? "Physical model deployment wraps selected skeletal components, emitting a custom micro-intelligence node with interactive checklist processes onto Field Map."
+                : "一键部署会将该精心校准的计算代理编译发布，在大局画布 Field Map 上快速唤生一颗带独立算法校验、工具流程连线的微智能卡块节点。"}
+            </p>
+          </div>
+
+        </div>
 
       </div>
 

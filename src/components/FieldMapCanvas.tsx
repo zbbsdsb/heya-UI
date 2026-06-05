@@ -628,9 +628,19 @@ export default function FieldMapCanvas({
                 
                 {/* Upper line: Badge and percentage info */}
                 <div className="flex items-center justify-between">
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${ui.badge}`}>
-                    {node.type}
-                  </span>
+                  <div className="flex items-center gap-1.5 font-sans">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${ui.badge}`}>
+                      {node.type}
+                    </span>
+                    {/* Synchronized status badge representing database connection readiness */}
+                    <span 
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        node.syncStatus === 'synced' ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 
+                        node.syncStatus === 'pending' ? 'bg-amber-400 animate-pulse' : 'bg-slate-300'
+                      }`} 
+                      title={node.syncStatus === 'synced' ? 'Database Synced (Hearth Core Cloud)' : 'Pending Sync / Offline'}
+                    />
+                  </div>
                   
                   <div className="flex items-center gap-1">
                     <button 

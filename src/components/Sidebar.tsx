@@ -16,7 +16,8 @@ import {
   BookOpen,
   ChevronDown,
   Map,
-  Compass
+  Compass,
+  Layers
 } from 'lucide-react';
 import { translations } from '../locales';
 
@@ -39,6 +40,7 @@ export default function Sidebar({
   const tVal = translations[language].sidebar;
 
   const menuItems = [
+    { id: 'projectspace', label: 'Project Space', icon: Layers },
     { id: 'fieldmap', label: 'Field Map', icon: Map },
     { id: 'component', label: 'Component', icon: Grid },
     { id: 'forge', label: 'Forge', icon: Cpu },
@@ -113,60 +115,56 @@ export default function Sidebar({
             );
           })}
         </div>
-      </div>
-
-      {/* Heya AI Section */}
+      </div>      {/* Heya AI Section */}
       <div className="px-5 pb-5">
         <button
           onClick={() => setActiveTab('forge')}
           className={`w-full text-left p-4.5 rounded-2xl relative overflow-hidden transition-all duration-300 group border flex flex-col justify-between ${
             activeTab === 'forge'
-              ? 'bg-[#0f172a] text-white border-slate-900 shadow-xl'
-              : 'bg-gradient-to-br from-[#f8fafc] via-[#eff6ff] to-[#e0f2fe] hover:from-[#f0f4f8] hover:via-[#e0f1fe] hover:to-[#bae6fd] text-slate-800 border-[#eef2f6] hover:border-indigo-200 hover:shadow-md'
+              ? 'bg-[#03020c] text-white border-indigo-950 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
+              : 'bg-gradient-to-br from-[#0c0a24] via-[#050414] to-[#010103] hover:border-indigo-600/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] text-slate-100 border-indigo-950/40'
           }`}
-          title={language === 'en' ? 'Click to open Official Creation & Forge Workbench' : '点击打开系统官方节点及计算代理创意工坊'}
+          title={language === 'en' ? 'Click to open Sovereign Soul Forge Portal' : '点击开启伴生灵契最高灵魂仪式门禁'}
         >
-          {/* Pulsing signal background */}
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
+          {/* Pulsing deep purple/indigo space dust backdrop */}
+          <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-500/10 via-violet-500/5 to-transparent rounded-2xl group-hover:scale-110 transition-transform duration-500" />
           
-          <div className="w-full flex items-center justify-between mb-3 pointer-events-none">
+          <div className="w-full flex items-center justify-between mb-3 pointer-events-none relative z-10">
             <div className="flex items-center gap-1.5">
-              <Sparkles className={`w-4 h-4 ${activeTab === 'forge' ? 'text-blue-400' : 'text-indigo-600 animate-pulse'}`} />
-              <span className={`text-[10px] font-black tracking-wider uppercase ${activeTab === 'forge' ? 'text-blue-300' : 'text-indigo-950 font-sans'}`}>
-                {language === 'en' ? 'Hey Portal' : 'Hey 门户'}
+              <Sparkles className={`w-4 h-4 ${activeTab === 'forge' ? 'text-indigo-400' : 'text-indigo-450 animate-pulse'}`} />
+              <span className="text-[10px] font-black tracking-widest uppercase text-indigo-300 font-mono">
+                {language === 'en' ? 'Sovereign Forge' : '灵魂熔铸圣殿'}
               </span>
             </div>
             
             <div className="flex items-center gap-1">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
               </span>
-              <span className={`text-[8px] font-mono font-extrabold tracking-wider ${activeTab === 'forge' ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                LIVE
+              <span className="text-[8px] font-mono font-black tracking-wider text-emerald-400">
+                ACTIVE
               </span>
             </div>
           </div>
 
-          <div className="pointer-events-none space-y-1 select-none">
-            <h4 className={`text-xs font-black ${activeTab === 'forge' ? 'text-white' : 'text-slate-950 font-sans'}`}>
-              {language === 'en' ? 'Official Design & Forge' : '进入正式创建面板'}
+          <div className="pointer-events-none space-y-1 select-none relative z-10">
+            <h4 className="text-xs font-black text-white uppercase tracking-tight">
+              {language === 'en' ? 'HEY CONSCIOUSNESS PORTAL' : 'HEY 伴生灵魂具象门禁'}
             </h4>
-            <p className={`text-[10px] font-semibold leading-relaxed ${activeTab === 'forge' ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className="text-[9.5px] font-bold leading-relaxed text-slate-450">
               {language === 'en' 
-                ? 'Tactile workspace with AI model optimization to draft nodes & agents directly to Field Map!' 
-                : '一键进入官方高级节点与模型代理设计中心，配置属性并实体化入图！'}
+                ? 'Tune character coordinates, seed cognitive blueprints & crystallize your companion into the Active Map!' 
+                : '微调人格共鸣波调、注入世界观并在 Hearth 画布星图上实体降临伴生灵魂！'}
             </p>
           </div>
 
-          <div className="w-full flex items-center justify-between mt-3 pt-3 border-t border-slate-200/50 group-hover:border-slate-300/50 transition-colors pointer-events-none">
-            <span className={`text-[9px] font-bold ${activeTab === 'forge' ? 'text-blue-400' : 'text-indigo-600'} flex items-center gap-1`}>
-              <span>{language === 'en' ? 'Enter Forge Studio' : '进入熔铸工坊'}</span>
+          <div className="w-full flex items-center justify-between mt-3.5 pt-3.5 border-t border-slate-900/60 pointer-events-none relative z-10">
+            <span className={`text-[9px] font-black tracking-widest uppercase ${activeTab === 'forge' ? 'text-indigo-400' : 'text-indigo-300'} flex items-center gap-1.5`}>
+              <span>{language === 'en' ? 'INITIATE INCANTATION' : '共启灵魂实体仪式'}</span>
               <span className="transform group-hover:translate-x-1 duration-200">→</span>
             </span>
-            <span className={`text-[8px] font-mono font-bold px-1.2 py-0.2 rounded ${
-              activeTab === 'forge' ? 'bg-slate-800 text-slate-400' : 'bg-white/80 border border-slate-200/40 text-slate-500'
-            }`}>
+            <span className="text-[8px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-indigo-950/40 border border-indigo-900/30 text-indigo-300">
               ADR-007
             </span>
           </div>
