@@ -241,6 +241,159 @@ export default function ProjectSpace({
   const [connectingSourceId, setConnectingSourceId] = useState<string | null>(null);
   const [draggingNodeState, setDraggingNodeState] = useState<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
 
+  // Subfield active execution/simulation mode states
+  const [subFieldMode, setSubFieldMode] = useState<'planning' | 'execution'>('planning');
+  const [isAuditingSubNode, setIsAuditingSubNode] = useState<string | null>(null);
+  const [auditProgress, setAuditProgress] = useState<number>(0);
+  const [auditTerminalLogs, setAuditTerminalLogs] = useState<string[]>([]);
+  const [compiledNodeCode, setCompiledNodeCode] = useState<Record<string, string>>({});
+
+  const handleExecuteSubComponentAudit = (projectId: string, node: SubComponentNode) => {
+    setIsAuditingSubNode(node.id);
+    setAuditProgress(10);
+    setAuditTerminalLogs([
+      `[SANDBOX INIT]: Instantiating sandbox pipeline for component: [${node.label.toUpperCase()}]`,
+      `[SANDBOX TYPE]: Type category: [${node.type.toUpperCase()}] | Targeting active sandbox boundary for proj: #${projectId}`,
+      `[ANALYZER]: Commencing static topology structural evaluation...`,
+    ]);
+
+    const stepLogs = [
+      () => ({
+        progress: 35,
+        log: isEn
+          ? `[RESOLVER]: Tracing connections for #${node.id}. Found ${node.connections.length} outbound connections mapping to sibling modules.`
+          : `[组件解析]: 追溯 #${node.id} 连线关系。检测到其具有 ${node.connections.length} 个向外关联对端终端。`
+      }),
+      () => ({
+        progress: 60,
+        log: isEn
+          ? `[COMPILER]: Integrating with Hey Companion baseline. Fetching micro-boilerplates matching [${node.type.toUpperCase()}] specifications.`
+          : `[模拟编译]: 与 Hey 伴生心智主框架对接。自动配置检索匹配 [${node.type.toUpperCase()}] 规范的逻辑微结构代码。`
+      }),
+      () => ({
+        progress: 85,
+        log: isEn
+          ? `[ASSERTION]: Validation passed. Clean syntax, zero recursive circular references, strong typed contracts.`
+          : `[安全诊断]: 已验证。结构层级无重叠，零死循环递归，并已强制注入 TypeScript 类型强约束接口。`
+      }),
+      () => {
+        let code = "";
+        if (node.type === 'ui') {
+          code = `// Compiled UI Component: ${node.label}
+import React from 'react';
+
+interface ${node.label.replace(/\s+/g, '')}Props {
+  className?: string;
+}
+
+export const ${node.label.replace(/\s+/g, '')}: React.FC<${node.label.replace(/\s+/g, '')}Props> = ({ className }) => {
+  return (
+    <div className={\`p-4 border border-black monospace bg-white \${className}\`}>
+      <h3>${node.label} Unit</h3>
+      <p>${node.description || 'Live rendered.'}</p>
+    </div>
+  );
+};`;
+        } else if (node.type === 'gate') {
+          code = `// Compiled API Gateway Client: ${node.label}
+export class ${node.label.replace(/\s+/g, '')}Gateway {
+  private baseRoute: string = "/api/v1/${node.label.toLowerCase().replace(/\s+/g, '-')}";
+
+  public async postHandshake(payload: any): Promise<any> {
+    console.log("[${node.label}] Dispatching cryptographically signed payload:", payload);
+    const response = await fetch(this.baseRoute, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, timestamp: Date.now() })
+    });
+    return response.json();
+  }
+}`;
+        } else if (node.type === 'db') {
+          code = `// Compiled Secure Local Database Sector: ${node.label}
+export class ${node.label.replace(/\s+/g, '')}Store {
+  private storeName: string = "store_${node.label.toLowerCase().replace(/\s+/g, '_')}";
+
+  public async writeTransaction(key: string, data: any): Promise<boolean> {
+    console.log(\`[\${this.storeName}] Opening secure write transaction for key \${key}\`);
+    localStorage.setItem(\`hearth::\${this.storeName}::\${key}\`, JSON.stringify(data));
+    return true;
+  }
+}`;
+        } else {
+          code = `// Compiled Micro Agent Processor: ${node.label}
+export class ${node.label.replace(/\s+/g, '')}Runner {
+  public async executeStep(inputTokens: string): Promise<string> {
+    console.log("[${node.label}] Agent received token loads:", inputTokens);
+    return \`[SUCCESS] Component ${node.label} executed instruction matching constraint: "\${inputTokens}"\`;
+  }
+}`;
+        }
+
+        return {
+          progress: 100,
+          code,
+          log: isEn
+            ? `[SUCCESS]: Code successfully synthesized and bound to Workspace Snapshot database.`
+            : `[装配成功]: 代码已生成。此子组件逻辑已被顺利装配至项目星图缓存，符合 ADR-007 全栈契约。`
+        };
+      }
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      if (currentStep < stepLogs.length) {
+        const step: any = stepLogs[currentStep]();
+        setAuditProgress(step.progress);
+        setAuditTerminalLogs(prev => [...prev, step.log]);
+        if ('code' in step && step.code) {
+          setCompiledNodeCode(prev => ({
+            ...prev,
+            [node.id]: step.code
+          }));
+
+          // Mark node status as 'synced' in subFieldMaps!
+          setSubFieldMaps(prev => {
+            const currentList = prev[projectId] || [];
+            return {
+              ...prev,
+              [projectId]: currentList.map(n => 
+                n.id === node.id ? { ...n, status: 'synced' } : n
+              )
+            };
+          });
+
+          // Pre-populate chat input or add companion response so Hey immediately reflects on the newly generated code
+          const companionMsg: ExtendedDialogueMessage = {
+            id: `hey-sub-${Date.now()}`,
+            sender: 'hey',
+            text: isEn
+              ? `I have audited and generated the autonomous boilerplate for component node "${node.label}" (${node.type.toUpperCase()}). Please inspect the code panel details.`
+              : `我已经为你对组件「${node.label}」完成了系统级拓扑审计并编译了配套的 TypeScript 常驻代码。你可以点击复制或保存。`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            codeBlock: step.code
+          };
+
+          setProjectChats(prev => ({
+            ...prev,
+            [projectId]: [...(prev[projectId] || []), companionMsg]
+          }));
+
+          // Append log
+          const newFeedLog = `✓ [${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}] AI Peer compiled structural code for sub-node: ${node.label}`;
+          setTelemetryFeeds(prev => ({
+            ...prev,
+            [projectId]: [newFeedLog, ...(prev[projectId] || [])]
+          }));
+        }
+        currentStep++;
+      } else {
+        clearInterval(interval);
+        setIsAuditingSubNode(null);
+      }
+    }, 500);
+  };
+
   // Spawner form states
   const [newSubNodeName, setNewSubNodeName] = useState('');
   const [newSubNodeType, setNewSubNodeType] = useState<'ui' | 'gate' | 'db' | 'agent'>('ui');
@@ -972,7 +1125,7 @@ export class WebRTCSlidingBuffer<T> {
                             className="text-[10.5px] font-bold text-slate-600 bg-slate-50 hover:bg-neutral-100 hover:text-red-500 hover:border-red-200 cursor-pointer px-2.5 py-1 rounded-lg border border-slate-200 flex items-center gap-1 transition-all"
                           >
                             <span>#{t}</span>
-                            <span className="text-[8px] text-slate-400 group-hover:text-red-500">×</span>
+                            <span className="text-[8px] text-slate-400">×</span>
                           </span>
                         ))}
 
@@ -1000,41 +1153,85 @@ export class WebRTCSlidingBuffer<T> {
                 ) : (
                   /* 🗺️ Sub-Field Map Workspace Panel */
                   <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
-                    {/* Top subfield title / description */}
-                    <div className="flex items-center justify-between shrink-0">
+                    {/* Top subfield title / description with Planning & Execution Mode Selector */}
+                    <div className="flex items-center justify-between shrink-0 bg-slate-50/50 p-2 border border-slate-150 rounded-2xl">
                       <div>
                         <h4 className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                          <span>SYSTEM TOPOLOGY BLUEPRINT</span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+                          <span>SYSTEM TOPOLOGY {subFieldMode === 'planning' ? 'PLANNER' : 'REALIZER'}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${subFieldMode === 'planning' ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500 animate-ping'}`} />
                         </h4>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5 leading-tight">
+                        <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5 leading-tight">
                           {isEn 
-                            ? "Drag nodes to adjust relative position layout; click connecting circles to bind links." 
-                            : "可自由拖动卡片规划相对位置；点击两侧的圆圈锚点进行组件间的单向关联连线。"}
+                            ? (subFieldMode === 'planning' 
+                              ? "STEP 1: Draft layout & connect the nodes" 
+                              : "STEP 2: Run simulation-audits & compile code")
+                            : (subFieldMode === 'planning'
+                              ? "阶段一: 自由排布卡片并连线建立拓扑契约"
+                              : "阶段二: 点击节点启动编译，实时生成TS架构代码")}
                         </p>
                       </div>
-                      
-                      {connectingSourceId && (
-                        <div className="text-[9px] font-mono bg-amber-50 border border-amber-200 text-amber-700 px-2.5 py-1 rounded-lg animate-pulse flex items-center gap-1">
-                          <span>{isEn ? "LINK MODE: Click target circle" : "对接中：点击目标组件右侧圈"}</span>
-                          <button 
-                            onClick={() => setConnectingSourceId(null)}
-                            className="font-bold underline text-slate-500 hover:text-red-500 ml-1"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
+
+                      {/* Segmented Mode Selector */}
+                      <div className="flex bg-slate-200/50 hover:bg-slate-200 p-0.5 rounded-xl border border-slate-300 shrink-0 select-none">
+                        <button
+                          onClick={() => {
+                            setSubFieldMode('planning');
+                            setSelectedSubNodeId(null);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[9px] font-mono font-black tracking-wider transition-all uppercase flex items-center gap-1.5 ${
+                            subFieldMode === 'planning'
+                              ? 'bg-indigo-650 text-white shadow-sm'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          <span>PLAN</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSubFieldMode('execution');
+                            setSelectedSubNodeId(null);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[9px] font-mono font-black tracking-wider transition-all uppercase flex items-center gap-1.5 ${
+                            subFieldMode === 'execution'
+                              ? 'bg-slate-950 text-emerald-400 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          <Play className="w-2.5 h-2.5" />
+                          <span>EXECUTE</span>
+                        </button>
+                      </div>
                     </div>
+
+                    {connectingSourceId && (
+                      <div className="text-[9px] font-mono bg-amber-50 border border-amber-200 text-amber-700 px-2.5 py-1.5 rounded-xl animate-pulse flex items-center justify-between shrink-0">
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
+                          <span>{isEn ? "LINK MODE: Click target on right circle" : "对接中: 请点击连线目标组件的右侧锚圈"}</span>
+                        </span>
+                        <button 
+                          onClick={() => setConnectingSourceId(null)}
+                          className="font-bold underline text-slate-500 hover:text-red-500 ml-1"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
 
                     {/* Interactive Sandbox Canvas Container */}
                     <div 
                       onMouseMove={(e) => handleSubNodeMouseMove(activeProject.id, e)}
                       onMouseUp={handleSubNodeMouseUpOrLeave}
                       onMouseLeave={handleSubNodeMouseUpOrLeave}
-                      className="relative w-full h-[280px] bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden select-none cursor-crosshair shrink-0 shadow-inner"
+                      className={`relative w-full h-[270px] border rounded-2xl overflow-hidden select-none cursor-crosshair shrink-0 transition-all ${
+                        subFieldMode === 'execution' 
+                          ? 'bg-slate-950 border-emerald-950 hover:border-emerald-900 shadow-[0_0_20px_rgba(16,185,129,0.05)]' 
+                          : 'bg-slate-950 border-slate-900 shadow-inner'
+                      }`}
                       style={{
-                        backgroundImage: 'radial-gradient(circle, rgba(99, 102, 241, 0.12) 1.2px, transparent 1.2px)',
+                        backgroundImage: subFieldMode === 'execution' 
+                          ? 'radial-gradient(circle, rgba(16, 185, 129, 0.12) 1.2px, transparent 1.2px)' 
+                          : 'radial-gradient(circle, rgba(99, 102, 241, 0.12) 1.2px, transparent 1.2px)',
                         backgroundSize: '16px 16px'
                       }}
                     >
@@ -1050,7 +1247,7 @@ export class WebRTCSlidingBuffer<T> {
                             markerHeight="6"
                             orient="auto-start-reverse"
                           >
-                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#818cf8" />
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill={subFieldMode === 'execution' ? "#10b981" : "#818cf8"} />
                           </marker>
                         </defs>
 
@@ -1073,16 +1270,19 @@ export class WebRTCSlidingBuffer<T> {
                                   y1={y1} 
                                   x2={x2} 
                                   y2={y2} 
-                                  stroke="#6366f1" 
+                                  stroke={subFieldMode === 'execution' ? "#10b981" : "#6366f1"} 
                                   strokeWidth="3.5" 
-                                  strokeOpacity="0.15"
+                                  strokeOpacity="0.1"
                                 />
                                 <line 
                                   x1={x1} 
                                   y1={y1} 
                                   x2={x2} 
                                   y2={y2} 
-                                  stroke={selectedSubNodeId === node.id ? "#818cf8" : "#4f46e5"} 
+                                  stroke={selectedSubNodeId === node.id 
+                                    ? (subFieldMode === 'execution' ? "#34d399" : "#818cf8") 
+                                    : (subFieldMode === 'execution' ? "#10b981" : "#4f46e5")
+                                  } 
                                   strokeWidth="1.5" 
                                   strokeDasharray="4 3"
                                   markerEnd="url(#arrow)"
@@ -1103,19 +1303,19 @@ export class WebRTCSlidingBuffer<T> {
                         let typeColorText = "";
                         switch(node.type) {
                           case 'ui':
-                            nodeStyles = "bg-[#0c0f24]/90 border-indigo-500/80 text-indigo-100 hover:border-indigo-400";
+                            nodeStyles = "bg-[#0c0f24]/95 border-indigo-500/80 text-indigo-100 hover:border-indigo-400";
                             typeColorText = "text-indigo-400";
                             break;
                           case 'gate':
-                            nodeStyles = "bg-[#0b1b17]/90 border-emerald-500/80 text-emerald-100 hover:border-emerald-400";
+                            nodeStyles = "bg-[#0b1b17]/95 border-emerald-500/80 text-emerald-100 hover:border-emerald-400";
                             typeColorText = "text-emerald-400";
                             break;
                           case 'db':
-                            nodeStyles = "bg-[#0a1c1f]/90 border-cyan-500/80 text-cyan-100 hover:border-cyan-400";
+                            nodeStyles = "bg-[#0a1c1f]/95 border-cyan-500/80 text-cyan-100 hover:border-cyan-400";
                             typeColorText = "text-cyan-400";
                             break;
                           case 'agent':
-                            nodeStyles = "bg-[#200d28]/90 border-purple-500/80 text-purple-100 hover:border-purple-400";
+                            nodeStyles = "bg-[#200d28]/95 border-purple-500/80 text-purple-100 hover:border-purple-400";
                             typeColorText = "text-purple-400";
                             break;
                         }
@@ -1123,32 +1323,45 @@ export class WebRTCSlidingBuffer<T> {
                         return (
                           <div
                             key={node.id}
-                            onMouseDown={(e) => handleSubNodeMouseDown(activeProject.id, node.id, e)}
-                            className={`absolute w-[130px] rounded-xl border p-2 text-left cursor-grab active:cursor-grabbing transition-shadow duration-150 relative select-none ${nodeStyles} ${
-                              isSelected ? 'ring-2 ring-indigo-500/65 scale-[1.03] shadow-[0_4px_12px_rgba(99,102,241,0.25)] border-indigo-400' : 'shadow-sm'
+                            onMouseDown={(e) => {
+                              if (subFieldMode === 'planning') {
+                                handleSubNodeMouseDown(activeProject.id, node.id, e);
+                              } else {
+                                e.preventDefault();
+                                setSelectedSubNodeId(node.id);
+                              }
+                            }}
+                            className={`absolute w-[130px] rounded-xl border p-2 text-left cursor-grab active:cursor-grabbing transition-all duration-150 relative select-none ${nodeStyles} ${
+                              isSelected 
+                                ? (subFieldMode === 'execution' 
+                                  ? 'ring-2 ring-emerald-500 scale-[1.04] shadow-[0_0_15px_rgba(16,185,129,0.3)] border-emerald-400' 
+                                  : 'ring-2 ring-indigo-500/65 scale-[1.04] shadow-[0_4px_12px_rgba(99,102,241,0.25)] border-indigo-400') 
+                                : 'shadow-sm opacity-90 hover:opacity-100'
                             }`}
                             style={{ left: node.x, top: node.y }}
                           >
-                            {/* Connector node circle indicator dot */}
-                            <button
-                              title={isEn ? "Connect Outgoing Link" : "拉出对接通道"}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (connectingSourceId) {
-                                  handleToggleSubConnection(activeProject.id, connectingSourceId, node.id);
-                                  setConnectingSourceId(null);
-                                } else {
-                                  setConnectingSourceId(node.id);
-                                }
-                              }}
-                              className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center border transition-all z-20 ${
-                                isConnectingSource 
-                                  ? 'bg-amber-500 border-amber-300 scale-125 rotate-45'
-                                  : 'bg-slate-900 border-slate-700 hover:scale-110'
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${isConnectingSource ? 'bg-white' : 'bg-indigo-400'}`} />
-                            </button>
+                            {/* Connector node circle indicator dot - only shown in planning mode */}
+                            {subFieldMode === 'planning' && (
+                              <button
+                                title={isEn ? "Connect Outgoing Link" : "拉出对接通道"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (connectingSourceId) {
+                                    handleToggleSubConnection(activeProject.id, connectingSourceId, node.id);
+                                    setConnectingSourceId(null);
+                                  } else {
+                                    setConnectingSourceId(node.id);
+                                  }
+                                }}
+                                className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center border transition-all z-20 ${
+                                  isConnectingSource 
+                                    ? 'bg-amber-500 border-amber-300 scale-125 rotate-45'
+                                    : 'bg-slate-900 border-slate-700 hover:scale-110'
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${isConnectingSource ? 'bg-white' : 'bg-indigo-400'}`} />
+                              </button>
+                            )}
 
                             <div className="flex justify-between items-start mb-0.5">
                               <span className="text-[10px] font-black tracking-wide font-sans truncate pr-1">
@@ -1165,8 +1378,11 @@ export class WebRTCSlidingBuffer<T> {
 
                             <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-800/60 text-[8px] font-mono leading-none">
                               <span className="text-slate-500">#{node.id}</span>
-                              <span className={`font-bold uppercase ${node.status === 'synced' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                {node.status}
+                              <span className={`font-bold uppercase ${
+                                node.status === 'synced' ? 'text-emerald-400' : 'text-amber-400'
+                              } flex items-center gap-0.5`}>
+                                <span className={`w-1 h-1 rounded-full ${node.status === 'synced' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                                <span>{node.status}</span>
                               </span>
                             </div>
                           </div>
@@ -1180,128 +1396,274 @@ export class WebRTCSlidingBuffer<T> {
                       const sNode = list.find(n => n.id === selectedSubNodeId);
                       if (!sNode) return null;
                       
+                      const hasCompiledCode = compiledNodeCode[sNode.id];
+                      
                       return (
-                        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 shrink-0">
-                          <div className="flex items-center justify-between">
+                        <div className={`p-4 border rounded-2xl space-y-3 shrink-0 transition-colors ${
+                          subFieldMode === 'execution' 
+                            ? 'bg-slate-950 border-emerald-950/80 text-white' 
+                            : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                             <div className="flex items-center gap-2">
                               <span className={`text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded ${
-                                sNode.type === 'ui' ? 'bg-indigo-100 text-indigo-700' :
-                                sNode.type === 'gate' ? 'bg-emerald-100 text-emerald-700' :
-                                sNode.type === 'db' ? 'bg-cyan-100 text-cyan-700' :
-                                'bg-purple-100 text-purple-700'
+                                sNode.type === 'ui' ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' :
+                                sNode.type === 'gate' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
+                                sNode.type === 'db' ? 'bg-cyan-100 text-cyan-700 border border-cyan-200' :
+                                'bg-purple-100 text-purple-700 border border-purple-200'
                               }`}>
                                 {sNode.type}
                               </span>
-                              <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide">
+                              <h5 className={`text-xs font-black uppercase tracking-wide ${subFieldMode === 'execution' ? 'text-slate-200' : 'text-slate-800'}`}>
                                 {sNode.label}
                               </h5>
+                              <span className="text-[9px] font-mono text-slate-500">#{sNode.id}</span>
                             </div>
 
-                            <div className="flex gap-1.5">
-                              <button
-                                onClick={() => handleAskHeyAboutComponent(activeProject.id, sNode)}
-                                className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[9.5px] font-bold font-mono border border-indigo-200/50 transition-colors flex items-center gap-1 shrink-0"
-                              >
-                                <Sparkles className="w-3 h-3 text-indigo-500" />
-                                <span>{isEn ? "Audit & Code" : "伴生心智写代码"}</span>
-                              </button>
-                              
-                              <button
-                                onClick={() => {
-                                  // Toggle status synced / warning / pending
+                            {/* Actions bar depending on Planning or Execution Mode */}
+                            <div className="flex gap-1.5 flex-wrap">
+                              {subFieldMode === 'execution' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleExecuteSubComponentAudit(activeProject.id, sNode)}
+                                    disabled={isAuditingSubNode !== null}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-45 text-slate-950 rounded-lg text-[9.5px] font-black font-mono transition-colors flex items-center gap-1 shrink-0"
+                                  >
+                                    <Play className="w-3 h-3 fill-slate-950" />
+                                    <span>{isAuditingSubNode === sNode.id ? "Auditing..." : "COMPILE WORKSPACE"}</span>
+                                  </button>
+                                  {hasCompiledCode && (
+                                    <button
+                                      onClick={() => {
+                                        setNodes(prev => prev.map(node => {
+                                          if (node.id === activeProject.id) {
+                                            return {
+                                              ...node,
+                                              codeSnippet: hasCompiledCode,
+                                              updatedAt: new Date().toLocaleDateString()
+                                            };
+                                          }
+                                          return node;
+                                        }));
+                                        // log
+                                        const successLog = `✓ [${new Date().toLocaleTimeString()}] Dev applied compiled TS template to active Workspace Repository.`;
+                                        setTelemetryFeeds(prev => ({
+                                          ...prev,
+                                          [activeProject.id]: [successLog, ...(prev[activeProject.id] || [])]
+                                        }));
+                                      }}
+                                      className="px-2 py-1 bg-slate-900 border border-slate-750 text-emerald-400 rounded-lg text-[9.5px] font-bold font-mono hover:bg-slate-850 transition-colors"
+                                    >
+                                      {isEn ? "Apply Snippet" : "写入沙盒代码"}
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleAskHeyAboutComponent(activeProject.id, sNode)}
+                                    className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[9.5px] font-bold font-mono border border-indigo-200/50 transition-colors flex items-center gap-1 shrink-0"
+                                  >
+                                    <Sparkles className="w-3 h-3 text-indigo-500" />
+                                    <span>{isEn ? "Audit & Code" : "伴生心智写代码"}</span>
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => {
+                                      // Toggle status synced / warning / pending
+                                      setSubFieldMaps(prev => {
+                                        const currentList = prev[activeProject.id] || [];
+                                        return {
+                                          ...prev,
+                                          [activeProject.id]: currentList.map(n => 
+                                            n.id === selectedSubNodeId 
+                                              ? { ...n, status: n.status === 'synced' ? 'warning' : n.status === 'warning' ? 'pending' : 'synced' } 
+                                              : n
+                                          )
+                                        };
+                                      });
+                                    }}
+                                    className="px-2 py-0.5 bg-white hover:bg-slate-150 text-slate-600 rounded-lg text-[9.5px] font-bold border border-slate-200 transition-colors shrink-0"
+                                  >
+                                    {isEn ? "Toggle Status" : "轮转状态"}
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => handleRemoveSubComponent(activeProject.id, selectedSubNodeId)}
+                                    className="px-2 py-0.5 bg-red-50 hover:bg-red-100 text-red-650 rounded-lg text-[9.5px] font-bold border border-red-100/50 transition-colors shrink-0"
+                                  >
+                                    {isEn ? "Prune" : "裁剪"}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Dynamic Compile State OR Attribute Specification Inputs */}
+                          {subFieldMode === 'execution' ? (
+                            <div className="space-y-2">
+                              {/* Auditing progress bar if compiler active */}
+                              {isAuditingSubNode === sNode.id && (
+                                <div className="space-y-1">
+                                  <div className="flex justify-between items-center text-[9px] font-mono text-emerald-400">
+                                    <span>COMPILER PROGRESS TRACE</span>
+                                    <span>{auditProgress}%</span>
+                                  </div>
+                                  <div className="w-full bg-slate-900 border border-slate-800 h-2 rounded-full overflow-hidden">
+                                    <motion.div 
+                                      className="bg-emerald-500 h-full rounded-full"
+                                      initial={{ width: '0%' }}
+                                      animate={{ width: `${auditProgress}%` }}
+                                      transition={{ duration: 0.3 }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Terminal Logs simulated window */}
+                              <div className="bg-slate-900 border border-slate-850 p-2 text-[8.5px] font-mono text-slate-350 rounded-xl max-h-[100px] overflow-y-auto space-y-1 leading-snug">
+                                {isAuditingSubNode === sNode.id ? (
+                                  auditTerminalLogs.map((log, idx) => (
+                                    <div key={idx} className={idx === auditTerminalLogs.length - 1 ? "text-emerald-300 font-bold" : ""}>
+                                      {log}
+                                    </div>
+                                  ))
+                                ) : hasCompiledCode ? (
+                                  <div className="text-emerald-400 font-semibold flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    <span>Compiled: [{sNode.label.toUpperCase()} COMPONENT MODULE SECURED (100% compliant)]</span>
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-500 italic">
+                                    {isEn ? "Compiler idle. Click 'COMPILE WORKSPACE' above to synthesize typescript source module." : "编译器闲置。点击上方「COMPILE WORKSPACE」将拓扑契约转化为 TypeScript 常驻代码组件模块。"}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Code Preview display window */}
+                              {hasCompiledCode && (
+                                <div className="space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-mono text-[8px] text-slate-400 uppercase font-black">
+                                      SYNTHESIZED SOURCE WORKSPACE CODE:
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(hasCompiledCode);
+                                        // add trace
+                                        const traceMsg = `● Copy code snippet for ${sNode.label} onto clipboard.`;
+                                        setTelemetryFeeds(prev => ({
+                                          ...prev,
+                                          [activeProject.id]: [traceMsg, ...(prev[activeProject.id] || [])]
+                                        }));
+                                      }}
+                                      className="text-[8px] font-mono text-emerald-400 underline hover:text-emerald-300"
+                                    >
+                                      Copy Snippet Code
+                                    </button>
+                                  </div>
+                                  <pre className="bg-slate-950 border border-slate-900 p-2.5 text-[8px] text-emerald-300 font-mono rounded-xl h-[100px] overflow-auto select-text scrollbar-thin">
+                                    {hasCompiledCode}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <span className="font-mono text-[9px] block text-slate-400 uppercase font-black">
+                                SPECIFICATION BLUEPRINT DESCRIPTION:
+                              </span>
+                              <input
+                                type="text"
+                                value={sNode.description || ''}
+                                onChange={(e) => {
+                                  const desc = e.target.value;
                                   setSubFieldMaps(prev => {
                                     const currentList = prev[activeProject.id] || [];
                                     return {
                                       ...prev,
                                       [activeProject.id]: currentList.map(n => 
-                                        n.id === selectedSubNodeId 
-                                          ? { ...n, status: n.status === 'synced' ? 'warning' : n.status === 'warning' ? 'pending' : 'synced' } 
-                                          : n
+                                        n.id === selectedSubNodeId ? { ...n, description: desc } : n
                                       )
                                     };
                                   });
                                 }}
-                                className="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-600 rounded text-[9.5px] font-bold border border-slate-200 transition-colors shrink-0"
-                              >
-                                {isEn ? "Toggle Status" : "轮转状态"}
-                              </button>
-                              
-                              <button
-                                onClick={() => handleRemoveSubComponent(activeProject.id, selectedSubNodeId)}
-                                className="px-2 py-0.5 bg-red-50 hover:bg-red-100 text-red-650 rounded text-[9.5px] font-bold border border-red-100/50 transition-colors shrink-0"
-                              >
-                                {isEn ? "Prune" : "裁剪"}
-                              </button>
+                                placeholder={isEn ? "Specify exact component responsibility..." : "追加指定该子单元职责..."}
+                                className="w-full bg-white border border-slate-250 rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-400 font-sans text-xs text-slate-750 font-semibold"
+                              />
                             </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <span className="font-mono text-[9px] block text-slate-400 uppercase font-black">
-                              SPECIFICATION BLUEPRINT DESCRIPTION:
-                            </span>
-                            <input
-                              type="text"
-                              value={sNode.description || ''}
-                              onChange={(e) => {
-                                const desc = e.target.value;
-                                setSubFieldMaps(prev => {
-                                  const currentList = prev[activeProject.id] || [];
-                                  return {
-                                    ...prev,
-                                    [activeProject.id]: currentList.map(n => 
-                                      n.id === selectedSubNodeId ? { ...n, description: desc } : n
-                                    )
-                                  };
-                                });
-                              }}
-                              placeholder={isEn ? "Specify exact component responsibility..." : "追加指定该子单元职责..."}
-                              className="w-full bg-white border border-slate-250 rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-400 font-sans text-xs text-slate-750 font-semibold"
-                            />
-                          </div>
+                          )}
                         </div>
                       );
                     })() : (
-                      <div className="p-4 bg-slate-50 border border-dashed border-slate-200 text-center rounded-2xl select-none shrink-0">
-                        <span className="text-[10px] font-semibold text-slate-450 flex items-center justify-center gap-1.5 font-mono">
-                          <Terminal className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{isEn ? "Select any node above to inspect or request code templates" : "点击底图节点可以启动伴生心智代码生成器与配置审计"}</span>
+                      <div className={`p-4 border border-dashed text-center rounded-2xl select-none shrink-0 ${
+                        subFieldMode === 'execution' 
+                          ? 'bg-slate-950 border-emerald-950 text-slate-500' 
+                          : 'bg-slate-50 border-slate-200 text-slate-450'
+                      }`}>
+                        <span className="text-[10px] font-semibold flex items-center justify-center gap-1.5 font-mono">
+                          <Terminal className={`w-3.5 h-3.5 ${subFieldMode === 'execution' ? 'text-emerald-500' : 'text-slate-400'}`} />
+                          <span>
+                            {isEn 
+                              ? (subFieldMode === 'execution' 
+                                ? "Click any component on the grid to run Compiler Sandbox simulations" 
+                                : "Select any node above to inspect, configure links or write code")
+                              : (subFieldMode === 'execution'
+                                ? "在沙盒网格中选择任意组件卡片，启动 AI 编译或代码写入程序"
+                                : "点击底图上的任意卡片，进行组件职责追加、状态轮转或裁剪删除。")}
+                          </span>
                         </span>
                       </div>
                     )}
 
-                    {/* Component Spawner Dock footer */}
-                    <div className="border border-slate-150 bg-white p-3.5 rounded-2xl space-y-2 shrink-0">
-                      <span className="text-[9px] font-mono font-black text-indigo-500 block uppercase">
-                        {isEn ? "Component Spawner Interface Gateway" : "+ 物理生成级组件接口对接锚点"}
-                      </span>
-                      
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="text"
-                          value={newSubNodeName}
-                          onChange={(e) => setNewSubNodeName(e.target.value)}
-                          placeholder={isEn ? "Subcomponent label (e.g. Auth-Bridge)" : "新组件标记 (如. JWT-Port)"}
-                          className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 placeholder-slate-400 font-semibold"
-                        />
-                        <select
-                          value={newSubNodeType}
-                          onChange={(e) => setNewSubNodeType(e.target.value as any)}
-                          className="bg-slate-50 border border-slate-200 text-slate-600 rounded-xl px-2 py-1.5 text-xs focus:outline-none font-bold"
-                        >
-                          <option value="ui">UI Component</option>
-                          <option value="gate">Gateway API</option>
-                          <option value="db">Secure DB</option>
-                          <option value="agent">Micro Agent</option>
-                        </select>
-                        <button
-                          onClick={() => handleAddSubComponent(activeProject.id)}
-                          disabled={!newSubNodeName.trim()}
-                          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition-colors shadow-sm whitespace-nowrap"
-                        >
-                          {isEn ? "Spawn component" : "添加组件"}
-                        </button>
+                    {/* Component Spawner Dock footer - only visible in planning mode to encourage 'Plan first' */}
+                    {subFieldMode === 'planning' ? (
+                      <div className="border border-slate-150 bg-white p-3.5 rounded-2xl space-y-2 shrink-0">
+                        <span className="text-[9px] font-mono font-black text-indigo-505 block uppercase text-indigo-500">
+                          {isEn ? "Component Spawner Interface Gateway" : "+ 物理生成级组件接口对接锚点"}
+                        </span>
+                        
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            value={newSubNodeName}
+                            onChange={(e) => setNewSubNodeName(e.target.value)}
+                            placeholder={isEn ? "Subcomponent label (e.g. Auth-Bridge)" : "新组件标记 (如. JWT-Port)"}
+                            className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 placeholder-slate-400 font-semibold"
+                          />
+                          <select
+                            value={newSubNodeType}
+                            onChange={(e) => setNewSubNodeType(e.target.value as any)}
+                            className="bg-slate-50 border border-slate-200 text-slate-600 rounded-xl px-2 py-1.5 text-xs focus:outline-none font-bold"
+                          >
+                            <option value="ui">UI Component</option>
+                            <option value="gate">Gateway API</option>
+                            <option value="db">Secure DB</option>
+                            <option value="agent">Micro Agent</option>
+                          </select>
+                          <button
+                            onClick={() => handleAddSubComponent(activeProject.id)}
+                            disabled={!newSubNodeName.trim()}
+                            className="px-3.5 py-1.5 bg-indigo-650 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition-colors shadow-sm whitespace-nowrap"
+                          >
+                            {isEn ? "Spawn component" : "添加组件"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* Handy summary block in execution mode */
+                      <div className="border border-emerald-950 bg-slate-950 p-3.5 rounded-2xl space-y-1 shrink-0 font-mono text-[9px] text-emerald-400">
+                        <div className="flex justify-between items-center">
+                          <span>AGGREGATE PIPELINE BLUEPRINTS</span>
+                          <span className="font-bold underline text-slate-400">STATUS: READY</span>
+                        </div>
+                        <p className="text-slate-500 text-[8.5px] font-sans font-medium leading-relaxed">
+                          {isEn 
+                            ? "All topology link relations are locked. Under the execution portal, select any endpoint node and compile TypeScript boilerplates ready for application."
+                            : "拓扑连接关系均已全局锁定。在此执行状态控制台下，点击各端点卡片，即可激活常驻编译心智，将设计图导出为生产级 TypeScript 逻辑包。"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 

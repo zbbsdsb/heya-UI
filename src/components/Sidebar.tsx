@@ -124,16 +124,16 @@ export default function Sidebar({
               ? 'bg-[#03020c] text-white border-indigo-950 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
               : 'bg-gradient-to-br from-[#0c0a24] via-[#050414] to-[#010103] hover:border-indigo-600/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] text-slate-100 border-indigo-950/40'
           }`}
-          title={language === 'en' ? 'Click to open Sovereign Soul Forge Portal' : '点击开启伴生灵契最高灵魂仪式门禁'}
+          title={language === 'en' ? 'Click to open Autonomous Agent Forge Studio' : '点击开启专职计算代理自主装配熔炉'}
         >
           {/* Pulsing deep purple/indigo space dust backdrop */}
           <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-500/10 via-violet-500/5 to-transparent rounded-2xl group-hover:scale-110 transition-transform duration-500" />
           
           <div className="w-full flex items-center justify-between mb-3 pointer-events-none relative z-10">
             <div className="flex items-center gap-1.5">
-              <Sparkles className={`w-4 h-4 ${activeTab === 'forge' ? 'text-indigo-400' : 'text-indigo-450 animate-pulse'}`} />
+              <Cpu className={`w-4 h-4 ${activeTab === 'forge' ? 'text-indigo-400' : 'text-indigo-450 animate-pulse'}`} />
               <span className="text-[10px] font-black tracking-widest uppercase text-indigo-300 font-mono">
-                {language === 'en' ? 'Sovereign Forge' : '灵魂熔铸圣殿'}
+                {language === 'en' ? 'Agent Forge' : '决策代理熔炉'}
               </span>
             </div>
             
@@ -143,25 +143,25 @@ export default function Sidebar({
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
               </span>
               <span className="text-[8px] font-mono font-black tracking-wider text-emerald-400">
-                ACTIVE
+                PIPELINES
               </span>
             </div>
           </div>
 
           <div className="pointer-events-none space-y-1 select-none relative z-10">
             <h4 className="text-xs font-black text-white uppercase tracking-tight">
-              {language === 'en' ? 'HEY CONSCIOUSNESS PORTAL' : 'HEY 伴生灵魂具象门禁'}
+              {language === 'en' ? 'AUTONOMOUS AGENT STUDIO' : '常驻代理自主编排台'}
             </h4>
-            <p className="text-[9.5px] font-bold leading-relaxed text-slate-450">
+            <p className="text-[9.5px] font-bold leading-relaxed text-slate-400">
               {language === 'en' 
-                ? 'Tune character coordinates, seed cognitive blueprints & crystallize your companion into the Active Map!' 
-                : '微调人格共鸣波调、注入世界观并在 Hearth 画布星图上实体降临伴生灵魂！'}
+                ? 'Design specialized pipelines, trace connection topologies & compile sovereign system agents onto Field Map!' 
+                : '绘制拓扑计算流、校验规则约束并在星图 Field Map 上一键播种装配专职常驻计算代理！'}
             </p>
           </div>
 
           <div className="w-full flex items-center justify-between mt-3.5 pt-3.5 border-t border-slate-900/60 pointer-events-none relative z-10">
             <span className={`text-[9px] font-black tracking-widest uppercase ${activeTab === 'forge' ? 'text-indigo-400' : 'text-indigo-300'} flex items-center gap-1.5`}>
-              <span>{language === 'en' ? 'INITIATE INCANTATION' : '共启灵魂实体仪式'}</span>
+              <span>{language === 'en' ? 'INITIATE ASSEMBLY' : '进入拓扑装配工坊'}</span>
               <span className="transform group-hover:translate-x-1 duration-200">→</span>
             </span>
             <span className="text-[8px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-indigo-950/40 border border-indigo-900/30 text-indigo-300">

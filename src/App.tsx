@@ -389,7 +389,7 @@ export default function App() {
   };
 
   return (
-    <div className="w-screen h-screen flex bg-[#fafafa] overflow-hidden text-slate-800 text-sm font-sans antialiased select-none">
+    <div className={`w-screen h-screen flex bg-[#fafafa] overflow-hidden text-slate-800 text-sm font-sans antialiased select-none ${swissTheme ? 'swiss-grid-active' : ''}`}>
       
       {/* 1. Sidebar */}
       <Sidebar 

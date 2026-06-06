@@ -113,3 +113,93 @@
   transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* ==========================================
+ * SWISS DESIGN GRAPHIC AUDIT GRID SYSTEM
+ * ========================================== */
+.swiss-grid-active,
+.swiss-grid-active * {
+  border-radius: 0px !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* Keep user avatar nodes rounded for clear visual recognition */
+.swiss-grid-active img,
+.swiss-grid-active .rounded-full {
+  border-radius: 9999px !important;
+}
+
+/* Enforce flat, heavy high-contrast black borders for structural elements */
+.swiss-grid-active .border,
+.swiss-grid-active .border-r,
+.swiss-grid-active .border-l,
+.swiss-grid-active .border-t,
+.swiss-grid-active .border-b,
+.swiss-grid-active border-indigo-950,
+.swiss-grid-active border-indigo-950/40,
+.swiss-grid-active border-slate-100,
+.swiss-grid-active border-slate-200 {
+  border: 1.5px solid #000000 !important;
+}
+
+/* Clean, flat visual backdrops without colorful glow spots or noise */
+.swiss-grid-active .bg-white,
+.swiss-grid-active .bg-slate-50,
+.swiss-grid-active .bg-[#fafafa],
+.swiss-grid-active .bg-[#f8fafc]/90,
+.swiss-grid-active .bg-slate-[#f8fafc]/80 {
+  background-color: #ffffff !important;
+}
+
+/* Strict monochrome and stark active selectors */
+.swiss-grid-active .bg-[#eef2ff],
+.swiss-grid-active .text-indigo-600 {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.swiss-grid-active .text-[#0f172a],
+.swiss-grid-active .text-slate-800,
+.swiss-grid-active .text-slate-700 {
+  color: #000000 !important;
+}
+
+.swiss-grid-active .text-indigo-500,
+.swiss-grid-active .text-indigo-650,
+.swiss-grid-active .text-indigo-400 {
+  color: #000000 !important;
+}
+
+.swiss-grid-active .bg-indigo-600,
+.swiss-grid-active .hover:bg-indigo-750,
+.swiss-grid-active .hover:bg-indigo-700 {
+  background-color: #000000 !important;
+  border: 1.5px solid #000000 !important;
+  color: #ffffff !important;
+}
+
+.swiss-grid-active hr {
+  border-top: 1.5px solid #000000 !important;
+  opacity: 1 !important;
+}
+
+/* Forms control flat alignment */
+.swiss-grid-active input,
+.swiss-grid-active select,
+.swiss-grid-active textarea {
+  border: 1.5px solid #000000 !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-radius: 0px !important;
+}
+
+/* Soft gray badges transition to solid hollow tags */
+.swiss-grid-active .bg-indigo-50,
+.swiss-grid-active .bg-slate-100 {
+  background-color: #ffffff !important;
+  border: 1px solid #000000 !important;
+  color: #000000 !important;
+}
+
