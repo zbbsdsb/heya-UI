@@ -39,19 +39,40 @@ const AVATARS = [
 ];
 
 const getNodeDimensions = (type: string) => {
-  switch (type) {
-    case 'project':
-      return { width: 236, height: 140 };
-    case 'todo':
-      return { width: 216, height: 130 };
-    case 'agent':
-      return { width: 210, height: 130 };
-    case 'muse':
-      return { width: 226, height: 132 };
-    case 'resource':
-    default:
-      return { width: 196, height: 122 };
-  }
+  return { width: 220, height: 124 };
+};
+
+const getOrganicFluidPath = (x: number, y: number, w: number, h: number, id: string) => {
+  const seed = id === 'opportunity' ? 1 : id === 'execution' ? 2 : id === 'core' ? 3 : id === 'future' ? 4 : 5;
+  const o1 = Math.sin(seed * 11) * 14;
+  const o2 = Math.cos(seed * 7) * 14;
+  const o3 = Math.sin(seed * 3) * 16;
+  const o4 = Math.cos(seed * 9) * 16;
+  
+  const pad = 36; // Dynamic bubble visual offset padding
+  const x1 = x - pad;
+  const y1 = y - pad;
+  const x2 = x + w + pad;
+  const y2 = y + h + pad;
+  
+  const midX = x1 + (x2 - x1) / 2;
+  const midY = y1 + (y2 - y1) / 2;
+  
+  const cpTop = { x: midX + o1, y: y1 + o2 };
+  const cpRight = { x: x2 + o3, y: midY + o4 };
+  const cpBottom = { x: midX - o2, y: y2 - o1 };
+  const cpLeft = { x: x1 - o4, y: midY - o3 };
+  
+  const cTL = { x: x1 - o4, y: y1 + o3 };
+  const cTR = { x: x2 + o1, y: y1 - o2 };
+  const cBR = { x: x2 - o3, y: y2 + o4 };
+  const cBL = { x: x1 + o2, y: y2 - o1 };
+  
+  return `M ${cpLeft.x} ${cpLeft.y} 
+          C ${cTL.x} ${cTL.y}, ${cTL.x + 35} ${cTL.y - 35}, ${cpTop.x} ${cpTop.y} 
+          C ${cTR.x - 35} ${cTR.y - 35}, ${cTR.x} ${cTR.y}, ${cpRight.x} ${cpRight.y} 
+          C ${cBR.x} ${cBR.y}, ${cBR.x - 35} ${cBR.y + 35}, ${cpBottom.x} ${cpBottom.y} 
+          C ${cBL.x + 35} ${cBL.y + 35}, ${cBL.x} ${cBL.y}, ${cpLeft.x} ${cpLeft.y} Z`;
 };
 
 interface FieldMapCanvasProps {
@@ -223,14 +244,54 @@ export default function FieldMapCanvas({
     };
   }, []);
 
-  // Hearth Boundaries specification
-  const boundaries = [
-    { name: tVal.opportunityDomain, id: 'opportunity', color: 'border-[#a855f7]/30 text-[#a855f7]/70', x: 80, y: 150, width: 320, height: 260 },
-    { name: tVal.executionDomain, id: 'execution', color: 'border-[#3b82f6]/25 text-[#3b82f6]/70', x: 260, y: 460, width: 400, height: 250 },
-    { name: tVal.coreTerritory, id: 'core', color: 'border-indigo-500/25 text-indigo-500/70 bg-indigo-500/[0.005]', x: 620, y: 340, width: 340, height: 240 },
-    { name: tVal.futureStation, id: 'future', color: 'border-[#14b8a6]/25 text-[#14b8a6]/70', x: 650, y: 120, width: 340, height: 210 },
-    { name: tVal.designSystemAsset, id: 'assets', color: 'border-orange-500/25 text-orange-500/70', x: 740, y: 560, width: 220, height: 180 },
-  ];
+  // Hearth Boundaries specification computed dynamically based on the coordinates of nodes belonging to each category
+  const getDynamicBoundaries = () => {
+    const defaultBoundaries = [
+      { name: tVal.opportunityDomain, id: 'opportunity', color: 'border-purple-300 text-purple-600 bg-purple-500/[0.003]', x: 80, y: 150, width: 320, height: 260, nodeType: 'muse' },
+      { name: tVal.executionDomain, id: 'execution', color: 'border-emerald-300 text-emerald-600 bg-emerald-500/[0.003]', x: 260, y: 460, width: 400, height: 250, nodeType: 'todo' },
+      { name: tVal.coreTerritory, id: 'core', color: 'border-indigo-300 text-indigo-600 bg-indigo-500/[0.005]', x: 620, y: 340, width: 340, height: 240, nodeType: 'project' },
+      { name: tVal.futureStation, id: 'future', color: 'border-teal-300 text-teal-600 bg-teal-500/[0.003]', x: 650, y: 120, width: 340, height: 210, nodeType: 'agent' },
+      { name: tVal.designSystemAsset, id: 'assets', color: 'border-orange-300 text-orange-600 bg-orange-500/[0.003]', x: 740, y: 560, width: 220, height: 180, nodeType: 'resource' },
+    ];
+
+    return defaultBoundaries.map(b => {
+      const associatedNodes = nodes.filter(n => n.type === b.nodeType);
+      if (associatedNodes.length === 0) {
+        return b; // Fallback to original layout
+      }
+
+      // Calculate bounding box containing all nodes of this type
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      associatedNodes.forEach(node => {
+        const dim = getNodeDimensions(node.type);
+        if (node.x < minX) minX = node.x;
+        if (node.y < minY) minY = node.y;
+        if (node.x + dim.width > maxX) maxX = node.x + dim.width;
+        if (node.y + dim.height > maxY) maxY = node.y + dim.height;
+      });
+
+      // Add generous visual padding around the group
+      const padding = 42;
+      const x = minX - padding;
+      const y = minY - padding;
+      const width = (maxX - minX) + padding * 2;
+      const height = (maxY - minY) + padding * 2;
+
+      return {
+        ...b,
+        x: Math.round(x),
+        y: Math.round(y),
+        width: Math.round(width),
+        height: Math.round(height)
+      };
+    });
+  };
+
+  const boundaries = getDynamicBoundaries();
 
   const handleNodeMouseDown = (e: React.MouseEvent, node: NodeData) => {
     e.stopPropagation();
@@ -445,6 +506,55 @@ export default function FieldMapCanvas({
             />
           ))}
 
+          {/* Animated Fluidic Boundaries */}
+          {boundaries.map((b) => {
+            const pathD = getOrganicFluidPath(b.x, b.y, b.width, b.height, b.id);
+            
+            let fillCol = 'rgba(99, 102, 241, 0.015)';
+            let strokeCol = 'rgba(99, 102, 241, 0.45)';
+            
+            if (b.id === 'opportunity') {
+              fillCol = 'rgba(168, 85, 247, 0.015)';
+              strokeCol = 'rgba(168, 85, 247, 0.45)';
+            } else if (b.id === 'execution') {
+              fillCol = 'rgba(16, 185, 129, 0.012)';
+              strokeCol = 'rgba(16, 185, 129, 0.45)';
+            } else if (b.id === 'core') {
+              fillCol = 'rgba(99, 102, 241, 0.018)';
+              strokeCol = 'rgba(99, 102, 241, 0.48)';
+            } else if (b.id === 'future') {
+              fillCol = 'rgba(20, 184, 166, 0.015)';
+              strokeCol = 'rgba(20, 184, 166, 0.45)';
+            } else if (b.id === 'assets') {
+              fillCol = 'rgba(245, 158, 11, 0.015)';
+              strokeCol = 'rgba(245, 158, 11, 0.42)';
+            }
+
+            return (
+              <g key={`fluid-boundary-${b.id}`} className="transition-all duration-500">
+                {/* Glowing breathing backdrop */}
+                <path
+                  d={pathD}
+                  fill={fillCol}
+                  stroke={strokeCol}
+                  strokeWidth={3}
+                  strokeDasharray="6, 8"
+                  className="animate-pulse animate-duration-10000"
+                  style={{ transformOrigin: 'center' }}
+                />
+                
+                {/* Fluid outline border */}
+                <path
+                  d={pathD}
+                  fill="none"
+                  stroke={strokeCol}
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                />
+              </g>
+            );
+          })}
+
           {/* SVG Bezier wires connecting everything precisely */}
           {nodes.map(node => {
             return node.connections?.map(targetId => {
@@ -518,46 +628,33 @@ export default function FieldMapCanvas({
           })()}
         </svg>
 
-        {/* Decorative Hearth subfields boundaries layers */}
-        {boundaries.map((b) => (
-          <div 
-            key={b.id}
-            className={`absolute border border-dashed rounded-[32px] p-5 flex flex-col justify-between transition-all duration-500 bg-slate-500/[0.003] hover:bg-slate-500/[0.015] ${b.color}`}
-            style={{
-              left: b.x,
-              top: b.y,
-              width: b.width,
-              height: b.height,
-            }}
-          >
-            {/* Elegant corner tick marks representing technical drawing specs */}
-            <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-current opacity-30 rounded-tl-xl" />
-            <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-current opacity-30 rounded-tr-xl" />
-            <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-current opacity-30 rounded-bl-xl" />
-            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-current opacity-30 rounded-br-xl" />
+        {/* Floating Domain labels styled like technical heads-up-display markers */}
+        {boundaries.map((b) => {
+          let badgeCol = 'bg-indigo-50/90 border-indigo-100/80 text-indigo-700';
+          if (b.id === 'opportunity') badgeCol = 'bg-purple-50/90 border-purple-100/80 text-purple-700';
+          else if (b.id === 'execution') badgeCol = 'bg-emerald-50/90 border-emerald-100/80 text-emerald-700';
+          else if (b.id === 'future') badgeCol = 'bg-teal-50/90 border-teal-100/80 text-teal-700';
+          else if (b.id === 'assets') badgeCol = 'bg-amber-50/90 border-amber-100/80 text-amber-700';
 
-            {/* Boundary header showing index and location */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 opacity-80 font-mono tracking-widest text-[9px] uppercase px-2 py-0.5 bg-white border border-slate-200/50 rounded-md shadow-sm">
-                <Layers className="w-2.5 h-2.5 text-indigo-500" />
-                <span className="font-bold text-slate-700">{b.name}</span>
-                <span className="text-slate-300">|</span>
-                <span className="text-slate-400 font-extrabold">{b.id.toUpperCase()}</span>
-              </div>
-              
-              {/* Micro-coordinate indicator */}
-              <div className="opacity-40 font-mono text-[8px] tracking-tight">
-                POS: {b.x}X, {b.y}Y
+          return (
+            <div 
+              key={`domain-label-${b.id}`}
+              className="absolute pointer-events-none transition-all duration-500 ease-out"
+              style={{
+                left: `${b.x + 16}px`,
+                top: `${b.y - 14}px`,
+                zIndex: 15
+              }}
+            >
+              <div className={`flex items-center gap-1.5 font-mono tracking-widest text-[8.5px] uppercase px-2 py-0.5 rounded-md border shadow-sm backdrop-blur-sm pointer-events-auto hover:scale-105 transition-all select-none ${badgeCol}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                <span className="font-extrabold">{b.name}</span>
+                <span className="opacity-40">|</span>
+                <span className="opacity-70 font-bold">0x{b.id.toUpperCase().slice(0, 3)}</span>
               </div>
             </div>
-
-            {/* Technical grid coordinates at the bottom */}
-            <div className="flex justify-between items-center opacity-30 font-mono text-[7px] tracking-widest mt-auto pt-4">
-              <span>W: {b.width}px H: {b.height}px</span>
-              <span>HEARTH_GRID_INDEX // 0x{b.id.toUpperCase().slice(0, 3)}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Floating Node elements layer - pointer events enabled */}
         <div className="absolute inset-0 pointer-events-auto animate-in fade-in duration-500">
@@ -572,49 +669,44 @@ export default function FieldMapCanvas({
             switch (node.type) {
               case 'project':
                 return {
-                  gradient: 'from-blue-500/10 to-indigo-500/10 hover:from-blue-500/15 hover:to-indigo-500/15',
-                  accent: 'text-indigo-600',
-                  badge: 'bg-indigo-50 text-indigo-600 border border-indigo-100',
-                  glow: 'glow-purple',
-                  border: isSelected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200/50',
-                  bar: 'bg-gradient-to-r from-indigo-500 to-indigo-600'
+                  icon: <Layers className="w-3.5 h-3.5 text-indigo-500" />,
+                  label: language === 'en' ? 'Project' : '项目域',
+                  color: 'border-indigo-200/80 bg-white/95 text-indigo-650',
+                  glow: 'shadow-[0_8px_30px_rgba(99,102,241,0.04)]',
+                  accent: 'indigo'
                 };
               case 'todo':
                 return {
-                  gradient: 'from-[#10b981]/10 to-[#34d399]/5 hover:from-[#10b981]/15',
-                  accent: 'text-emerald-600',
-                  badge: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-                  glow: 'glow-green',
-                  border: isSelected ? 'border-emerald-500 ring-2 ring-[#a7f3d0]/60' : 'border-slate-200/50',
-                  bar: 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                  icon: <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />,
+                  label: language === 'en' ? 'Execution' : '执行载荷',
+                  color: 'border-emerald-200/80 bg-white/95 text-emerald-650',
+                  glow: 'shadow-[0_8px_30px_rgba(16,185,129,0.04)]',
+                  accent: 'emerald'
                 };
               case 'agent':
                 return {
-                  gradient: 'from-purple-500/10 to-pink-500/5',
-                  accent: 'text-purple-600',
-                  badge: 'bg-purple-50 text-purple-600 border border-purple-100',
-                  glow: 'glow-purple',
-                  border: isSelected ? 'border-purple-500 ring-2 ring-purple-200' : 'border-slate-200/50',
-                  bar: 'bg-indigo-500'
+                  icon: <Cpu className="w-3.5 h-3.5 text-purple-500" />,
+                  label: language === 'en' ? 'Agent' : '代理域',
+                  color: 'border-purple-200/80 bg-white/95 text-purple-650',
+                  glow: 'shadow-[0_8px_30px_rgba(168,85,247,0.04)]',
+                  accent: 'purple'
                 };
               case 'muse':
                 return {
-                  gradient: 'from-[#14b8a6]/10 to-[#2dd4bf]/5',
-                  accent: 'text-teal-600',
-                  badge: 'bg-teal-50 text-teal-600 border border-teal-100',
-                  glow: 'glow-blue',
-                  border: isSelected ? 'border-teal-500 ring-2 ring-teal-200' : 'border-slate-200/50',
-                  bar: 'bg-teal-500'
+                  icon: <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />,
+                  label: language === 'en' ? 'Muse' : '灵感域',
+                  color: 'border-pink-200/80 bg-white/95 text-pink-650',
+                  glow: 'shadow-[0_8px_30px_rgba(236,72,153,0.04)]',
+                  accent: 'pink'
                 };
               case 'resource':
               default:
                 return {
-                  gradient: 'from-orange-500/10 to-amber-500/5',
-                  accent: 'text-orange-600',
-                  badge: 'bg-orange-50 text-orange-600 border border-orange-100',
-                  glow: 'glow-orange',
-                  border: isSelected ? 'border-orange-500 ring-2 ring-orange-200' : 'border-slate-200/50',
-                  bar: 'bg-orange-500'
+                  icon: <BookOpen className="w-3.5 h-3.5 text-amber-500" />,
+                  label: language === 'en' ? 'Data Base' : '数据底座',
+                  color: 'border-amber-200/80 bg-white/95 text-amber-650',
+                  glow: 'shadow-[0_8px_30px_rgba(245,158,11,0.04)]',
+                  accent: 'amber'
                 };
             }
           };
@@ -649,291 +741,87 @@ export default function FieldMapCanvas({
               onMouseEnter={() => !isFilteredOut && setHoveredNodeId(node.id)}
               onMouseLeave={() => !isFilteredOut && setHoveredNodeId(null)}
             >
-              {/* Type-Specific Artistic Visual Layouts */}
-              {node.type === 'project' && (
-                <div className={`w-full h-full rounded-[24px] bg-slate-900/90 border-2 backdrop-blur-md p-4 flex flex-col justify-between select-none relative transition-all duration-300 ${isSelected ? 'shadow-[0_0_15px_rgba(99,102,241,0.3)] border-indigo-500' : 'border-slate-800'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-sans">
-                      <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                        Project
-                      </span>
-                      <span className={`w-1.5 h-1.5 rounded-full ${node.syncStatus === 'synced' ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 'bg-slate-500'}`} />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={(e) => handleToggleStar(node.id, e)} className="p-0.5 hover:bg-slate-800 rounded">
-                        <Star className={`w-3.5 h-3.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : 'text-slate-500'}`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="min-w-0 pr-10">
-                    <h3 className="text-[12.5px] font-black text-white leading-snug truncate tracking-tight">
-                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
-                    </h3>
-                    <p className="text-[9.5px] font-semibold text-slate-400 mt-0.5 truncate">
-                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
-                    </p>
-                  </div>
-
-                  {/* Radial Ring completion indicator inside project card */}
-                  <div className="absolute right-4 top-[45%] -translate-y-[45%] flex flex-col items-center gap-1">
-                    <div className="relative w-8 h-8 flex items-center justify-center">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="16" cy="16" r="13" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" fill="transparent" />
-                        <circle cx="16" cy="16" r="13" stroke="#818cf8" strokeWidth="2.5" fill="transparent" 
-                                strokeDasharray={`${2 * Math.PI * 13}`} 
-                                strokeDashoffset={`${2 * Math.PI * 13 * (1 - node.progress / 100)}`} 
-                                strokeLinecap="round" className="transition-all duration-500" />
-                      </svg>
-                      <span className="absolute text-[8px] font-mono font-black text-indigo-300">{node.progress}%</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-slate-800/60 pt-2">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full bg-indigo-500" style={{ width: `${node.progress}%` }} />
-                      </div>
-                      <span className="text-[8.5px] font-mono font-bold text-indigo-400">{node.progress}%</span>
-                    </div>
-
-                    <div className="flex items-center -space-x-1">
-                      {node.members.slice(0, 3).map((member, i) => (
-                        <img 
-                          key={i} 
-                          src={AVATARS[i % AVATARS.length]} 
-                          alt={member} 
-                          className="w-[16px] h-[16px] rounded-full object-cover border border-slate-900" 
-                          referrerPolicy="no-referrer"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {node.type === 'todo' && (
-                <div className={`w-full h-full rounded-[16px] bg-white border p-3.5 flex flex-col justify-between select-none relative transition-all duration-300 ${isSelected ? 'shadow-lg border-emerald-500 ring-2 ring-emerald-500/10' : 'border-slate-200/90 shadow-sm'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 font-sans">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                      <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100">
-                        LEDGER
-                      </span>
-                    </div>
-                    <button onClick={(e) => handleToggleStar(node.id, e)} className="p-0.5 hover:bg-slate-100 rounded">
-                      <Star className={`w-3.5 h-3.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : 'text-slate-300'}`} />
-                    </button>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xs font-black text-slate-800 tracking-tight leading-none truncate">
-                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
-                    </h3>
-                    
-                    {/* Embedded checklist snippet inside the card */}
-                    <div className="space-y-1 my-1 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-lg">
-                      {node.checklist.slice(0, 1).map((item) => (
-                        <div key={item.id} className="flex items-center gap-1.5 text-[8.5px] text-slate-600 truncate leading-tight">
-                          <span className={`w-2 h-2 rounded-full border shrink-0 ${item.done ? 'bg-emerald-500 border-emerald-550' : 'bg-white border-slate-300'}`} />
-                          <span className={`truncate ${item.done ? 'line-through text-slate-400 font-normal' : 'font-extrabold text-slate-700'}`}>{item.text}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Linear segmented ledger style progress indicator */}
+              {/* Unified Artistic Card Element */}
+              <div className={`w-full h-full rounded-2xl bg-white/95 border backdrop-blur-md p-3.5 flex flex-col justify-between select-none relative transition-all duration-300 ${
+                isSelected 
+                  ? `border-${ui.accent}-500 shadow-md ring-2 ring-${ui.accent}-500/10` 
+                  : `border-slate-200/80 ${ui.glow}`
+              }`}>
+                {/* Upper line: Icon, Type Label and Status indication */}
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <div className="flex gap-0.5 h-1.5 flex-1 bg-slate-100 rounded overflow-hidden">
-                      {Array.from({ length: 6 }).map((_, i) => {
-                        const fillRatio = (i + 1) / 6;
-                        const active = node.progress / 100 >= fillRatio;
-                        return (
-                          <div key={i} className={`h-full flex-1 transition-all ${active ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-                        );
-                      })}
-                    </div>
-                    <span className="text-[9px] font-mono font-black text-slate-500">{node.progress}%</span>
+                    {ui.icon}
+                    <span className="text-[9px] font-bold font-mono tracking-wider text-slate-500 uppercase">
+                      {ui.label}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={(e) => handleToggleStar(node.id, e)}
+                      className="p-0.5 hover:bg-slate-100 rounded text-slate-300 hover:text-yellow-500 transition-colors"
+                    >
+                      <Star className={`w-2.5 h-2.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : ''}`} />
+                    </button>
+                    <span 
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        node.syncStatus === 'synced' ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 
+                        node.syncStatus === 'pending' ? 'bg-amber-400 animate-pulse' : 'bg-slate-300'
+                      }`} 
+                    />
                   </div>
                 </div>
-              )}
 
-              {node.type === 'agent' && (
-                <div className={`w-full h-full rounded-2xl bg-[#0b0813] border p-3.5 flex flex-col justify-between font-mono select-none relative transition-all duration-300 ${isSelected ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)] bg-[#110c1f]' : 'border-purple-950/60 shadow-inner'}`}>
-                  <div className="flex items-center justify-between text-[8px] text-purple-400">
-                    <div className="flex items-center gap-1 text-[8.5px] font-black">
-                      <Cpu className="w-3 h-3 text-purple-500 animate-pulse" />
-                      <span className="tracking-wide">AI CORE</span>
-                    </div>
-                    <span className="text-emerald-400 font-extrabold animate-pulse">● LIVE</span>
+                {/* Title and description */}
+                <div className="min-w-0 flex-1 my-1.5 flex flex-col justify-center">
+                  <h3 className="text-[11.5px] font-black text-slate-800 leading-tight truncate tracking-tight">
+                    {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
+                  </h3>
+                  <p className="text-[9.5px] font-medium text-slate-400 truncate mt-0.5">
+                    {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
+                  </p>
+                </div>
+
+                {/* Footer section: Simplified, unified, and artistic. */}
+                <div className="flex items-center justify-between border-t border-slate-105/80 pt-1.5 shrink-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[7.5px] font-mono text-slate-400">
+                      0x{node.id.replace('node-', '').slice(0, 4).toUpperCase()} // SYS_COMP
+                    </span>
                   </div>
-
-                  <div>
-                    <h3 className="text-xs font-black text-purple-100 leading-tight truncate">
-                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
-                    </h3>
-                    <div className="font-mono text-[7.5px] bg-[#120e20] border border-purple-950/45 p-1 rounded-md text-slate-400/90 leading-tight select-none mt-1 truncate">
-                      LOG // Core index syncing...
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center text-[8px] border-t border-purple-950/60 pt-1.5">
-                    <span className="text-purple-500 tracking-wider">COMPILING:</span>
-                    <span className="text-purple-300 font-bold bg-purple-950 px-1 py-0.5 rounded text-[7.5px]">{node.progress}%</span>
+                  
+                  {/* Members Avatars */}
+                  <div className="flex items-center -space-x-1">
+                    {node.members && node.members.slice(0, 2).map((member, i) => (
+                      <img 
+                        key={i}
+                        src={AVATARS[i % AVATARS.length]}
+                        alt={member}
+                        className="w-[15px] h-[15px] rounded-full object-cover border border-white shadow-sm"
+                        referrerPolicy="no-referrer"
+                      />
+                    ))}
+                    {node.members && node.members.length > 2 && (
+                      <div className="w-[15px] h-[15px] bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center text-[6px] font-black text-slate-500">
+                        +{node.members.length - 2}
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
 
-              {node.type === 'muse' && (
-                <div className={`w-full h-full rounded-tr-[36px] rounded-bl-[36px] rounded-tl-[12px] rounded-br-[12px] bg-gradient-to-tr from-pink-50/95 via-indigo-50/40 to-amber-50/90 border p-4 flex flex-col justify-between select-none relative transition-all duration-300 ${isSelected ? 'shadow-[0_10px_25px_-5px_rgba(236,72,153,0.15)] border-pink-300 ring-1 ring-pink-300/40' : 'border-pink-100/80 shadow-sm'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-spin" style={{ animationDuration: '8s' }} />
-                      <span className="text-[8.5px] font-extrabold uppercase tracking-wider text-pink-600/90 font-mono">MUSE</span>
-                    </div>
-                    <button onClick={(e) => handleToggleStar(node.id, e)} className="p-0.5 hover:bg-white/40 rounded">
-                      <Star className={`w-3.5 h-3.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : 'text-pink-300'}`} />
+                {/* Trash/Delete Action on Hover */}
+                {isHovered && activeTool === 'select' && (
+                  <div className="absolute top-1 right-1 flex gap-1 z-30">
+                    <button 
+                      onClick={(e) => handleDeleteNode(node.id, e)}
+                      className="p-0.5 rounded bg-red-50 text-red-500 hover:bg-red-100 transition-all shadow"
+                      title="Prune node"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
                     </button>
                   </div>
-
-                  <div>
-                    <h3 className="text-[13px] font-serif italic font-black text-indigo-950 leading-tight truncate">
-                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
-                    </h3>
-                    <p className="text-[9.5px] font-semibold text-slate-500 mt-0.5 truncate italic">
-                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[8px] font-mono text-pink-500/80 border-t border-pink-100/80 pt-2">
-                    <span className="font-extrabold tracking-tight">IDEATION ACTIVE</span>
-                    <span className="font-black">LVL {Math.round(node.progress / 10)}</span>
-                  </div>
-                </div>
-              )}
-
-              {node.type === 'resource' && (
-                <div className={`w-full h-full bg-[#fcfaf2] border p-3.5 flex flex-col justify-between select-none relative transition-all duration-300 rounded-r-2xl rounded-bl-2xl ${isSelected ? 'shadow-lg border-amber-600 ring-1 ring-amber-600/20' : 'border-amber-900/10 shadow-sm'}`}>
-                  <div className="absolute -top-[16px] left-3 bg-[#fcfaf2] border-t border-x border-amber-900/10 px-2 py-0.5 rounded-t-md text-[7px] font-mono font-extrabold uppercase text-amber-800 flex items-center gap-1 select-none">
-                    <BookOpen className="w-2.5 h-2.5 text-amber-700" />
-                    <span>Resource Bundle</span>
-                  </div>
-
-                  <div className="flex justify-between items-start pt-1.5">
-                    <div className="min-w-0">
-                      <h3 className="text-xs font-black text-slate-800 tracking-tight leading-snug truncate">
-                        {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
-                      </h3>
-                      <p className="text-[9px] font-semibold text-[#8b5a2b]/70 mt-0.5 truncate">
-                        {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-amber-900/5 pt-2">
-                    <span className="text-[8px] font-mono font-black text-amber-800 bg-amber-100/55 border border-amber-200/40 px-1.5 py-0.5 rounded">
-                      Finalized Asset
-                    </span>
-                    <span className="text-[8.5px] font-mono font-black text-slate-400">100% COMPLETE</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Trash/Delete Action on Hover */}
-              {isHovered && activeTool === 'select' && (
-                <div className="absolute top-1.5 right-1.5 flex gap-1 z-30">
-                  <button 
-                    onClick={(e) => handleDeleteNode(node.id, e)}
-                    className="p-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 hover:scale-105 transition-all shadow"
-                    title="Delete node from grid"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-
-              {/* ACTIVE CHECKLIST MODAL/POPUP OVERLAY - Specifically designed on the Todo List node */}
-              {node.id === focusedTodoNodeId && node.checklist.length > 0 && (
-                <div 
-                  className="absolute shadow-2xl p-3 bg-white rounded-2xl border border-slate-100 z-50 animate-in slide-in-from-top-3 duration-200"
-                  style={{
-                    left: '10px',
-                    top: `${dim.height + 8}px`,
-                    width: '240px'
-                  }}
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                    <div className="flex items-center justify-between border-b pb-1.5 mb-2">
-                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        {node.title} checklist
-                      </span>
-                      <button 
-                        onClick={() => setFocusedTodoNodeId(null)}
-                        className="text-[10px] bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded text-slate-400 hover:text-slate-600"
-                      >
-                        Hide
-                      </button>
-                    </div>
-
-                    {/* List content */}
-                    <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                      {node.checklist.map((item) => (
-                        <div 
-                          key={item.id}
-                          onClick={() => handleToggleChecklist(node.id, item.id)}
-                          className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
-                            item.done 
-                              ? 'bg-slate-50/50 border-slate-100 text-slate-400' 
-                              : 'bg-white border-slate-100 hover:border-indigo-100'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] font-bold ${
-                              item.done 
-                                ? 'bg-emerald-500 border-emerald-500 text-white' 
-                                : 'border-slate-300'
-                            }`}>
-                              {item.done && '✓'}
-                            </span>
-                            <span className={`text-xs font-semibold truncate ${item.done ? 'line-through' : ''}`}>
-                              {item.text}
-                            </span>
-                          </div>
-                          {item.dueDate && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-                              item.dueDate === '今天' ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'
-                            }`}>
-                              {item.dueDate}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Quick Append list task */}
-                    <form onSubmit={(e) => handleAddMapTaskSubmit(e, node.id)} className="mt-2.5 flex gap-1">
-                      <input 
-                        type="text" 
-                        placeholder="+ 新建任务"
-                        value={quickTaskText}
-                        onChange={(e) => setQuickTaskText(e.target.value)}
-                        className="flex-1 text-xs px-2.5 py-1.5 bg-[#f8fafc] border border-slate-100 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 font-semibold"
-                      />
-                      <button type="submit" className="px-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg">+</button>
-                    </form>
-                  </div>
                 )}
-
-                {/* Hidden Checklist Toggle Button */}
-                {!isSelected && node.id === 'todo-list' && !focusedTodoNodeId && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setFocusedTodoNodeId(node.id); }}
-                    className="absolute bottom-[-14px] left-[50%] -translate-x-[50%] text-[9px] font-extrabold tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1 z-30 whitespace-nowrap"
-                  >
-                    <span>Checklist</span>
-                  </button>
-                )}
+              </div>
             </div>
           );
         })}

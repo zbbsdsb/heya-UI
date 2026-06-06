@@ -32,7 +32,7 @@ export const translations = {
       executionDomain: "Lattice Process Matrix",
       coreTerritory: "Core Planning Territory",
       futureStation: "Future Trajectory Workspace",
-      designSystemAsset: "System Asset Deck",
+      designSystemAsset: "Core Registry Matrix",
       selectMode: "Select Mode",
       linkMode: "Anchor Connect (Draw Wire)",
       newNode: "Sprout Collection Hub",
@@ -48,11 +48,11 @@ export const translations = {
       cancel: "Cancel",
       sproutBtn: "Assemble Collection",
       newComponentHeader: "Assemble Node Workspace Collection",
-      todo: "Task Stack",
+      todo: "Execution Vector",
       project: "Project Cluster",
       agent: "Agent Swarm",
       muse: "Inspiration Pool",
-      resource: "Resource Stack"
+      resource: "Data Registry"
     },
     hey: {
       headerTitle: "Autonomous Strategy Companion //",
@@ -221,7 +221,7 @@ export const translations = {
       executionDomain: "工程执行域 (Execution)",
       coreTerritory: "核心规划区 (Core)",
       futureStation: "未来轨迹区 (Trajectory)",
-      designSystemAsset: "视觉资产栈 (Assets)",
+      designSystemAsset: "拓扑基础注册表 (Registry)",
       selectMode: "选择模式",
       linkMode: "建立拓扑关联 (连线)",
       newNode: "新建集合卡片",
@@ -237,11 +237,11 @@ export const translations = {
       cancel: "取消",
       sproutBtn: "装配该集合",
       newComponentHeader: "新建节点集合工作区",
-      todo: "任务看板仓",
+      todo: "执行载荷",
       project: "项目集群",
       agent: "代理机群",
       muse: "创意灵感池",
-      resource: "基础资源栈"
+      resource: "基础数据栈"
     },
     hey: {
       headerTitle: "主权协同伴侣中心 //",
