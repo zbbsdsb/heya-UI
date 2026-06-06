@@ -21,7 +21,10 @@ import {
   Layers,
   HelpCircle,
   Zap,
-  Info
+  Info,
+  Cpu,
+  BookOpen,
+  Check
 } from 'lucide-react';
 import { NodeData, ChecklistItem } from '../types';
 import { translations, getLocalizedNode } from '../locales';
@@ -34,6 +37,22 @@ const AVATARS = [
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop", // David
   "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=128&auto=format&fit=crop"  // Emma
 ];
+
+const getNodeDimensions = (type: string) => {
+  switch (type) {
+    case 'project':
+      return { width: 236, height: 140 };
+    case 'todo':
+      return { width: 216, height: 130 };
+    case 'agent':
+      return { width: 210, height: 130 };
+    case 'muse':
+      return { width: 226, height: 132 };
+    case 'resource':
+    default:
+      return { width: 196, height: 122 };
+  }
+};
 
 interface FieldMapCanvasProps {
   nodes: NodeData[];
@@ -432,10 +451,13 @@ export default function FieldMapCanvas({
               const target = nodes.find(n => n.id === targetId);
               if (!target) return null;
 
-              const x1 = node.x + 92; // Half bubble width (184 / 2)
-              const y1 = node.y + 54; // Half bubble height (108 / 2)
-              const x2 = target.x + 92;
-              const y2 = target.y + 54;
+              const dimSource = getNodeDimensions(node.type);
+              const dimTarget = getNodeDimensions(target.type);
+
+              const x1 = node.x + dimSource.width / 2;
+              const y1 = node.y + dimSource.height / 2;
+              const x2 = target.x + dimTarget.width / 2;
+              const y2 = target.y + dimTarget.height / 2;
 
               // Cubic Bezier curvatures
               const cx1 = x1 + (x2 - x1) * 0.45;
@@ -481,12 +503,13 @@ export default function FieldMapCanvas({
           {activeTool === 'connection' && connectionSourceId && (() => {
             const originNode = nodes.find(n => n.id === connectionSourceId);
             if (!originNode) return null;
+            const dimSrc = getNodeDimensions(originNode.type);
             return (
               <line 
-                x1={originNode.x + 92}
-                y1={originNode.y + 54}
-                x2={(originNode.x + 220)} // Placeholder end
-                y2={(originNode.y + 100)}
+                x1={originNode.x + dimSrc.width / 2}
+                y1={originNode.y + dimSrc.height / 2}
+                x2={(originNode.x + dimSrc.width + 100)} // Placeholder end
+                y2={(originNode.y + dimSrc.height + 50)}
                 stroke="#6366f1"
                 strokeWidth={2}
                 strokeDasharray="4,4"
@@ -542,6 +565,7 @@ export default function FieldMapCanvas({
             const isSelected = node.id === selectedNodeId;
             const isHovered = node.id === hoveredNodeId;
             const isFilteredOut = nodeFilter !== 'all' && node.type !== nodeFilter;
+            const dim = getNodeDimensions(node.type);
 
           // Compute specific styling parameters based on node type
           const getThemeAttributes = () => {
@@ -612,180 +636,304 @@ export default function FieldMapCanvas({
               className={`absolute cursor-grab active:cursor-grabbing transition-all duration-300 ease-out ${
                 isFilteredOut 
                   ? 'opacity-25 pointer-events-none saturate-50 scale-95' 
-                  : 'hover:-translate-y-1.5 hover:shadow-[0_20px_35px_-10px_rgba(99,102,241,0.18)] hover:scale-[1.02]'
+                  : 'hover:-translate-y-1.5 hover:shadow-[0_20px_35px_-10px_rgba(99,102,241,0.22)] hover:scale-[1.02]'
               }`}
               style={{
                 left: node.x,
                 top: node.y,
+                width: `${dim.width}px`,
+                height: `${dim.height}px`,
                 zIndex: isSelected ? 49 : 10
               }}
               onMouseDown={(e) => !isFilteredOut && handleNodeMouseDown(e, node)}
               onMouseEnter={() => !isFilteredOut && setHoveredNodeId(node.id)}
               onMouseLeave={() => !isFilteredOut && setHoveredNodeId(null)}
             >
-              {/* Organic Liquid Bubble matching screenshot precisely */}
-              <div className={`w-[184px] h-[108px] rounded-[24px] bg-white/95 border backdrop-blur-md p-4.5 flex flex-col justify-between select-none relative transition-all duration-300 ${isSelected ? 'shadow-lg border-indigo-400' : 'shadow-sm'} ${ui.gradient} ${ui.border} ${ui.glow} ${animateClass}`}>
-                
-                {/* Upper line: Badge and percentage info */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-sans">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${ui.badge}`}>
-                      {node.type}
-                    </span>
-                    {/* Synchronized status badge representing database connection readiness */}
-                    <span 
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        node.syncStatus === 'synced' ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 
-                        node.syncStatus === 'pending' ? 'bg-amber-400 animate-pulse' : 'bg-slate-300'
-                      }`} 
-                      title={node.syncStatus === 'synced' ? 'Database Synced (Hearth Core Cloud)' : 'Pending Sync / Offline'}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={(e) => handleToggleStar(node.id, e)}
-                      className="p-0.5 hover:bg-slate-100/30 rounded"
-                    >
-                      <Star className={`w-3.5 h-3.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : 'text-slate-300 hover:text-slate-500'}`} />
-                    </button>
-                    {node.type !== 'resource' && (
-                      <span className="text-[10px] text-slate-400 font-bold font-mono">
-                        {node.progress}%
+              {/* Type-Specific Artistic Visual Layouts */}
+              {node.type === 'project' && (
+                <div className={`w-full h-full rounded-[24px] bg-slate-900/90 border-2 backdrop-blur-md p-4 flex flex-col justify-between select-none relative transition-all duration-300 ${isSelected ? 'shadow-[0_0_15px_rgba(99,102,241,0.3)] border-indigo-500' : 'border-slate-800'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-sans">
+                      <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        Project
                       </span>
-                    )}
+                      <span className={`w-1.5 h-1.5 rounded-full ${node.syncStatus === 'synced' ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 'bg-slate-500'}`} />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={(e) => handleToggleStar(node.id, e)} className="p-0.5 hover:bg-slate-800 rounded">
+                        <Star className={`w-3.5 h-3.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : 'text-slate-500'}`} />
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Core title and quick sub-indicator */}
-                <div className="min-w-0">
-                  <h3 className="text-sm font-extrabold text-slate-800 leading-tight truncate tracking-normal">
-                    {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
-                  </h3>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">
-                    {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
-                  </p>
-                </div>
-
-                {/* Progress bar and members array */}
-                <div className="flex items-center justify-between">
-                  <div className="w-[60%] h-1.5 bg-[#f1f5f9] rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full ${ui.bar}`}
-                      style={{ width: `${node.progress}%` }}
-                    />
+                  <div className="min-w-0 pr-10">
+                    <h3 className="text-[12.5px] font-black text-white leading-snug truncate tracking-tight">
+                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
+                    </h3>
+                    <p className="text-[9.5px] font-semibold text-slate-400 mt-0.5 truncate">
+                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
+                    </p>
                   </div>
-                  
-                  {/* Members */}
-                  <div className="flex items-center -space-x-1.5">
-                    {node.members.slice(0, 2).map((member, i) => (
-                      <img 
-                        key={i}
-                        src={AVATARS[i % AVATARS.length]}
-                        alt={member}
-                        className="w-[18px] h-[18px] rounded-full object-cover border border-white"
-                        referrerPolicy="no-referrer"
-                      />
-                    ))}
-                    {node.members.length > 2 && (
-                      <div className="w-[18px] h-[18px] bg-indigo-50 border border-white rounded-full flex items-center justify-center text-[8px] font-extrabold text-indigo-600">
-                        +{node.members.length - 2}
+
+                  {/* Radial Ring completion indicator inside project card */}
+                  <div className="absolute right-4 top-[45%] -translate-y-[45%] flex flex-col items-center gap-1">
+                    <div className="relative w-8 h-8 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="16" cy="16" r="13" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" fill="transparent" />
+                        <circle cx="16" cy="16" r="13" stroke="#818cf8" strokeWidth="2.5" fill="transparent" 
+                                strokeDasharray={`${2 * Math.PI * 13}`} 
+                                strokeDashoffset={`${2 * Math.PI * 13 * (1 - node.progress / 100)}`} 
+                                strokeLinecap="round" className="transition-all duration-500" />
+                      </svg>
+                      <span className="absolute text-[8px] font-mono font-black text-indigo-300">{node.progress}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-800/60 pt-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full bg-indigo-500" style={{ width: `${node.progress}%` }} />
                       </div>
-                    )}
+                      <span className="text-[8.5px] font-mono font-bold text-indigo-400">{node.progress}%</span>
+                    </div>
+
+                    <div className="flex items-center -space-x-1">
+                      {node.members.slice(0, 3).map((member, i) => (
+                        <img 
+                          key={i} 
+                          src={AVATARS[i % AVATARS.length]} 
+                          alt={member} 
+                          className="w-[16px] h-[16px] rounded-full object-cover border border-slate-900" 
+                          referrerPolicy="no-referrer"
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
+              )}
 
-                {/* Interactive select to focus details overlay */}
-                {isHovered && activeTool === 'select' && (
-                  <div className="absolute top-1.5 right-1.5 flex gap-1 z-30">
-                    <button 
-                      onClick={(e) => handleDeleteNode(node.id, e)}
-                      className="p-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100/80 hover:scale-105 transition-all"
-                      title="删除此节点"
-                    >
-                      <Trash2 className="w-3 h-3" />
+              {node.type === 'todo' && (
+                <div className={`w-full h-full rounded-[16px] bg-white border p-3.5 flex flex-col justify-between select-none relative transition-all duration-300 ${isSelected ? 'shadow-lg border-emerald-500 ring-2 ring-emerald-500/10' : 'border-slate-200/90 shadow-sm'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 font-sans">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100">
+                        LEDGER
+                      </span>
+                    </div>
+                    <button onClick={(e) => handleToggleStar(node.id, e)} className="p-0.5 hover:bg-slate-100 rounded">
+                      <Star className={`w-3.5 h-3.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : 'text-slate-300'}`} />
                     </button>
                   </div>
-                )}
-              </div>
+
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 tracking-tight leading-none truncate">
+                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
+                    </h3>
+                    
+                    {/* Embedded checklist snippet inside the card */}
+                    <div className="space-y-1 my-1 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-lg">
+                      {node.checklist.slice(0, 1).map((item) => (
+                        <div key={item.id} className="flex items-center gap-1.5 text-[8.5px] text-slate-600 truncate leading-tight">
+                          <span className={`w-2 h-2 rounded-full border shrink-0 ${item.done ? 'bg-emerald-500 border-emerald-550' : 'bg-white border-slate-300'}`} />
+                          <span className={`truncate ${item.done ? 'line-through text-slate-400 font-normal' : 'font-extrabold text-slate-700'}`}>{item.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Linear segmented ledger style progress indicator */}
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex gap-0.5 h-1.5 flex-1 bg-slate-100 rounded overflow-hidden">
+                      {Array.from({ length: 6 }).map((_, i) => {
+                        const fillRatio = (i + 1) / 6;
+                        const active = node.progress / 100 >= fillRatio;
+                        return (
+                          <div key={i} className={`h-full flex-1 transition-all ${active ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                        );
+                      })}
+                    </div>
+                    <span className="text-[9px] font-mono font-black text-slate-500">{node.progress}%</span>
+                  </div>
+                </div>
+              )}
+
+              {node.type === 'agent' && (
+                <div className={`w-full h-full rounded-2xl bg-[#0b0813] border p-3.5 flex flex-col justify-between font-mono select-none relative transition-all duration-300 ${isSelected ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)] bg-[#110c1f]' : 'border-purple-950/60 shadow-inner'}`}>
+                  <div className="flex items-center justify-between text-[8px] text-purple-400">
+                    <div className="flex items-center gap-1 text-[8.5px] font-black">
+                      <Cpu className="w-3 h-3 text-purple-500 animate-pulse" />
+                      <span className="tracking-wide">AI CORE</span>
+                    </div>
+                    <span className="text-emerald-400 font-extrabold animate-pulse">● LIVE</span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-black text-purple-100 leading-tight truncate">
+                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
+                    </h3>
+                    <div className="font-mono text-[7.5px] bg-[#120e20] border border-purple-950/45 p-1 rounded-md text-slate-400/90 leading-tight select-none mt-1 truncate">
+                      LOG // Core index syncing...
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[8px] border-t border-purple-950/60 pt-1.5">
+                    <span className="text-purple-500 tracking-wider">COMPILING:</span>
+                    <span className="text-purple-300 font-bold bg-purple-950 px-1 py-0.5 rounded text-[7.5px]">{node.progress}%</span>
+                  </div>
+                </div>
+              )}
+
+              {node.type === 'muse' && (
+                <div className={`w-full h-full rounded-tr-[36px] rounded-bl-[36px] rounded-tl-[12px] rounded-br-[12px] bg-gradient-to-tr from-pink-50/95 via-indigo-50/40 to-amber-50/90 border p-4 flex flex-col justify-between select-none relative transition-all duration-300 ${isSelected ? 'shadow-[0_10px_25px_-5px_rgba(236,72,153,0.15)] border-pink-300 ring-1 ring-pink-300/40' : 'border-pink-100/80 shadow-sm'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-spin" style={{ animationDuration: '8s' }} />
+                      <span className="text-[8.5px] font-extrabold uppercase tracking-wider text-pink-600/90 font-mono">MUSE</span>
+                    </div>
+                    <button onClick={(e) => handleToggleStar(node.id, e)} className="p-0.5 hover:bg-white/40 rounded">
+                      <Star className={`w-3.5 h-3.5 ${node.star ? 'fill-yellow-400 text-yellow-500' : 'text-pink-300'}`} />
+                    </button>
+                  </div>
+
+                  <div>
+                    <h3 className="text-[13px] font-serif italic font-black text-indigo-950 leading-tight truncate">
+                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
+                    </h3>
+                    <p className="text-[9.5px] font-semibold text-slate-500 mt-0.5 truncate italic">
+                      {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[8px] font-mono text-pink-500/80 border-t border-pink-100/80 pt-2">
+                    <span className="font-extrabold tracking-tight">IDEATION ACTIVE</span>
+                    <span className="font-black">LVL {Math.round(node.progress / 10)}</span>
+                  </div>
+                </div>
+              )}
+
+              {node.type === 'resource' && (
+                <div className={`w-full h-full bg-[#fcfaf2] border p-3.5 flex flex-col justify-between select-none relative transition-all duration-300 rounded-r-2xl rounded-bl-2xl ${isSelected ? 'shadow-lg border-amber-600 ring-1 ring-amber-600/20' : 'border-amber-900/10 shadow-sm'}`}>
+                  <div className="absolute -top-[16px] left-3 bg-[#fcfaf2] border-t border-x border-amber-900/10 px-2 py-0.5 rounded-t-md text-[7px] font-mono font-extrabold uppercase text-amber-800 flex items-center gap-1 select-none">
+                    <BookOpen className="w-2.5 h-2.5 text-amber-700" />
+                    <span>Resource Bundle</span>
+                  </div>
+
+                  <div className="flex justify-between items-start pt-1.5">
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-black text-slate-800 tracking-tight leading-snug truncate">
+                        {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
+                      </h3>
+                      <p className="text-[9px] font-semibold text-[#8b5a2b]/70 mt-0.5 truncate">
+                        {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-amber-900/5 pt-2">
+                    <span className="text-[8px] font-mono font-black text-amber-800 bg-amber-100/55 border border-amber-200/40 px-1.5 py-0.5 rounded">
+                      Finalized Asset
+                    </span>
+                    <span className="text-[8.5px] font-mono font-black text-slate-400">100% COMPLETE</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Trash/Delete Action on Hover */}
+              {isHovered && activeTool === 'select' && (
+                <div className="absolute top-1.5 right-1.5 flex gap-1 z-30">
+                  <button 
+                    onClick={(e) => handleDeleteNode(node.id, e)}
+                    className="p-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 hover:scale-105 transition-all shadow"
+                    title="Delete node from grid"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
 
               {/* ACTIVE CHECKLIST MODAL/POPUP OVERLAY - Specifically designed on the Todo List node */}
               {node.id === focusedTodoNodeId && node.checklist.length > 0 && (
                 <div 
-                  className="absolute top-[116px] left-[10px] w-[240px] bg-white rounded-2xl border border-slate-100 shadow-2xl p-3 z-50 animate-in slide-in-from-top-3 duration-200"
+                  className="absolute shadow-2xl p-3 bg-white rounded-2xl border border-slate-100 z-50 animate-in slide-in-from-top-3 duration-200"
+                  style={{
+                    left: '10px',
+                    top: `${dim.height + 8}px`,
+                    width: '240px'
+                  }}
                   onMouseDown={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-center justify-between border-b pb-1.5 mb-2">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      {node.title} checklist
-                    </span>
-                    <button 
-                      onClick={() => setFocusedTodoNodeId(null)}
-                      className="text-[10px] bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded text-slate-400 hover:text-slate-600"
-                    >
-                      Hide
-                    </button>
-                  </div>
-
-                  {/* List content */}
-                  <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                    {node.checklist.map((item) => (
-                      <div 
-                        key={item.id}
-                        onClick={() => handleToggleChecklist(node.id, item.id)}
-                        className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
-                          item.done 
-                            ? 'bg-slate-50/50 border-slate-100 text-slate-400' 
-                            : 'bg-white border-slate-100 hover:border-indigo-100'
-                        }`}
+                    <div className="flex items-center justify-between border-b pb-1.5 mb-2">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        {node.title} checklist
+                      </span>
+                      <button 
+                        onClick={() => setFocusedTodoNodeId(null)}
+                        className="text-[10px] bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded text-slate-400 hover:text-slate-600"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] font-bold ${
+                        Hide
+                      </button>
+                    </div>
+
+                    {/* List content */}
+                    <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                      {node.checklist.map((item) => (
+                        <div 
+                          key={item.id}
+                          onClick={() => handleToggleChecklist(node.id, item.id)}
+                          className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
                             item.done 
-                              ? 'bg-emerald-500 border-emerald-500 text-white' 
-                              : 'border-slate-300'
-                          }`}>
-                            {item.done && '✓'}
-                          </span>
-                          <span className={`text-xs font-semibold truncate ${item.done ? 'line-through' : ''}`}>
-                            {item.text}
-                          </span>
+                              ? 'bg-slate-50/50 border-slate-100 text-slate-400' 
+                              : 'bg-white border-slate-100 hover:border-indigo-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] font-bold ${
+                              item.done 
+                                ? 'bg-emerald-500 border-emerald-500 text-white' 
+                                : 'border-slate-300'
+                            }`}>
+                              {item.done && '✓'}
+                            </span>
+                            <span className={`text-xs font-semibold truncate ${item.done ? 'line-through' : ''}`}>
+                              {item.text}
+                            </span>
+                          </div>
+                          {item.dueDate && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                              item.dueDate === '今天' ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'
+                            }`}>
+                              {item.dueDate}
+                            </span>
+                          )}
                         </div>
-                        {item.dueDate && (
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-                            item.dueDate === '今天' ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {item.dueDate}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+
+                    {/* Quick Append list task */}
+                    <form onSubmit={(e) => handleAddMapTaskSubmit(e, node.id)} className="mt-2.5 flex gap-1">
+                      <input 
+                        type="text" 
+                        placeholder="+ 新建任务"
+                        value={quickTaskText}
+                        onChange={(e) => setQuickTaskText(e.target.value)}
+                        className="flex-1 text-xs px-2.5 py-1.5 bg-[#f8fafc] border border-slate-100 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 font-semibold"
+                      />
+                      <button type="submit" className="px-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg">+</button>
+                    </form>
                   </div>
+                )}
 
-                  {/* Quick Append list task */}
-                  <form onSubmit={(e) => handleAddMapTaskSubmit(e, node.id)} className="mt-2.5 flex gap-1">
-                    <input 
-                      type="text" 
-                      placeholder="+ 新建任务"
-                      value={quickTaskText}
-                      onChange={(e) => setQuickTaskText(e.target.value)}
-                      className="flex-1 text-xs px-2.5 py-1.5 bg-[#f8fafc] border border-slate-100 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 font-semibold"
-                    />
-                    <button type="submit" className="px-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg">+</button>
-                  </form>
-                </div>
-              )}
-
-              {/* Hidden Checklist Toggle Button */}
-              {!isSelected && node.id === 'todo-list' && !focusedTodoNodeId && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setFocusedTodoNodeId(node.id); }}
-                  className="absolute bottom-[-16px] left-[78px] text-[9px] font-extrabold tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 z-30"
-                >
-                  <span>Checklist</span>
-                </button>
-              )}
+                {/* Hidden Checklist Toggle Button */}
+                {!isSelected && node.id === 'todo-list' && !focusedTodoNodeId && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setFocusedTodoNodeId(node.id); }}
+                    className="absolute bottom-[-14px] left-[50%] -translate-x-[50%] text-[9px] font-extrabold tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1 z-30 whitespace-nowrap"
+                  >
+                    <span>Checklist</span>
+                  </button>
+                )}
             </div>
           );
         })}
