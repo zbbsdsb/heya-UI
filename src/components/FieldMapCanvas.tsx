@@ -106,6 +106,171 @@ export default function FieldMapCanvas({
   const [activeTool, setActiveTool] = useState<'select' | 'connection' | 'boundary'>('select');
   const [connectionSourceId, setConnectionSourceId] = useState<string | null>(null);
 
+  // --- DYNAMIC SIGNAL-PROPAGATION ROUTER (SPRouter) STATES ---
+  const [activePackets, setActivePackets] = useState<{
+    id: string;
+    sourceId: string;
+    targetId: string;
+    progress: number;
+    hopCount: number;
+  }[]>([]);
+  const [processingNodeIds, setProcessingNodeIds] = useState<Record<string, { active: boolean; timestamp: number }>>({});
+  const [signalLogs, setSignalLogs] = useState<{ id: string; text: string; timestamp: string }[]>([]);
+
+  // Cubic Bezier interpolation mathematical solver
+  const interpolateBezier = (
+    x1: number, y1: number,
+    cx1: number, cy1: number,
+    cx2: number, cy2: number,
+    x2: number, y2: number,
+    t: number
+  ) => {
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const mt3 = mt2 * mt;
+    const t2 = t * t;
+    const t3 = t2 * t;
+
+    const rx = mt3 * x1 + 3 * mt2 * t * cx1 + 3 * mt * t2 * cx2 + t3 * x2;
+    const ry = mt3 * y1 + 3 * mt2 * t * cy1 + 3 * mt * t2 * cy2 + t3 * y2;
+
+    return { x: rx, y: ry };
+  };
+
+  // Triggered cascade processing flow
+  const triggerTargetCascade = (targetId: string, hopCount: number) => {
+    // 1. Mark node as processing
+    setProcessingNodeIds(prev => ({
+      ...prev,
+      [targetId]: { active: true, timestamp: Date.now() }
+    }));
+
+    const targetNode = nodes.find(n => n.id === targetId);
+    const nodeName = targetNode ? targetNode.title : `0x${targetId.slice(0, 4).toUpperCase()}`;
+    const logTime = new Date().toLocaleTimeString();
+
+    setSignalLogs(prev => [
+      {
+        id: `log-${Date.now()}-${Math.random()}`,
+        text: `⚡ 0x${targetId.replace('node-', '').slice(0, 4).toUpperCase()} (${nodeName}) received signal. Processing payload...`,
+        timestamp: logTime
+      },
+      ...prev
+    ]);
+
+    // 2. Latency delay simulation (1000ms duration)
+    setTimeout(() => {
+      // Deactivate processing
+      setProcessingNodeIds(prev => {
+        const next = { ...prev };
+        delete next[targetId];
+        return next;
+      });
+
+      // 3. Unfold cascading routing propagation
+      const maxHops = 5;
+      if (hopCount < maxHops && targetNode && targetNode.connections && targetNode.connections.length > 0) {
+        const newPackets = targetNode.connections.map(nextId => ({
+          id: `packet-${Date.now()}-${Math.random()}`,
+          sourceId: targetId,
+          targetId: nextId,
+          progress: 0,
+          hopCount: hopCount + 1
+        }));
+
+        setActivePackets(prev => [...prev, ...newPackets]);
+
+        setSignalLogs(prev => [
+          {
+            id: `log-${Date.now()}-${Math.random()}`,
+            text: `🛰️ 0x${targetId.replace('node-', '').slice(0, 4).toUpperCase()} completed. Propagated packets to ${targetNode.connections.length} target vectors.`,
+            timestamp: new Date().toLocaleTimeString()
+          },
+          ...prev
+        ]);
+      } else if (hopCount >= maxHops) {
+        setSignalLogs(prev => [
+          {
+            id: `log-${Date.now()}-${Math.random()}`,
+            text: `⚠️ Routing depth cap reached at 0x${targetId.replace('node-', '').slice(0, 4).toUpperCase()} to safeguard against loops.`,
+            timestamp: new Date().toLocaleTimeString()
+          },
+          ...prev
+        ]);
+      } else {
+        setSignalLogs(prev => [
+          {
+            id: `log-${Date.now()}-${Math.random()}`,
+            text: `✅ Signal cascade terminated at terminal vector node 0x${targetId.replace('node-', '').slice(0, 4).toUpperCase()}.`,
+            timestamp: new Date().toLocaleTimeString()
+          },
+          ...prev
+        ]);
+      }
+    }, 1000);
+  };
+
+  // Client manual initiation spark trigger
+  const emitInitialSignal = (sourceId: string) => {
+    const sourceNode = nodes.find(n => n.id === sourceId);
+    if (!sourceNode) return;
+
+    if (!sourceNode.connections || sourceNode.connections.length === 0) {
+      alert(language === 'en' 
+        ? "No outward connections registered on this node! Click 'Anchor Connect' to link nodes first." 
+        : "该节点没有向外的拓扑连线！请在上方选中“建立拓扑关联”为它添加连线。"
+      );
+      return;
+    }
+
+    setSignalLogs(prev => [
+      {
+        id: `spark-${Date.now()}`,
+        text: `💥 Sparked route handshake cascade from 0x${sourceId.replace('node-', '').slice(0, 4).toUpperCase()} (${sourceNode.title})`,
+        timestamp: new Date().toLocaleTimeString()
+      },
+      ...prev
+    ]);
+
+    const newPackets = sourceNode.connections.map(targetId => ({
+      id: `packet-${Date.now()}-${Math.random()}`,
+      sourceId,
+      targetId,
+      progress: 0,
+      hopCount: 1
+    }));
+
+    setActivePackets(prev => [...prev, ...newPackets]);
+  };
+
+  // Smooth frame tracking updates for current packets
+  useEffect(() => {
+    if (activePackets.length === 0) return;
+
+    let frameId: number;
+    const updatePackets = () => {
+      setActivePackets(prev => {
+        const nextPackets: typeof prev = [];
+        prev.forEach(p => {
+          const nextProgress = p.progress + 0.015; // Animation speed modifier
+          if (nextProgress >= 1) {
+            triggerTargetCascade(p.targetId, p.hopCount);
+          } else {
+            nextPackets.push({
+              ...p,
+              progress: nextProgress
+            });
+          }
+        });
+        return nextPackets;
+      });
+      frameId = requestAnimationFrame(updatePackets);
+    };
+
+    frameId = requestAnimationFrame(updatePackets);
+    return () => cancelAnimationFrame(frameId);
+  }, [activePackets, nodes]);
+
   // Task overlays
   const [focusedTodoNodeId, setFocusedTodoNodeId] = useState<string | null>('todo-list');
   const [quickTaskText, setQuickTaskText] = useState('');
@@ -626,6 +791,55 @@ export default function FieldMapCanvas({
               />
             );
           })()}
+
+          {/* Real-time flowing packets (SPRouter) */}
+          {activePackets.map(p => {
+            const srcNode = nodes.find(n => n.id === p.sourceId);
+            const tgtNode = nodes.find(n => n.id === p.targetId);
+            if (!srcNode || !tgtNode) return null;
+
+            const dimSrc = getNodeDimensions(srcNode.type);
+            const dimTgt = getNodeDimensions(tgtNode.type);
+
+            const x1 = srcNode.x + dimSrc.width / 2;
+            const y1 = srcNode.y + dimSrc.height / 2;
+            const x2 = tgtNode.x + dimTgt.width / 2;
+            const y2 = tgtNode.y + dimTgt.height / 2;
+
+            const cx1 = x1 + (x2 - x1) * 0.45;
+            const cy1 = y1;
+            const cx2 = x1 + (x2 - x1) * 0.55;
+            const cy2 = y2;
+
+            // Compute current point along Cubic Bezier path
+            const pos = interpolateBezier(x1, y1, cx1, cy1, cx2, cy2, x2, y2, p.progress);
+
+            return (
+              <g key={`sprouter-pkg-${p.id}`} className="filter drop-shadow-[0_0_8px_rgba(34,197,94,0.85)]">
+                {/* Visual ripple */}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={8}
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth={1.5}
+                  className="animate-ping"
+                  style={{ animationDuration: '1.2s' }}
+                />
+                
+                {/* Interactive particle bull */}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={4.5}
+                  fill="#4ade80"
+                  stroke="#15803d"
+                  strokeWidth={1.5}
+                />
+              </g>
+            );
+          })}
         </svg>
 
         {/* Floating Domain labels styled like technical heads-up-display markers */}
@@ -743,20 +957,34 @@ export default function FieldMapCanvas({
             >
               {/* Unified Artistic Card Element */}
               <div className={`w-full h-full rounded-2xl bg-white/95 border backdrop-blur-md p-3.5 flex flex-col justify-between select-none relative transition-all duration-300 ${
-                isSelected 
-                  ? `border-${ui.accent}-500 shadow-md ring-2 ring-${ui.accent}-500/10` 
-                  : `border-slate-200/80 ${ui.glow}`
+                processingNodeIds[node.id]
+                  ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.25)] ring-2 ring-emerald-500/20 scale-[1.01]'
+                  : isSelected 
+                    ? `border-${ui.accent}-500 shadow-md ring-2 ring-${ui.accent}-500/10` 
+                    : `border-slate-200/80 ${ui.glow}`
               }`}>
                 {/* Upper line: Icon, Type Label and Status indication */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     {ui.icon}
-                    <span className="text-[9px] font-bold font-mono tracking-wider text-slate-500 uppercase">
+                    <span className="text-[9px] font-bold font-mono tracking-wider text-slate-500 uppercase truncate">
                       {ui.label}
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Dynamic Zap Spark Emitter */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); emitInitialSignal(node.id); }}
+                      className={`p-1 rounded border border-slate-100 transition-all ${
+                        processingNodeIds[node.id]
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200 animate-pulse'
+                          : 'bg-indigo-50/50 hover:bg-indigo-100/85 text-indigo-500'
+                      }`}
+                      title={language === 'en' ? "Transmit Signal Pulse" : "向外发射脉冲信号"}
+                    >
+                      <Zap className="w-2.5 h-2.5 fill-current" />
+                    </button>
                     <button 
                       onClick={(e) => handleToggleStar(node.id, e)}
                       className="p-0.5 hover:bg-slate-100 rounded text-slate-300 hover:text-yellow-500 transition-colors"
@@ -765,13 +993,14 @@ export default function FieldMapCanvas({
                     </button>
                     <span 
                       className={`w-1.5 h-1.5 rounded-full ${
+                        processingNodeIds[node.id] ? 'bg-emerald-400 shadow-[0_0_4px_#34d399] animate-ping' :
                         node.syncStatus === 'synced' ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 
                         node.syncStatus === 'pending' ? 'bg-amber-400 animate-pulse' : 'bg-slate-300'
                       }`} 
                     />
                   </div>
                 </div>
-
+ 
                 {/* Title and description */}
                 <div className="min-w-0 flex-1 my-1.5 flex flex-col justify-center">
                   <h3 className="text-[11.5px] font-black text-slate-800 leading-tight truncate tracking-tight">
@@ -781,13 +1010,20 @@ export default function FieldMapCanvas({
                     {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
                   </p>
                 </div>
-
+ 
                 {/* Footer section: Simplified, unified, and artistic. */}
                 <div className="flex items-center justify-between border-t border-slate-105/80 pt-1.5 shrink-0">
                   <div className="flex items-center gap-1">
-                    <span className="text-[7.5px] font-mono text-slate-400">
-                      0x{node.id.replace('node-', '').slice(0, 4).toUpperCase()} // SYS_COMP
-                    </span>
+                    {processingNodeIds[node.id] ? (
+                      <span className="text-[7.5px] font-mono text-emerald-500 font-extrabold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping shrink-0" />
+                        0x{node.id.replace('node-', '').replace('node-offline-', '').replace('node-evolved-', '').slice(0, 4).toUpperCase()} // ACTIVE_CASCADE
+                      </span>
+                    ) : (
+                      <span className="text-[7.5px] font-mono text-slate-400">
+                        0x{node.id.replace('node-', '').replace('node-offline-', '').replace('node-evolved-', '').slice(0, 4).toUpperCase()} // SYS_COMP
+                      </span>
+                    )}
                   </div>
                   
                   {/* Members Avatars */}
@@ -1047,6 +1283,40 @@ export default function FieldMapCanvas({
             <div className="w-full h-px bg-slate-900 absolute" />
             <div className="h-full w-px bg-slate-900 absolute" />
             <div className="absolute text-[10px] font-mono border p-1 translate-x-4 bg-white rounded">[CENTRIC POINT AXIS]</div>
+          </div>
+
+          {/* SPRouter Real-time Packet Diagnostics panel */}
+          <div className="absolute right-6 bottom-[180px] bg-slate-900/95 text-white/95 border border-slate-800 rounded-2xl p-4 text-[10px] font-mono shadow-2xl space-y-2.5 transition-all z-40 w-[240px] max-h-[190px] flex flex-col pointer-events-auto overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 font-bold tracking-wider text-slate-400 text-[9px] uppercase">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>SPRouter Diagnostics</span>
+              </div>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setSignalLogs([]); }}
+                className="text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded cursor-pointer pointer-events-auto"
+              >
+                Clear
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 font-mono text-[8px] leading-relaxed max-h-[140px] select-text pointer-events-auto">
+              {signalLogs.length === 0 ? (
+                <div className="text-slate-600 italic py-2 text-center select-none">
+                  Line idle. Emit pulse from any node's Zap icon.
+                </div>
+              ) : (
+                signalLogs.map(log => (
+                  <div key={log.id} className="border-b border-slate-800/40 pb-1 last:border-0">
+                    <div className="flex justify-between text-slate-500 text-[7px] mb-0.5 select-none">
+                      <span>SYS_PROP_BUS</span>
+                      <span>{log.timestamp}</span>
+                    </div>
+                    <div className="text-emerald-400 font-medium break-all">{log.text}</div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Technical drafting CAD metrics monitor block */}

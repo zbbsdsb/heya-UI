@@ -132,3 +132,42 @@ const getOrganicFluidPath = (x: number, y: number, w: number, h: number, id: str
 *   **Deprecation of Mock-data attributes**: Legacy, product-centric attributes such as `TODO`, checklist tasks, and specific descriptive hashtags (e.g., `#待办`) have been completely deprecated to avoid low-end visual noise.
 *   **Aesthetic Telemetry**: All components are designated as pristine systems modules identified by automatic hexadecimal markers `0x[ID] // SYS_COMP` alongside their coordinates, conforming strictly to high-contrast Swiss-style design assertions.
 *   **Boundary Integration**: Floating HUD badge nodes are overlaid independently across the organic path corners to supply responsive telemetry metadata while maintaining background flow states.
+
+---
+
+## 6. 🌱 Next-Phase Logical & Functional Refactoring Specifications (ADR-112 Roadmap)
+
+To transition components from descriptive display cards into autonomous, state-driven computational actors, subsequent integration cycles will implement the following core logic abstractions:
+
+### A. Dynamic Signal-Propagation Router (SPRouter)
+*   **Logical Goal**: Turn passive SVG connection vectors into active packet-routing channels.
+*   **Integration Contract**: Each link represents a unidirectional or bidirectional data pipeline. Triggering node event routines triggers a floating "data packet" animation sequence utilizing an interval timer or standard animation frame callback tracking along the parameterized Bezier route:
+    $$C(t) = (1-t)^3 P_0 + 3(1-t)^2t P_{\text{ctrl1}} + 3(1-t)t^2 P_{\text{ctrl2}} + t^3 P_1$$
+*   **Cascade States**: When a downstream node receives a data packet, it mutates its telemetry flag to `online_processing`, executing a mock latency delay before propagating the next signal.
+
+### B. Algorithmic Graham-Scan Convex Hull (ConvexHull2D)
+*   **Logical Goal**: Eliminate hardcoded domain boundary coordinates. Make fluid boundaries morph reactively as nodes traverse canvas coordinates.
+*   **Integration Contract**: Use a 2D Convex Hull solver mapped to current coordinate vectors of filtered node classes.
+*   ```typescript
+    interface Point { x: number; y: number }
+    export function getConvexHull(points: Point[]): Point[] {
+      // Sort points lexicographically
+      // Compute upper and lower hulls using cross-product orientation tests
+      // Return a closed chain of extreme vertices representing the category coordinate boundary
+    }
+    ```
+*   **Bezier Rendering**: Feeds the result collection to a Catmull-Rom spline drawer to construct the organic svg string dynamically with minimum-span padding.
+
+### C. Directed Acyclic Graph Logic Compiler (DAG-Compiler)
+*   **Logical Goal**: Compile the connected topology vectors into functional processing pipelines.
+*   **Integration Contract**:
+    1. Validate node chains to ensure zero circular loops via Kahn's algorithm or recursive cycle detection dfs.
+    2. Define inputs and output schemas for each node type (e.g., `Muse` node outputs string raw-prompts; `Agent` node consumes strings and returns formatted JSON profiles).
+    3. Running the DAG compiling stream re-computes active values across the entire chain synchronously or asynchronously.
+
+### D. Central pub/sub Event Bus & AI Autogeny Registry
+*   **Logical Goal**: Implement a reactive state dispatcher to capture spatial interactions (e.g. node entry into a specific fluid domain) and trigger adaptive events.
+*   **Integration Contract**:
+    *   Create a local event controller `hEventBus` to notify contextual listeners when spatial collisions or connections are established.
+    *   If an `Agent` node is dragged inside the `Execution Matrix` domain, the event bus fires an trigger to spontaneous AI components (`Autonomous Sprouting`), automatically creating connecting node suggestions based on real-time topological trends.
+
