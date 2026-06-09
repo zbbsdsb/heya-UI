@@ -85,7 +85,9 @@ export default function App() {
         status: 'active',
         syncStatus: 'synced',
         authorId: 'ceaserzhao',
-        version: 1
+        version: 1,
+        logicalOperator: 'AND',
+        logicalValue: true
       },
       {
         id: 'project-b',
@@ -108,7 +110,9 @@ export default function App() {
         status: 'active',
         syncStatus: 'synced',
         authorId: 'ceaserzhao',
-        version: 1
+        version: 1,
+        logicalOperator: 'INPUT',
+        logicalValue: true
       },
       {
         id: 'todo-list',
@@ -128,7 +132,9 @@ export default function App() {
         status: 'active',
         syncStatus: 'synced',
         authorId: 'ceaserzhao',
-        version: 1
+        version: 1,
+        logicalOperator: 'OR',
+        logicalValue: true
       },
       {
         id: 'design-system',
@@ -148,7 +154,9 @@ export default function App() {
         status: 'completed',
         syncStatus: 'synced',
         authorId: 'Alex',
-        version: 1
+        version: 1,
+        logicalOperator: 'NOT',
+        logicalValue: false
       },
       {
         id: 'research',
@@ -168,7 +176,9 @@ export default function App() {
         status: 'active',
         syncStatus: 'synced',
         authorId: 'ceaserzhao',
-        version: 1
+        version: 1,
+        logicalOperator: 'INPUT',
+        logicalValue: false
       },
       {
         id: 'user-research',
@@ -188,7 +198,9 @@ export default function App() {
         status: 'active',
         syncStatus: 'synced',
         authorId: 'system',
-        version: 1
+        version: 1,
+        logicalOperator: 'INPUT',
+        logicalValue: true
       }
     ];
   });

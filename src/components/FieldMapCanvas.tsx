@@ -75,6 +75,79 @@ const getOrganicFluidPath = (x: number, y: number, w: number, h: number, id: str
           C ${cBL.x + 35} ${cBL.y + 35}, ${cBL.x} ${cBL.y}, ${cpLeft.x} ${cpLeft.y} Z`;
 };
 
+const compileAndEvaluateLogic = (nodeList: NodeData[]): { nodes: NodeData[]; cycles: string[] } => {
+  // Defensive copy to prevent state contamination during resolution
+  let currentNodes: NodeData[] = nodeList.map(n => ({
+    ...n,
+    logicalOperator: n.logicalOperator || (n.type === 'todo' ? 'OR' : n.type === 'resource' ? 'NOT' : n.type === 'project' ? 'AND' : 'INPUT'),
+    logicalValue: n.logicalValue !== undefined ? n.logicalValue : false
+  }));
+
+  // Resolve incoming node linkages
+  const getParents = (targetId: string, list: NodeData[]) => {
+    return list.filter(n => n.connections && n.connections.includes(targetId));
+  };
+
+  let maxIterations = 30;
+  let changed = true;
+  let iteration = 0;
+  let cyclesDetected: string[] = [];
+
+  while (changed && iteration < maxIterations) {
+    changed = false;
+    iteration++;
+
+    currentNodes = currentNodes.map(node => {
+      if (node.logicalOperator === 'INPUT') {
+        return node; // Input types preserve state, not computed
+      }
+
+      const incoming = getParents(node.id, currentNodes);
+      
+      let newValue = false;
+      if (incoming.length === 0) {
+        newValue = false; // Zero connections default evaluation is false
+      } else {
+        const inputVals = incoming.map(p => p.logicalValue || false);
+
+        switch (node.logicalOperator) {
+          case 'AND':
+            newValue = inputVals.every(val => val === true);
+            break;
+          case 'OR':
+            newValue = inputVals.some(val => val === true);
+            break;
+          case 'NOT':
+            newValue = !inputVals[0];
+            break;
+          case 'XOR':
+            const trueCount = inputVals.filter(v => v === true).length;
+            newValue = trueCount % 2 === 1;
+            break;
+          default:
+            newValue = false;
+        }
+      }
+
+      if (node.logicalValue !== newValue) {
+        changed = true;
+        return { ...node, logicalValue: newValue };
+      }
+      return node;
+    });
+  }
+
+  // Mark cycle dependencies fallback
+  if (iteration >= maxIterations) {
+    cyclesDetected = currentNodes.filter(n => {
+      const incoming = getParents(n.id, currentNodes);
+      return incoming.some(p => p.connections && p.connections.includes(n.id)) || incoming.some(p => p.id === n.id);
+    }).map(n => n.id);
+  }
+
+  return { nodes: currentNodes, cycles: cyclesDetected };
+};
+
 interface FieldMapCanvasProps {
   nodes: NodeData[];
   setNodes: React.Dispatch<React.SetStateAction<NodeData[]>>;
@@ -116,6 +189,63 @@ export default function FieldMapCanvas({
   }[]>([]);
   const [processingNodeIds, setProcessingNodeIds] = useState<Record<string, { active: boolean; timestamp: number }>>({});
   const [signalLogs, setSignalLogs] = useState<{ id: string; text: string; timestamp: string }[]>([]);
+  
+  // --- BOOLEAN LOGIC EVALUATOR DERIVED STATE AND OPERATORS ---
+  const { nodes: evaluatedNodes, cycles: cyclesDetected } = React.useMemo(() => {
+    return compileAndEvaluateLogic(nodes);
+  }, [nodes]);
+
+  const toggleInputNodeValue = (nodeId: string) => {
+    setNodes(prev => prev.map(n => {
+      if (n.id === nodeId) {
+        const currentVal = n.logicalValue || false;
+        return {
+          ...n,
+          logicalValue: !currentVal,
+          updatedAt: '2024/05/30'
+        };
+      }
+      return n;
+    }));
+
+    // Trigger log entry to inform diagnostics
+    const target = nodes.find(n => n.id === nodeId);
+    const nodeName = target ? target.title : nodeId;
+    const currentVal = target ? (target.logicalValue || false) : false;
+    setSignalLogs(prev => [
+      {
+        id: `toggle-${Date.now()}`,
+        text: `🔘 Toggled manual input 0x${nodeId.replace('node-', '').slice(0, 4).toUpperCase()} (${nodeName}) value to ${!currentVal ? 'TRUE' : 'FALSE'}.`,
+        timestamp: new Date().toLocaleTimeString()
+      },
+      ...prev
+    ]);
+  };
+
+  const setNodeLogicalOperator = (nodeId: string, op: 'AND' | 'OR' | 'NOT' | 'XOR' | 'INPUT') => {
+    setNodes(prev => prev.map(n => {
+      if (n.id === nodeId) {
+        return {
+          ...n,
+          logicalOperator: op,
+          updatedAt: '2024/05/30'
+        };
+      }
+      return n;
+    }));
+
+    // Trigger log entry to inform diagnostics
+    const target = nodes.find(n => n.id === nodeId);
+    const nodeName = target ? target.title : nodeId;
+    setSignalLogs(prev => [
+      {
+        id: `op-${Date.now()}`,
+        text: `⚙️ Re-configured operation on 0x${nodeId.replace('node-', '').slice(0, 4).toUpperCase()} (${nodeName}) to standard [ ${op.toUpperCase()} ] gate.`,
+        timestamp: new Date().toLocaleTimeString()
+      },
+      ...prev
+    ]);
+  };
 
   // Cubic Bezier interpolation mathematical solver
   const interpolateBezier = (
@@ -721,9 +851,9 @@ export default function FieldMapCanvas({
           })}
 
           {/* SVG Bezier wires connecting everything precisely */}
-          {nodes.map(node => {
+          {evaluatedNodes.map(node => {
             return node.connections?.map(targetId => {
-              const target = nodes.find(n => n.id === targetId);
+              const target = evaluatedNodes.find(n => n.id === targetId);
               if (!target) return null;
 
               const dimSource = getNodeDimensions(node.type);
@@ -745,30 +875,86 @@ export default function FieldMapCanvas({
 
               const pathData = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
 
+              // Boolean Logical styling vectors
+              const carriesTrueSignal = node.logicalValue === true;
+              const inCycle = cyclesDetected.includes(node.id) || cyclesDetected.includes(target.id);
+
+              let backdropStroke = 'rgba(226, 232, 240, 0.65)';
+              let lineStroke = '#cbd5e1';
+              let dotColor = '#94a3b8';
+              let dotGlow = 'rgba(148, 163, 184, 0.5)';
+              let isDashed = false;
+
+              if (inCycle) {
+                backdropStroke = 'rgba(249, 115, 22, 0.25)';
+                lineStroke = '#f97316';
+                dotColor = '#f97316';
+                dotGlow = 'rgba(249, 115, 22, 0.7)';
+                isDashed = true;
+              } else if (carriesTrueSignal) {
+                backdropStroke = isHighlighted ? 'rgba(16, 185, 129, 0.45)' : 'rgba(16, 185, 129, 0.15)';
+                lineStroke = '#10b981';
+                dotColor = '#34d399';
+                dotGlow = 'rgba(16, 185, 129, 0.8)';
+              } else {
+                backdropStroke = isHighlighted ? 'rgba(99, 102, 241, 0.35)' : 'rgba(226, 232, 240, 0.5)';
+                lineStroke = isHighlighted ? '#6366f1' : '#94a3b8';
+                dotColor = isHighlighted ? '#818cf8' : '#475569';
+                dotGlow = isHighlighted ? 'rgba(99, 102, 241, 0.6)' : 'rgba(71, 85, 105, 0.4)';
+              }
+
               return (
                 <g key={`${node.id}-${targetId}`} className={`transition-opacity duration-300 ${isFilteredOut ? 'opacity-10' : 'opacity-100'}`}>
                   {/* Subtle blur backdrop wire */}
                   <path 
                     d={pathData}
                     fill="none" 
-                    stroke={isHighlighted ? 'rgba(99, 102, 241, 0.45)' : 'rgba(226, 232, 240, 0.65)'}
-                    strokeWidth={8} 
+                    stroke={backdropStroke}
+                    strokeWidth={isHighlighted ? 9 : 6} 
                     strokeLinecap="round"
+                    className="transition-all duration-300"
                   />
                   {/* Primary sharp wire */}
                   <path 
                     d={pathData}
                     fill="none" 
-                    stroke={isHighlighted ? '#6366f1' : '#cbd5e1'}
-                    strokeWidth={2} 
+                    stroke={lineStroke}
+                    strokeWidth={isHighlighted || carriesTrueSignal ? 2.5 : 1.5} 
                     strokeLinecap="round"
-                    strokeDasharray={node.type === 'muse' || target.type === 'muse' ? '5,5' : 'none'}
-                    className="transition-all duration-300 animate-pulse"
+                    strokeDasharray={isDashed ? '4,4' : node.type === 'muse' || target.type === 'muse' ? '5,5' : 'none'}
+                    className={`transition-all duration-300 ${carriesTrueSignal && !inCycle ? 'animate-pulse' : ''}`}
                   />
                   {/* Glowing flowing energy dot along the wire */}
-                  <circle r={isHighlighted ? "5" : "3.5"} fill={isHighlighted ? "#818cf8" : "#94a3b8"} className="filter drop-shadow-[0_0_5px_rgba(99,102,241,0.7)]">
-                    <animateMotion dur={isHighlighted ? "2.5s" : "5.5s"} repeatCount="indefinite" path={pathData} />
+                  <circle r={carriesTrueSignal ? "4.5" : isHighlighted ? "4" : "3"} fill={dotColor} style={{ filter: `drop-shadow(0 0 4px ${dotGlow})` }}>
+                    <animateMotion dur={carriesTrueSignal ? "2s" : isHighlighted ? "2.5s" : "5.5s"} repeatCount="indefinite" path={pathData} />
                   </circle>
+                  
+                  {/* Dynamic logical true/false signal indicator bubble on active interaction wires */}
+                  {isHighlighted && !inCycle && (
+                    <g className="animate-fade-in">
+                      <rect
+                        x={(cx1 + cx2) / 2 - 10}
+                        y={(cy1 + cy2) / 2 - 22}
+                        width={20}
+                        height={11}
+                        rx={3}
+                        fill={carriesTrueSignal ? '#10b981' : '#64748b'}
+                        className="opacity-90 shadow-sm"
+                      />
+                      <text
+                        x={(cx1 + cx2) / 2}
+                        y={(cy1 + cy2) / 2 - 14}
+                        fill="white"
+                        fontSize="6.5px"
+                        fontWeight="bold"
+                        fontFamily="monospace"
+                        textAnchor="middle"
+                        className="select-none"
+                      >
+                        {carriesTrueSignal ? '1' : '0'}
+                      </text>
+                    </g>
+                  )}
                 </g>
               );
             });
@@ -872,7 +1058,7 @@ export default function FieldMapCanvas({
 
         {/* Floating Node elements layer - pointer events enabled */}
         <div className="absolute inset-0 pointer-events-auto animate-in fade-in duration-500">
-          {nodes.map((node) => {
+          {evaluatedNodes.map((node) => {
             const isSelected = node.id === selectedNodeId;
             const isHovered = node.id === hoveredNodeId;
             const isFilteredOut = nodeFilter !== 'all' && node.type !== nodeFilter;
@@ -1002,13 +1188,64 @@ export default function FieldMapCanvas({
                 </div>
  
                 {/* Title and description */}
-                <div className="min-w-0 flex-1 my-1.5 flex flex-col justify-center">
-                  <h3 className="text-[11.5px] font-black text-slate-800 leading-tight truncate tracking-tight">
+                <div className="min-w-0 flex-1 my-1 flex flex-col justify-center">
+                  <h3 className="text-[11px] font-black text-slate-800 leading-tight truncate tracking-tight">
                     {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).title}
                   </h3>
-                  <p className="text-[9.5px] font-medium text-slate-400 truncate mt-0.5">
+                  <p className="text-[9px] font-medium text-slate-400 truncate mt-0.5">
                     {getLocalizedNode(node.id, { title: node.title, description: node.description }, language).description}
                   </p>
+                  
+                  {/* Minimal Logical Control Engine bar */}
+                  <div className="mt-1 flex items-center justify-between bg-slate-50/50 border border-slate-100 rounded-lg px-2 py-0.5 gap-1 text-[8px] font-mono pointer-events-auto">
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 font-bold uppercase select-none text-[6.5px]" title="Gate Selector">Logic:</span>
+                      <select
+                        value={node.logicalOperator || 'INPUT'}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          setNodeLogicalOperator(node.id, e.target.value as any);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()} // Prevent card dragging
+                        className="bg-white border border-slate-200 text-slate-700 font-bold text-[8px] rounded px-1 py-0 outline-none cursor-pointer focus:border-indigo-400 transition-all font-mono"
+                      >
+                        <option value="INPUT">INPUT</option>
+                        <option value="AND">AND (&amp;)</option>
+                        <option value="OR">OR (|)</option>
+                        <option value="NOT">NOT (!)</option>
+                        <option value="XOR">XOR (^)</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {(node.logicalOperator === 'INPUT' || !node.logicalOperator) ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleInputNodeValue(node.id);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          className={`px-1.5 py-0.5 font-bold text-[8px] rounded transition-all border outline-none select-none max-h-[16px] flex items-center gap-1 cursor-pointer ${
+                            node.logicalValue 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-250 font-black shadow-[0_1px_2px_rgba(16,185,129,0.12)]' 
+                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}
+                        >
+                          <span className={`w-1 h-1 rounded-full ${node.logicalValue ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                          {node.logicalValue ? 'True' : 'False'}
+                        </button>
+                      ) : (
+                        <span className={`px-1.5 py-0.5 font-bold text-[7.5px] rounded border select-none max-h-[16px] flex items-center gap-1 ${
+                          node.logicalValue 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-150' 
+                            : 'bg-slate-100/80 text-slate-400 border-slate-200/50'
+                        }`}>
+                          <span className={`w-1 h-1 rounded-full ${node.logicalValue ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+                          {node.logicalValue ? 'True' : 'False'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
  
                 {/* Footer section: Simplified, unified, and artistic. */}

@@ -34,6 +34,8 @@ export interface NodeData {
   version?: number;
   notes?: string;
   codeSnippet?: string;
+  logicalOperator?: 'AND' | 'OR' | 'NOT' | 'XOR' | 'INPUT';
+  logicalValue?: boolean;
 }
 
 export interface SubFieldData {
