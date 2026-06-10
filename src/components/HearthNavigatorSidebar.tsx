@@ -23,6 +23,7 @@ interface HearthNavigatorSidebarProps {
   setSelectedNodeId: (id: string | null) => void;
   language: 'en' | 'zh';
   onAddNodeClick: () => void;
+  onDoubleClickNode?: (id: string) => void;
 }
 
 const t = {
@@ -59,7 +60,8 @@ export default function HearthNavigatorSidebar({
   selectedNodeId,
   setSelectedNodeId,
   language,
-  onAddNodeClick
+  onAddNodeClick,
+  onDoubleClickNode
 }: HearthNavigatorSidebarProps) {
   const lVal = t[language];
   const [searchQuery, setSearchQuery] = useState('');
@@ -174,6 +176,7 @@ export default function HearthNavigatorSidebar({
               getTypeIcon={getTypeIcon}
               getBadgeStyle={getBadgeStyle}
               language={language}
+              onDoubleClickNode={onDoubleClickNode}
             />
           )}
         </div>
@@ -190,6 +193,7 @@ interface HearthSidebarGroupedListProps {
   getTypeIcon: (type: string) => React.ReactNode;
   getBadgeStyle: (type: string) => string;
   language: 'en' | 'zh';
+  onDoubleClickNode?: (id: string) => void;
 }
 
 function HearthSidebarGroupedList({
@@ -198,7 +202,8 @@ function HearthSidebarGroupedList({
   setSelectedNodeId,
   getTypeIcon,
   getBadgeStyle,
-  language
+  language,
+  onDoubleClickNode
 }: HearthSidebarGroupedListProps) {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     project: false,
@@ -267,6 +272,11 @@ function HearthSidebarGroupedList({
                       onClick={() => {
                         (window as any).playTactileChime?.('click');
                         setSelectedNodeId(n.id);
+                      }}
+                      onDoubleClick={() => {
+                        if (onDoubleClickNode) {
+                          onDoubleClickNode(n.id);
+                        }
                       }}
                       className={`p-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
                         isSelected 

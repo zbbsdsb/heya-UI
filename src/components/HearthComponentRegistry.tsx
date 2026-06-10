@@ -216,6 +216,14 @@ export default function HearthComponentRegistry({
   const [newDesc, setNewDesc] = useState('');
   const [newX, setNewX] = useState(150);
   const [newY, setNewY] = useState(150);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Reset isEditing to false if selectedNodeId becomes null
+  useEffect(() => {
+    if (!selectedNodeId) {
+      setIsEditing(false);
+    }
+  }, [selectedNodeId]);
 
   // Computing and AI-simulation states
   const [computingHash, setComputingHash] = useState(false);
@@ -582,9 +590,9 @@ export default function HearthComponentRegistry({
   // Define dynamic column spans to support a gorgeous 4-column layout when a node is selected!
   const col1Class = isNavCollapsed ? 'lg:col-span-1' : 'lg:col-span-3';
 
-  const col2Class = selectedNode 
+  const col2Class = isEditing && selectedNode 
     ? (isNavCollapsed ? 'lg:col-span-4' : 'lg:col-span-3') 
-    : (isNavCollapsed ? 'lg:col-span-7' : 'lg:col-span-5');
+    : (isNavCollapsed ? 'lg:col-span-11' : 'lg:col-span-9');
 
   const col3Class = selectedNode
     ? (isNavCollapsed ? 'lg:col-span-4' : 'lg:col-span-3')
@@ -836,6 +844,11 @@ export default function HearthComponentRegistry({
                   (window as any).playTactileChime?.('click');
                   setIsNewNodeFormOpen(true);
                 }}
+                onDoubleClickNode={(id) => {
+                  setSelectedNodeId(id);
+                  setIsEditing(true);
+                  (window as any).playTactileChime?.('success');
+                }}
               />
             </div>
           )}
@@ -848,25 +861,65 @@ export default function HearthComponentRegistry({
             <div className="absolute left-6 bottom-6 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full pointer-events-none" />
 
             <div className="relative z-10 space-y-5">
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-indigo-950/30">
                 <div>
-                  <h3 className="text-xs font-black text-slate-350 uppercase tracking-widest flex items-center gap-1.5">
-                    <Grid className="w-4 h-4 text-indigo-400 animate-pulse" />
+                  <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5 flex-wrap">
+                    <Grid className="w-4 h-4 text-indigo-400" />
                     <span>{lVal.gridMapTitle}</span>
+                    {isEditing ? (
+                      <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-550/30 text-indigo-300 font-mono text-[8px] uppercase tracking-wider font-bold rounded">
+                        ● EDITING COMPONENT / 编辑视角
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-amber-400 font-mono text-[8px] uppercase tracking-wider font-bold rounded animate-pulse">
+                        ● GRAPH CANVAS LIVE / 核心大画布
+                      </span>
+                    )}
                   </h3>
-                  <p className="text-[10px] text-slate-505 font-medium mt-1 leading-relaxed">
-                    {lVal.gridMapDesc}
+                  <p className="text-[10.5px] text-slate-450 font-bold mt-1 max-w-xl leading-relaxed">
+                    {isEditing 
+                      ? (language === 'en' 
+                          ? "🛠️ Operational systems diagnostics. Click 'Exit Editor' to restore the giant blueprint canvas."
+                          : "🛠️ 正在对组件进行功能仿真。点击“退出编辑”可随时返回核心大画布。")
+                      : (language === 'en' 
+                          ? "⚡ Double-click any component node on the grid below to load code workspace & simulated client."
+                          : "⚡ 在画布中双击任意组件节点，即可精细加载该节点的真实源码模块与沙盒交互。")}
                   </p>
                 </div>
-                {draggingNodeId && (
-                  <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[8px] uppercase tracking-wider font-extrabold rounded-md animate-pulse">
-                    ● DRAGGING ACTIVE
-                  </span>
+
+                {selectedNode && (
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 select-none">
+                    {isEditing ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          (window as any).playTactileChime?.('click');
+                          setIsEditing(false);
+                        }}
+                        className="px-3 py-1.5 bg-[#020205] border border-slate-805 hover:border-slate-700 hover:bg-slate-900 text-slate-350 hover:text-white font-mono text-[9px] font-black uppercase tracking-wider rounded-xl cursor-pointer transition-all active:scale-95"
+                      >
+                        ← {language === 'en' ? 'Exit Editor' : '返回大画布'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          (window as any).playTactileChime?.('success');
+                          setIsEditing(true);
+                        }}
+                        className="px-4.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-600/10 cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                      >
+                        ⚡ {language === 'en' ? 'Open Workspace (DF)' : '进入工作区 (双击)'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
               {/* Blueprint Interactive Vector Canvas Board */}
-              <div className="w-full h-[280px] bg-[#020205] border border-indigo-950/85 rounded-2xl relative overflow-hidden flex items-center justify-center shadow-lg cursor-crosshair">
+              <div className={`w-full bg-[#020205] border border-indigo-950/85 rounded-2xl relative overflow-hidden flex items-center justify-center shadow-lg cursor-crosshair transition-all duration-300 ${
+                isEditing ? 'h-[280px]' : 'h-[520px]'
+              }`}>
                 <div className="absolute inset-0 select-none pointer-events-none opacity-[0.06]" style={{
                   backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
                   backgroundSize: '20px 20px'
@@ -943,6 +996,11 @@ export default function HearthComponentRegistry({
                       onClick={() => {
                         (window as any).playTactileChime?.('click');
                         setSelectedNodeId(n.id);
+                      }}
+                      onDoubleClick={() => {
+                        (window as any).playTactileChime?.('success');
+                        setSelectedNodeId(n.id);
+                        setIsEditing(true);
                       }}
                       className={`absolute translate-x-[-50%] translate-y-[-50%] transition-transform duration-75 group z-20 cursor-move ${
                         isSelected ? 'scale-125 z-30' : 'hover:scale-115'
@@ -1094,44 +1152,46 @@ export default function HearthComponentRegistry({
         </div>
 
         {/* ================= COLUMN 3: PERFORMANCE DIGITAL-TWIN SIMULATOR ================= */}
-        <div className={`${col3Class} h-full`}>
-          {selectedNode ? (
-            <HearthComponentSimulator
-              selectedNode={selectedNode}
-              language={language}
-              setNodes={setNodes}
-              computingHash={computingHash}
-              computedHashCode={computedHashCode}
-              calculateShaRegistry={calculateShaRegistry}
-              agentLogs={agentLogs}
-              horizonProtocol={horizonProtocol}
-              setHorizonProtocol={setHorizonProtocol}
-              handleAgentScan={handleAgentScan}
-              divergenceVal={divergenceVal}
-              setDivergenceVal={setDivergenceVal}
-              musePromptText={musePromptText}
-              setMusePromptText={setMusePromptText}
-              handleLocalMuseCast={handleLocalMuseCast}
-              newMilestoneText={newMilestoneText}
-              setNewMilestoneText={setNewMilestoneText}
-              handleAddMilestone={handleAddMilestone}
-              toggleMilestoneComplete={toggleMilestoneComplete}
-              deleteMilestone={deleteMilestone}
-              handleProgressSliderChange={handleProgressSliderChange}
-              handleUpdateNodeStringField={handleUpdateNodeStringField}
-            />
-          ) : (
-            <div className="p-16 text-center rounded-3xl bg-white border border-slate-200/60 text-slate-450 space-y-4">
-              <Compass className="w-10 h-10 mx-auto text-slate-300 animate-pulse" />
-              <p className="text-xs font-bold font-mono max-w-[200px] mx-auto leading-relaxed text-slate-400">
-                {lVal.noNodeSelected}
-              </p>
-            </div>
-          )}
-        </div>
+        {isEditing && (
+          <div className={`${col3Class} h-full`}>
+            {selectedNode ? (
+              <HearthComponentSimulator
+                selectedNode={selectedNode}
+                language={language}
+                setNodes={setNodes}
+                computingHash={computingHash}
+                computedHashCode={computedHashCode}
+                calculateShaRegistry={calculateShaRegistry}
+                agentLogs={agentLogs}
+                horizonProtocol={horizonProtocol}
+                setHorizonProtocol={setHorizonProtocol}
+                handleAgentScan={handleAgentScan}
+                divergenceVal={divergenceVal}
+                setDivergenceVal={setDivergenceVal}
+                musePromptText={musePromptText}
+                setMusePromptText={setMusePromptText}
+                handleLocalMuseCast={handleLocalMuseCast}
+                newMilestoneText={newMilestoneText}
+                setNewMilestoneText={setNewMilestoneText}
+                handleAddMilestone={handleAddMilestone}
+                toggleMilestoneComplete={toggleMilestoneComplete}
+                deleteMilestone={deleteMilestone}
+                handleProgressSliderChange={handleProgressSliderChange}
+                handleUpdateNodeStringField={handleUpdateNodeStringField}
+              />
+            ) : (
+              <div className="p-16 text-center rounded-3xl bg-white border border-slate-200/60 text-slate-450 space-y-4">
+                <Compass className="w-10 h-10 mx-auto text-slate-300 animate-pulse" />
+                <p className="text-xs font-bold font-mono max-w-[200px] mx-auto leading-relaxed text-slate-400">
+                  {lVal.noNodeSelected}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ================= COLUMN 4: ACTIVE COMPONENT CODE MODULE & FILESYSTEM ================= */}
-        {selectedNode && (
+        {isEditing && selectedNode && (
           <div className={`${col4Class}`}>
             <HearthFolderExplorer 
               nodeType={selectedNode.type}
