@@ -173,6 +173,9 @@ export default function FieldMapCanvas({
 }: FieldMapCanvasProps) {
   const [zoom, setZoom] = useState<number>(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [visualDensity, setVisualDensity] = useState<'rich' | 'balanced' | 'focus'>('balanced');
+  const [wireOpacity, setWireOpacity] = useState<number>(0.35);
+  const [showTelemetryHUD, setShowTelemetryHUD] = useState<boolean>(false);
   
   // Clean up and center when warping from explore
   useEffect(() => {
@@ -889,15 +892,15 @@ export default function FieldMapCanvas({
         {/* Bioluminescent floating mycelium micro-particles representing self-organizing mindspore spores */}
         <svg className="w-[3000px] h-[3000px] overflow-visible absolute top-0 left-0 pointer-events-none">
           {/* Glowing biological spores that float and drift */}
-          {particles.map(p => (
+          {visualDensity !== 'focus' && particles.map(p => (
             <circle
               key={`spore-${p.id}`}
               cx={p.x}
               cy={p.y}
               r={p.r}
               fill="#818cf8"
-              opacity={p.opacity}
-              className="animate-pulse"
+              opacity={visualDensity === 'balanced' ? p.opacity * 0.35 : p.opacity}
+              className={visualDensity === 'rich' ? "animate-pulse" : ""}
               style={{
                 animationDelay: `${p.id * 120}ms`,
                 animationDuration: `${3200 / p.speed}ms`
@@ -930,24 +933,26 @@ export default function FieldMapCanvas({
             }
 
             return (
-              <g key={`fluid-boundary-${b.id}`} className="transition-all duration-500">
+              <g key={`fluid-boundary-${b.id}`} className="transition-all duration-500" style={{ opacity: visualDensity === 'focus' ? 0.22 : visualDensity === 'balanced' ? 0.6 : 1.0 }}>
                 {/* Glowing breathing backdrop */}
-                <path
-                  d={pathD}
-                  fill={fillCol}
-                  stroke={strokeCol}
-                  strokeWidth={3}
-                  strokeDasharray="6, 8"
-                  className="animate-pulse animate-duration-10000"
-                  style={{ transformOrigin: 'center' }}
-                />
+                {visualDensity !== 'focus' && (
+                  <path
+                    d={pathD}
+                    fill={fillCol}
+                    stroke={strokeCol}
+                    strokeWidth={3}
+                    strokeDasharray="6, 8"
+                    className={visualDensity === 'rich' ? "animate-pulse animate-duration-10000" : ""}
+                    style={{ transformOrigin: 'center' }}
+                  />
+                )}
                 
                 {/* Fluid outline border */}
                 <path
                   d={pathD}
                   fill="none"
                   stroke={strokeCol}
-                  strokeWidth={1.5}
+                  strokeWidth={visualDensity === 'focus' ? 1 : 1.5}
                   strokeLinecap="round"
                 />
               </g>
@@ -1008,30 +1013,38 @@ export default function FieldMapCanvas({
               }
 
               return (
-                <g key={`${node.id}-${targetId}`} className={`transition-opacity duration-300 ${isFilteredOut ? 'opacity-10' : 'opacity-100'}`}>
+                <g 
+                  key={`${node.id}-${targetId}`} 
+                  className={`transition-opacity duration-300 ${isFilteredOut ? 'opacity-10' : 'opacity-100'}`}
+                  style={{ opacity: isHighlighted ? 1.0 : wireOpacity }}
+                >
                   {/* Subtle blur backdrop wire */}
-                  <path 
-                    d={pathData}
-                    fill="none" 
-                    stroke={backdropStroke}
-                    strokeWidth={isHighlighted ? 9 : 6} 
-                    strokeLinecap="round"
-                    className="transition-all duration-300"
-                  />
+                  {visualDensity !== 'focus' && (
+                    <path 
+                      d={pathData}
+                      fill="none" 
+                      stroke={backdropStroke}
+                      strokeWidth={isHighlighted ? 9 : 6} 
+                      strokeLinecap="round"
+                      className="transition-all duration-300"
+                    />
+                  )}
                   {/* Primary sharp wire */}
                   <path 
                     d={pathData}
                     fill="none" 
                     stroke={lineStroke}
-                    strokeWidth={isHighlighted || carriesTrueSignal ? 2.5 : 1.5} 
+                    strokeWidth={isHighlighted || carriesTrueSignal ? 2.5 : (visualDensity === 'focus' ? 1.0 : 1.5)} 
                     strokeLinecap="round"
                     strokeDasharray={isDashed ? '4,4' : node.type === 'muse' || target.type === 'muse' ? '5,5' : 'none'}
-                    className={`transition-all duration-300 ${carriesTrueSignal && !inCycle ? 'animate-pulse' : ''}`}
+                    className={`transition-all duration-300 ${carriesTrueSignal && !inCycle && visualDensity !== 'focus' ? 'animate-pulse' : ''}`}
                   />
                   {/* Glowing flowing energy dot along the wire */}
-                  <circle r={carriesTrueSignal ? "4.5" : isHighlighted ? "4" : "3"} fill={dotColor} style={{ filter: `drop-shadow(0 0 4px ${dotGlow})` }}>
-                    <animateMotion dur={carriesTrueSignal ? "2s" : isHighlighted ? "2.5s" : "5.5s"} repeatCount="indefinite" path={pathData} />
-                  </circle>
+                  {visualDensity !== 'focus' && (
+                    <circle r={carriesTrueSignal ? "4.5" : isHighlighted ? "4" : "3"} fill={dotColor} style={{ filter: `drop-shadow(0 0 4px ${dotGlow})` }}>
+                      <animateMotion dur={carriesTrueSignal ? "2s" : isHighlighted ? "2.5s" : "5.5s"} repeatCount="indefinite" path={pathData} />
+                    </circle>
+                  )}
                   
                   {/* Dynamic logical true/false signal indicator bubble on active interaction wires */}
                   {isHighlighted && !inCycle && (
@@ -1514,6 +1527,91 @@ export default function FieldMapCanvas({
         ))}
       </div>
 
+      {/* 视觉负载防疲劳配准器 / Swiss Low-Load Adaptive Control Panel */}
+      <div className="absolute top-4 right-[320px] bg-white/95 backdrop-blur-md border border-slate-200/80 p-2 rounded-2xl shadow-xl z-40 w-[240px] select-none flex flex-col gap-2 transition-all text-[11px] font-sans">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-1 font-bold text-slate-800 text-[9.5px] uppercase tracking-wider font-mono">
+          <div className="flex items-center gap-1">
+            <Layers className="w-3.5 h-3.5 text-indigo-500" />
+            <span>{language === 'en' ? 'Load Allocator' : '视觉疲劳调配'}</span>
+          </div>
+          <span className="text-[7.5px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold">
+            {visualDensity.toUpperCase()}
+          </span>
+        </div>
+
+        {/* Triple Segment Control */}
+        <div className="flex gap-1 p-0.5 bg-slate-100/80 border border-slate-200/50 rounded-lg">
+          {(['rich', 'balanced', 'focus'] as const).map(mode => {
+            const label = mode === 'rich' ? (language === 'en' ? 'Full' : '全息')
+                        : mode === 'balanced' ? (language === 'en' ? 'Balanced' : '平衡')
+                        : (language === 'en' ? 'Focus' : '极简');
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => {
+                  setVisualDensity(mode);
+                  (window as any).playTactileChime?.('click');
+                  if (mode === 'focus') {
+                    setWireOpacity(0.12);
+                    setShowTelemetryHUD(false);
+                  } else if (mode === 'balanced') {
+                    setWireOpacity(0.35);
+                    setShowTelemetryHUD(false);
+                  } else {
+                    setWireOpacity(0.85);
+                    setShowTelemetryHUD(true);
+                  }
+                }}
+                className={`flex-1 py-1 rounded-md text-[9px] font-mono font-bold text-center transition-all cursor-pointer ${
+                  visualDensity === mode
+                    ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50'
+                    : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Wire Contrast Slider */}
+        <div className="space-y-1">
+          <div className="flex justify-between items-center text-[8.5px] text-slate-500 font-bold font-mono uppercase">
+            <span>{language === 'en' ? 'Wire Saturation' : '线对比度'}</span>
+            <span className="text-indigo-600 font-extrabold">{Math.round(wireOpacity * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min="0.05"
+            max="1.00"
+            step="0.05"
+            value={wireOpacity}
+            onChange={(e) => setWireOpacity(parseFloat(e.target.value))}
+            className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer focus:outline-none accent-indigo-600"
+          />
+        </div>
+
+        {/* Telemetry Toggle */}
+        <div className="flex items-center justify-between border-t border-slate-100/60 pt-1 text-[8.5px] text-slate-500 font-bold font-mono uppercase">
+          <span>{language === 'en' ? 'Diagnostic HUD' : '遥测看板'}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setShowTelemetryHUD(!showTelemetryHUD);
+              (window as any).playTactileChime?.('click');
+            }}
+            className={`w-7 h-3.5 rounded-full transition-all cursor-pointer relative ${
+              showTelemetryHUD ? 'bg-indigo-600' : 'bg-slate-200'
+            }`}
+          >
+            <span className={`absolute top-0.5 w-[10px] h-[10px] bg-white rounded-full transition-all ${
+              showTelemetryHUD ? 'right-0.5' : 'left-0.5'
+            }`} />
+          </button>
+        </div>
+      </div>
+
       {/* Right Corner: Quick Hearth Ecosystem information Box */}
       <div className="absolute top-4 right-6 bg-white/80 backdrop-blur border border-slate-200 rounded-2xl shadow p-3 z-40 max-w-[280px]">
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 mb-1">
@@ -1627,77 +1725,83 @@ export default function FieldMapCanvas({
           </div>
 
           {/* Core Axis Lines Crosshair in center */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-[0.04]">
-            <div className="w-full h-px bg-slate-900 absolute" />
-            <div className="h-full w-px bg-slate-900 absolute" />
-            <div className="absolute text-[10px] font-mono border p-1 translate-x-4 bg-white rounded">[CENTRIC POINT AXIS]</div>
-          </div>
+          {visualDensity === 'rich' && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-[0.04]">
+              <div className="w-full h-px bg-slate-900 absolute" />
+              <div className="h-full w-px bg-slate-900 absolute" />
+              <div className="absolute text-[10px] font-mono border p-1 translate-x-4 bg-white rounded">[CENTRIC POINT AXIS]</div>
+            </div>
+          )}
 
           {/* SPRouter Real-time Packet Diagnostics panel */}
-          <div className="absolute right-6 bottom-[180px] bg-slate-900/95 text-white/95 border border-slate-800 rounded-2xl p-4 text-[10px] font-mono shadow-2xl space-y-2.5 transition-all z-40 w-[240px] max-h-[190px] flex flex-col pointer-events-auto overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 font-bold tracking-wider text-slate-400 text-[9px] uppercase">
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>SPRouter Diagnostics</span>
-              </div>
-              <button 
-                onClick={(e) => { e.stopPropagation(); setSignalLogs([]); }}
-                className="text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded cursor-pointer pointer-events-auto"
-              >
-                Clear
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 font-mono text-[8px] leading-relaxed max-h-[140px] select-text pointer-events-auto">
-              {signalLogs.length === 0 ? (
-                <div className="text-slate-600 italic py-2 text-center select-none">
-                  Line idle. Emit pulse from any node's Zap icon.
+          {showTelemetryHUD && (
+            <div className="absolute right-6 bottom-[180px] bg-slate-900/95 text-white/95 border border-slate-800 rounded-2xl p-4 text-[10px] font-mono shadow-2xl space-y-2.5 transition-all z-40 w-[240px] max-h-[190px] flex flex-col pointer-events-auto overflow-hidden animate-in slide-in-from-bottom duration-300">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 font-bold tracking-wider text-slate-400 text-[9px] uppercase">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>SPRouter Diagnostics</span>
                 </div>
-              ) : (
-                signalLogs.map(log => (
-                  <div key={log.id} className="border-b border-slate-800/40 pb-1 last:border-0">
-                    <div className="flex justify-between text-slate-500 text-[7px] mb-0.5 select-none">
-                      <span>SYS_PROP_BUS</span>
-                      <span>{log.timestamp}</span>
-                    </div>
-                    <div className="text-emerald-400 font-medium break-all">{log.text}</div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setSignalLogs([]); }}
+                  className="text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded cursor-pointer pointer-events-auto"
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 font-mono text-[8px] leading-relaxed max-h-[140px] select-text pointer-events-auto">
+                {signalLogs.length === 0 ? (
+                  <div className="text-slate-600 italic py-2 text-center select-none">
+                    Line idle. Emit pulse from any node's Zap icon.
                   </div>
-                ))
-              )}
+                ) : (
+                  signalLogs.map(log => (
+                    <div key={log.id} className="border-b border-slate-800/40 pb-1 last:border-0">
+                      <div className="flex justify-between text-slate-500 text-[7px] mb-0.5 select-none">
+                        <span>SYS_PROP_BUS</span>
+                        <span>{log.timestamp}</span>
+                      </div>
+                      <div className="text-emerald-400 font-medium break-all">{log.text}</div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Technical drafting CAD metrics monitor block */}
-          <div className="absolute right-6 bottom-6 bg-slate-900/95 text-white/95 border border-slate-800 rounded-2xl p-4 text-[10px] font-mono shadow-2xl space-y-2 transition-all z-40 max-w-[210px] pointer-events-auto">
-            <div className="flex items-center gap-1 border-b border-slate-800 pb-1.5 font-bold tracking-wider text-slate-400 text-[9px] uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              <span>Viewport Telemetry</span>
-            </div>
-            
-            <div className="space-y-1 text-slate-300">
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-500">ENGINE // RENDER</span>
-                <span className="text-indigo-400 font-extrabold">SWISS SECURE // WEBGL</span>
+          {showTelemetryHUD && (
+            <div className="absolute right-6 bottom-6 bg-slate-900/95 text-white/95 border border-slate-800 rounded-2xl p-4 text-[10px] font-mono shadow-2xl space-y-2 transition-all z-40 max-w-[210px] pointer-events-auto animate-in slide-in-from-bottom duration-300">
+              <div className="flex items-center gap-1 border-b border-slate-800 pb-1.5 font-bold tracking-wider text-slate-400 text-[9px] uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                <span>Viewport Telemetry</span>
               </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-500">ACTIVE HANDS</span>
-                <span className="text-emerald-400 font-extrabold">P2P_MESH_OK</span>
+              
+              <div className="space-y-1 text-slate-300">
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">ENGINE // RENDER</span>
+                  <span className="text-indigo-400 font-extrabold">SWISS SECURE // WEBGL</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">ACTIVE HANDS</span>
+                  <span className="text-emerald-400 font-extrabold">P2P_MESH_OK</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">PAN SHIFT VM</span>
+                  <span>{panOffset.x.toFixed(0)}, {panOffset.y.toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">ACTIVE SCALING</span>
+                  <span>{(zoom * 100).toFixed(0)}%</span>
+                </div>
               </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-500">PAN SHIFT VM</span>
-                <span>{panOffset.x.toFixed(0)}, {panOffset.y.toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-500">ACTIVE SCALING</span>
-                <span>{(zoom * 100).toFixed(0)}%</span>
-              </div>
-            </div>
 
-            <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-[8px] text-slate-500 font-semibold tracking-wider">
-              <span>HEARTH COMPANION</span>
-              <span>v1.0.4-PRE</span>
+              <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-[8px] text-slate-500 font-semibold tracking-wider">
+                <span>HEARTH COMPANION</span>
+                <span>v1.0.4-PRE</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
