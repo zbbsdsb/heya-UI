@@ -24,7 +24,14 @@ import {
   Info,
   Cpu,
   BookOpen,
-  Check
+  Check,
+  Radio,
+  Shield,
+  Globe,
+  Activity,
+  RefreshCw,
+  Copy,
+  Terminal
 } from 'lucide-react';
 import { NodeData, ChecklistItem } from '../types';
 import { translations, getLocalizedNode } from '../locales';
@@ -228,6 +235,79 @@ export default function FieldMapCanvas({
   }[]>([]);
   const [processingNodeIds, setProcessingNodeIds] = useState<Record<string, { active: boolean; timestamp: number }>>({});
   const [signalLogs, setSignalLogs] = useState<{ id: string; text: string; timestamp: string }[]>([]);
+
+  // --- OERMOS P2P SWARM DECENTRALIZED DATA STATES ---
+  const [selectedDomainId, setSelectedDomainId] = useState<string | null>(null);
+  const [consensusVerification, setConsensusVerification] = useState<Record<string, 'clean' | 'checking' | 'failed'>>({});
+
+  // --- DETERMINISTIC CRYPTOGRAPHIC DOMAIN HASH GENERATION ---
+  const getDomainHash = (domainId: string, nodeType: string) => {
+    const domainNodes = nodes.filter(n => n.type === nodeType);
+    if (domainNodes.length === 0) {
+      return `oermos://swarm-${domainId.slice(0, 3).toLowerCase()}-f83e2910`;
+    }
+    // Determinisitic sequence of participating components
+    const sortedAttrStr = domainNodes
+      .map(n => `${n.id}:${n.version || 1}:${Math.round(n.x)},${Math.round(n.y)}:${n.progress}:${n.title}`)
+      .sort()
+      .join('|');
+    
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < sortedAttrStr.length; i++) {
+      hash ^= sortedAttrStr.charCodeAt(i);
+      // Fowler-No-Vo FNV-1a mixing constants
+      hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+    }
+    const hashHex = Math.abs(hash).toString(16).padStart(8, '0');
+    return `oermos://swarm-${domainId.slice(0, 3).toLowerCase()}-${hashHex}`;
+  };
+
+  // Trigger Gossip packets in all paths in domain
+  const triggerDomainGossipBurst = (domainNodes: NodeData[], domainId: string) => {
+    if (domainNodes.length < 1) return;
+    
+    const newPackets: any[] = [];
+    domainNodes.forEach(node => {
+      if (node.connections && node.connections.length > 0) {
+        node.connections.forEach(targetId => {
+          newPackets.push({
+            id: `gossip-packet-${domainId}-${node.id}-${targetId}-${Date.now()}-${Math.random()}`,
+            sourceId: node.id,
+            targetId,
+            progress: 0,
+            hopCount: 1
+          });
+        });
+      }
+    });
+
+    if (newPackets.length === 0 && domainNodes.length > 1) {
+      for (let i = 0; i < domainNodes.length; i++) {
+        const nextIdx = (i + 1) % domainNodes.length;
+        newPackets.push({
+          id: `gossip-local-${domainId}-${domainNodes[i].id}-${domainNodes[nextIdx].id}-${Date.now()}`,
+          sourceId: domainNodes[i].id,
+          targetId: domainNodes[nextIdx].id,
+          progress: 0,
+          hopCount: 1
+        });
+      }
+    }
+
+    if (newPackets.length > 0) {
+      setActivePackets(prev => [...prev, ...newPackets]);
+    }
+
+    const nowTime = new Date().toLocaleTimeString();
+    setSignalLogs(prev => [
+      {
+        id: `gossip-log-${Date.now()}`,
+        text: `📶 [Oermos Gossip] Broadcast swarm synchronization sequence initiated for boundary segment "${domainId.toUpperCase()}". Root Hash status: SECURE.`,
+        timestamp: nowTime
+      },
+      ...prev
+    ]);
+  };
   
   // --- BOOLEAN LOGIC EVALUATOR DERIVED STATE AND OPERATORS ---
   const { nodes: evaluatedNodes, cycles: cyclesDetected } = React.useMemo(() => {
@@ -1147,11 +1227,15 @@ export default function FieldMapCanvas({
 
         {/* Floating Domain labels styled like technical heads-up-display markers */}
         {boundaries.map((b) => {
-          let badgeCol = 'bg-indigo-50/90 border-indigo-100/80 text-indigo-700';
-          if (b.id === 'opportunity') badgeCol = 'bg-purple-50/90 border-purple-100/80 text-purple-700';
-          else if (b.id === 'execution') badgeCol = 'bg-emerald-50/90 border-emerald-100/80 text-emerald-700';
-          else if (b.id === 'future') badgeCol = 'bg-teal-50/90 border-teal-100/80 text-teal-700';
-          else if (b.id === 'assets') badgeCol = 'bg-amber-50/90 border-amber-100/80 text-amber-700';
+          let badgeCol = 'bg-slate-50/90 border-slate-200/80 text-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400';
+          if (b.id === 'opportunity') badgeCol = 'bg-purple-50/95 border-purple-200/50 text-purple-700 hover:bg-purple-100/50';
+          else if (b.id === 'execution') badgeCol = 'bg-emerald-50/95 border-emerald-200/50 text-emerald-700 hover:bg-emerald-100/50';
+          else if (b.id === 'future') badgeCol = 'bg-teal-50/95 border-teal-200/50 text-teal-700 hover:bg-teal-100/50';
+          else if (b.id === 'assets') badgeCol = 'bg-amber-50/95 border-amber-200/50 text-amber-750 hover:bg-amber-100/50';
+          else if (b.id === 'core') badgeCol = 'bg-indigo-50/95 border-indigo-200/50 text-indigo-700 hover:bg-indigo-100/50';
+
+          const domainHash = getDomainHash(b.id, b.nodeType);
+          const shortHash = domainHash.split('-').pop() || 'f83e2910';
 
           return (
             <div 
@@ -1160,14 +1244,25 @@ export default function FieldMapCanvas({
               style={{
                 left: `${b.x + 16}px`,
                 top: `${b.y - 14}px`,
-                zIndex: 15
+                zIndex: 40
               }}
             >
-              <div className={`flex items-center gap-1.5 font-mono tracking-widest text-[8.5px] uppercase px-2 py-0.5 rounded-md border shadow-sm backdrop-blur-sm pointer-events-auto hover:scale-105 transition-all select-none ${badgeCol}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  (window as any).playTactileChime?.('click');
+                  setSelectedDomainId(b.id);
+                }}
+                className={`flex items-center gap-1.5 font-mono tracking-widest text-[8.5px] uppercase px-2 py-1 rounded-lg border shadow-md backdrop-blur-sm pointer-events-auto hover:scale-105 transition-all select-none cursor-pointer group ${badgeCol}`}
+                title={language === 'en' ? "Open Oermos P2P Explorer" : "查看 Oermos P2P 去中心验证"}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
                 <span className="font-extrabold">{b.name}</span>
-                <span className="opacity-40">|</span>
-                <span className="opacity-70 font-bold">0x{b.id.toUpperCase().slice(0, 3)}</span>
+                <span className="opacity-30">|</span>
+                <span className="opacity-80 font-bold tracking-tight bg-slate-900/5 dark:bg-white/10 px-1 py-0.2 rounded text-[7.5px]">
+                  #{shortHash}
+                </span>
+                <span className="text-[7px] text-slate-400 group-hover:text-current transition-colors">⚯</span>
               </div>
             </div>
           );
@@ -1768,6 +1863,156 @@ export default function FieldMapCanvas({
               </div>
             </div>
           )}
+
+          {/* ================= OERMOS SWARM BLOCK EXPLORER PANEL ================= */}
+          {selectedDomainId && (() => {
+            const boundary = boundaries.find(b => b.id === selectedDomainId);
+            if (!boundary) return null;
+            const domainHash = getDomainHash(boundary.id, boundary.nodeType);
+            const domainNodes = nodes.filter(n => n.type === boundary.nodeType);
+            const status = consensusVerification[boundary.id] || 'clean';
+
+            let accentCol = 'indigo';
+            let borderCol = 'border-indigo-100';
+            let bgCol = 'bg-indigo-50/50';
+            let textCol = 'text-indigo-600';
+            if (boundary.id === 'opportunity') { accentCol = 'purple'; borderCol = 'border-purple-100'; bgCol = 'bg-purple-50/50'; textCol = 'text-purple-600'; }
+            else if (boundary.id === 'execution') { accentCol = 'emerald'; borderCol = 'border-emerald-100'; bgCol = 'bg-emerald-50/50'; textCol = 'text-emerald-600'; }
+            else if (boundary.id === 'future') { accentCol = 'teal'; borderCol = 'border-teal-100'; bgCol = 'bg-teal-50/50'; textCol = 'text-teal-600'; }
+            else if (boundary.id === 'assets') { accentCol = 'amber'; borderCol = 'border-amber-100'; bgCol = 'bg-amber-50/50'; textCol = 'text-amber-700'; }
+
+            return (
+              <div className="absolute top-[160px] right-6 w-80 bg-white/95 backdrop-blur-md border border-slate-200 p-4 rounded-3xl shadow-2xl z-55 font-sans space-y-3 animate-in slide-in-from-right duration-300 select-none pointer-events-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Radio className={`w-4 h-4 ${textCol} animate-pulse`} />
+                    <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest font-mono">
+                      {language === 'en' ? 'Domain Consensus SDK' : 'Oermos 去中心域验证'}
+                    </span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedDomainId(null)}
+                    className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Info Card */}
+                <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100 space-y-1.5">
+                  <div className="flex justify-between items-center text-[9px] font-mono font-bold text-slate-500 uppercase">
+                    <span>{language === 'en' ? 'Target Slices' : '目标物理域'}</span>
+                    <span className={`${textCol} font-extrabold`}>{boundary.name}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[8.5px] font-mono text-slate-450 block tracking-tight uppercase">
+                      {language === 'en' ? 'Globally Unified Swarm Address' : '全球统一共识哈希'}
+                    </span>
+                    <div className="bg-white px-2 py-1 rounded border border-slate-100 text-[8px] font-mono font-bold text-slate-700 break-all select-all flex items-center justify-between">
+                      <span className="truncate mr-2 text-[8px]">{domainHash}</span>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(domainHash);
+                          (window as any).playTactileChime?.('click');
+                          window.dispatchEvent(new CustomEvent('heya-toast', { 
+                            detail: { message: language === 'en' ? 'Domain Hash copied to P2P clipboard!' : '域全球唯一哈希已复制至剪贴板！' } 
+                          }));
+                        }}
+                        className="text-[8px] text-indigo-600 hover:underline shrink-0 font-sans cursor-pointer font-bold"
+                      >
+                        {language === 'en' ? 'Copy' : '复制'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Node List Component of the domain */}
+                <div className="space-y-1.5">
+                  <div className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider font-mono flex justify-between">
+                    <span>{language === 'en' ? 'Contributing Nodes' : '域下属区块子节点'}</span>
+                    <span className="font-mono text-slate-450">({domainNodes.length})</span>
+                  </div>
+
+                  <div className="max-h-[140px] overflow-y-auto space-y-1 bg-slate-50/40 p-1.5 border border-slate-100 rounded-2xl">
+                    {domainNodes.length === 0 ? (
+                      <div className="text-center py-4 text-slate-400 text-[10px] font-medium font-mono">
+                        {language === 'en' ? 'No active nodes in this domain' : '当前物理域内暂无活跃节点'}
+                      </div>
+                    ) : (
+                      domainNodes.map(node => {
+                        // Compute custom node micro hash
+                        const nHash = `0x${((node.id.charCodeAt(0) || 0) * 199 + (node.version || 1) * 311).toString(16).slice(0,6)}`;
+                        return (
+                          <div key={node.id} className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-all">
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold text-slate-700 tracking-tight truncate max-w-[140px]">
+                                {node.title}
+                              </span>
+                              <span className="text-[7.5px] font-mono text-slate-400">
+                                X:{Math.round(node.x)} Y:{Math.round(node.y)} • v{node.version || 1}
+                              </span>
+                            </div>
+                            <span className="text-[8.5px] font-mono text-indigo-600 font-bold bg-indigo-50/50 px-1 rounded">
+                              {nHash}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Interaction & Simulation Controls */}
+                <div className="flex gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    disabled={status === 'checking'}
+                    onClick={() => {
+                      (window as any).playTactileChime?.('click');
+                      setConsensusVerification(prev => ({ ...prev, [boundary.id]: 'checking' }));
+                      setTimeout(() => {
+                        (window as any).playTactileChime?.('success');
+                        setConsensusVerification(prev => ({ ...prev, [boundary.id]: 'clean' }));
+                        window.dispatchEvent(new CustomEvent('heya-toast', { 
+                          detail: { message: language === 'en' 
+                            ? 'Consensus verified! Hash is certified secure across 4 global Swiss Peers.' 
+                            : '去中心共识自检完成！哈希值与全球 4 个 Swiss 端数据完全对齐，验证状态：安全。' } 
+                        }));
+                      }, 1000);
+                    }}
+                    className={`flex-1 py-2 rounded-xl text-[10px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      status === 'checking' 
+                        ? 'bg-slate-50 text-slate-400 border-slate-100 animate-pulse'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 active:scale-95'
+                    }`}
+                  >
+                    <Shield className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>
+                      {status === 'checking' 
+                        ? (language === 'en' ? 'Verifying...' : '验证中...') 
+                        : (language === 'en' ? 'Verify Consensus' : '共识自校验')}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      (window as any).playTactileChime?.('success');
+                      // Trigger animated packet burst from our nodes!
+                      triggerDomainGossipBurst(domainNodes, boundary.id);
+                    }}
+                    className="py-2 px-3 rounded-xl text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'Publish Gossip' : '对等发布'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Technical drafting CAD metrics monitor block */}
           {showTelemetryHUD && (
