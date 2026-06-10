@@ -19,8 +19,12 @@ import {
   Info,
   CheckCircle2,
   HelpCircle,
-  Plus
+  Plus,
+  X,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 import Sidebar from './components/Sidebar';
 import FieldMapCanvas from './components/FieldMapCanvas';
@@ -49,8 +53,129 @@ export default function App() {
   const [language, setLanguage] = useState<'en' | 'zh'>('en');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [swissTheme, setSwissTheme] = useState(false);
+  
+  // Custom states matching interactive mesh requirements
+  const [audioSfx, setAudioSfx] = useState(() => {
+    return localStorage.getItem('heya_sfx_enabled') !== 'false';
+  });
+  const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'warn'; id: number } | null>(null);
 
   const tVal = translations[language];
+
+  // Zero-dependency professional Web Audio synthesizer for tactile clicks and sweeps
+  const playSfx = (type: 'click' | 'success' | 'alert' | 'route') => {
+    if (!audioSfx) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      
+      if (type === 'click') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.03, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      } else if (type === 'success') {
+        const frequencies = [523.25, 659.25, 783.99, 1046.50]; // Beautiful C-major arpeggio
+        frequencies.forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.06);
+          gain.gain.setValueAtTime(0.0, ctx.currentTime + i * 0.06);
+          gain.gain.linearRampToValueAtTime(0.02, ctx.currentTime + i * 0.06 + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.2);
+          osc.start(ctx.currentTime + i * 0.06);
+          osc.stop(ctx.currentTime + i * 0.06 + 0.2);
+        });
+      } else if (type === 'alert') {
+        const frequencies = [820, 520];
+        frequencies.forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.12);
+          gain.gain.setValueAtTime(0.0, ctx.currentTime + i * 0.12);
+          gain.gain.linearRampToValueAtTime(0.02, ctx.currentTime + i * 0.12 + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25);
+          osc.start(ctx.currentTime + i * 0.12);
+          osc.stop(ctx.currentTime + i * 0.12 + 0.25);
+        });
+      } else if (type === 'route') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(750, ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.01, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      }
+    } catch (err) {
+      console.warn("Audio synthesizer lookup error:", err);
+    }
+  };
+
+  // Expose play function to global window scope and synchronize handlers
+  useEffect(() => {
+    (window as any).playTactileChime = (type: 'click' | 'success' | 'alert' | 'route') => {
+      playSfx(type);
+    };
+    localStorage.setItem('heya_sfx_enabled', String(audioSfx));
+  }, [audioSfx]);
+
+  // Intercept dialog events and replace raw iframe-breaking native alert calls
+  useEffect(() => {
+    const handleToastEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ message: string; type?: 'info' | 'success' | 'warn' }>;
+      if (customEvent.detail && customEvent.detail.message) {
+        setToast({
+          message: customEvent.detail.message,
+          type: customEvent.detail.type || 'info',
+          id: Date.now()
+        });
+        playSfx(customEvent.detail.type === 'success' ? 'success' : 'alert');
+      }
+    };
+
+    window.addEventListener('heya-toast', handleToastEvent);
+
+    const originalAlert = window.alert;
+    window.alert = (message: any) => {
+      window.dispatchEvent(new CustomEvent('heya-toast', {
+        detail: { message: String(message), type: 'info' }
+      }));
+    };
+
+    return () => {
+      window.removeEventListener('heya-toast', handleToastEvent);
+      window.alert = originalAlert;
+    };
+  }, [audioSfx]);
+
+  // Autohide toast tracker loop
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Hearth core components state (shares across Canvas & Relations)
   const [nodes, setNodes] = useState<NodeData[]>(() => {
@@ -338,20 +463,20 @@ export default function App() {
   };
 
   // Evolve unstructured Muse ideation into Hearth active map component
-  const handleEvolveNode = (ideaId: string, text: string) => {
+  const handleEvolveNode = (ideaId: string, text: string, title?: string, tags?: string[], connections?: string[]) => {
     const freshId = `node-evolved-${Date.now()}`;
     const evolvedNode: NodeData = {
       id: freshId,
       type: 'muse',
-      title: text.length > 20 ? text.slice(0, 18) + '...' : text,
+      title: title || (text.length > 20 ? text.slice(0, 18) + '...' : text),
       description: text,
       x: 320 + Math.random() * 120,
       y: 280 + Math.random() * 100,
       progress: 0,
       members: ['ceaserzhao'],
       checklist: [],
-      tags: ['Muse-Evolved'],
-      connections: ['project-a'],
+      tags: tags || ['Muse-Evolved'],
+      connections: connections || ['project-a'],
       createdAt: '2024/05/30',
       updatedAt: '2024/05/30',
       status: 'active',
@@ -512,6 +637,7 @@ export default function App() {
               setIdeas={setIdeas}
               onEvolveNode={handleEvolveNode}
               language={language}
+              nodes={nodes}
             />
           )}
 
@@ -673,6 +799,35 @@ export default function App() {
                 </button>
               </div>
 
+              {/* Audio Sound Effects Toggle */}
+              <div className="pt-2 flex justify-between items-start gap-4 border-t border-slate-100 pt-4">
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    {audioSfx ? <Volume2 className="w-4 h-4 text-indigo-500" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+                    <span>{tVal.settingsModal.audioSfx}</span>
+                  </h4>
+                  <p className="text-[10px] text-slate-500 font-semibold leading-relaxed mt-0.5">
+                    {tVal.settingsModal.audioDesc}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => {
+                    const nextVal = !audioSfx;
+                    setAudioSfx(nextVal);
+                    if (nextVal) {
+                      setTimeout(() => (window as any).playTactileChime?.('success'), 50);
+                    }
+                  }}
+                  className={`w-12 h-6.5 rounded-full p-1 transition-colors duration-200 shrink-0 ${
+                    audioSfx ? 'bg-[#10b981]' : 'bg-slate-200'
+                  }`}
+                >
+                  <div className={`bg-white w-4.5 h-4.5 rounded-full shadow-md transform transition-transform duration-205 ${
+                    audioSfx ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
             </div>
 
             <div className="pt-2 border-t border-slate-100 flex justify-end">
@@ -687,6 +842,56 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* 4. Elegant Decentralized Toast Notifications System */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 15, scale: 0.95, transition: { duration: 0.15 } }}
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4.5 py-4 min-w-[300px] max-w-sm rounded-2xl shadow-xl border select-none ${
+              swissTheme 
+                ? 'bg-white border-2 border-black font-mono text-black' 
+                : 'bg-white/95 backdrop-blur-md border-indigo-100 ring-1 ring-indigo-50/50 text-slate-800'
+            }`}
+          >
+            {/* Colored indicator icon */}
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+              swissTheme 
+                ? 'border border-black text-black' 
+                : toast.type === 'success' ? 'bg-emerald-50 text-emerald-500' : 'bg-indigo-50 text-indigo-500'
+            }`}>
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <span className={`text-[9px] font-bold uppercase tracking-widest block mb-0.5 ${
+                swissTheme ? 'text-black' : 'text-indigo-500'
+              }`}>
+                {toast.type === 'success' ? (language === 'en' ? 'Mesh Sync Success' : '系统同步成功') : (language === 'en' ? 'Sovereign Notification' : '系统操作指引')}
+              </span>
+              <p className="text-xs font-bold leading-relaxed mt-0.5 text-ellipsis overflow-hidden whitespace-normal">{toast.message}</p>
+            </div>
+
+            <button 
+              onClick={() => {
+                (window as any).playTactileChime?.('click');
+                setToast(null);
+              }}
+              className={`w-6 h-6 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
+                swissTheme ? 'hover:bg-black hover:text-white border border-black' : 'hover:bg-slate-50 text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

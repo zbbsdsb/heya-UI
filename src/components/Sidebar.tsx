@@ -99,7 +99,10 @@ export default function Sidebar({
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  (window as any).playTactileChime?.('click');
+                  setActiveTab(item.id);
+                }}
                 className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-semibold tracking-wide transition-all duration-200 ${
                   isActive
                     ? 'bg-[#eef2ff] text-indigo-600 font-bold shadow-sm shadow-indigo-100/10'
@@ -118,7 +121,10 @@ export default function Sidebar({
       </div>      {/* Heya AI Section */}
       <div className="px-5 pb-5">
         <button
-          onClick={() => setActiveTab('hey')}
+          onClick={() => {
+            (window as any).playTactileChime?.('click');
+            setActiveTab('hey');
+          }}
           className={`w-full text-left p-4.5 rounded-2xl relative overflow-hidden transition-all duration-300 group border flex flex-col justify-between ${
             activeTab === 'hey'
               ? 'bg-[#03020c] text-white border-indigo-950 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
@@ -173,17 +179,34 @@ export default function Sidebar({
         {/* Footer actions exactly as shown in screenshot */}
         <div className="flex items-center justify-between mt-5 pt-3 border-t border-slate-100">
           <button 
-            onClick={onOpenSettings}
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              onOpenSettings();
+            }}
             className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all" 
             title={language === 'en' ? 'Settings' : '系统设置'}
           >
             <Settings className="w-4 h-4" />
           </button>
-          <button className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all relative" title={language === 'en' ? 'Notifications' : '通知'}>
+          <button 
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              window.dispatchEvent(new CustomEvent('heya-toast', { detail: { message: language === 'en' ? 'Scanning Oermos P2P activity stream...' : '正在拦截扫描 Oermos P2P 自律活动日志...' } }));
+            }}
+            className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all relative" 
+            title={language === 'en' ? 'Notifications' : '通知'}
+          >
             <Bell className="w-4 h-4" />
             <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
           </button>
-          <button className="flex items-center justify-center w-9 h-9 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all" title={language === 'en' ? 'System Guide' : '指南'}>
+          <button 
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              window.dispatchEvent(new CustomEvent('heya-toast', { detail: { message: language === 'en' ? 'Hearth Guide ADR-007 is locked to workspace local memory.' : '赫斯系统操作指南 ADR-007 协议已锁定防篡改内存。' } }));
+            }}
+            className="flex items-center justify-center w-9 h-9 text-slate-400 bg-[#f8fafc] hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all" 
+            title={language === 'en' ? 'System Guide' : '指南'}
+          >
             <BookOpen className="w-4 h-4" />
           </button>
         </div>

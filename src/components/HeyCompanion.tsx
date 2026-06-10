@@ -23,8 +23,16 @@ import {
   Smile,
   Shield,
   Eye,
-  GitMerge
+  GitMerge,
+  ChevronLeft,
+  ChevronRight,
+  Cpu,
+  Volume2,
+  Globe,
+  WifiOff,
+  Disc
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { NodeData, NodeType } from '../types';
 import { translations } from '../locales';
 
@@ -63,6 +71,7 @@ export default function HeyCompanion({
 
   // Customizer States for summoning Hey AI Strategic Companion
   const [isCreated, setIsCreated] = useState(false); // Default to false to give the user the glorious summoning experience
+  const [wizardStep, setWizardStep] = useState(1);
   const [isSummoning, setIsSummoning] = useState(false);
   const [summoningStep, setSummoningStep] = useState(0);
   const [summoningLogs, setSummoningLogs] = useState<string[]>([]);
@@ -375,386 +384,895 @@ export default function HeyCompanion({
   };
 
   if (!isCreated) {
+    // Dynamic text presets based on selected language and archetype for Step 4
+    const getSampleDialogue = () => {
+      if (language === 'en') {
+        switch (speechStyle) {
+          case 'punk':
+            return `"${companionName || 'Hey'}: Let's be real, ceaserzhao. Traditional planning leads to dry document stagnation. We need decentralized Oermos grid handshakes, action loops, and pure co-design rebel feedback. Fire now!"`;
+          case 'swiss':
+            return `"${companionName || 'Hey'}: The semantic distribution density is calculated. Standardizing Zurich minimalistic layouts is the absolute prerequisite for localized peer-to-peer databases."`;
+          case 'zen':
+            return `"${companionName || 'Hey'}: Silence holds raw structure. Fewer cards, deeper resonance. Let's let the grid speak."`;
+          case 'sprint':
+            return `"${companionName || 'Hey'}: Core priorities extracted: 1. Compile dependencies 2. Bind secure boundaries 3. Map spatial overlap. Let's execute immediately."`;
+          default:
+            return `"${companionName || 'Hey'}: Awaiting your directives, ceaserzhao."`;
+        }
+      } else {
+        switch (speechStyle) {
+          case 'punk':
+            return `“${companionName || 'Hey'}: 说真的，ceaserzhao。传统的空洞规划只会导致系统死板和文档堆滞。我们必须点燃 Oermos 本地分布式网格链路，打破规则，先播种后点燃，现在就爆发！”`;
+          case 'swiss':
+            return `“${companionName || 'Hey'}: 本地系统的拓扑概率已被精确解析。执行瑞士最简主义设计范式是保障 P2P 双向对齐、拒绝对话噪声的最佳数学解。”`;
+          case 'zen':
+            return `“${companionName || 'Hey'}: · 极简，即是脑核自律。剔除七彩杂音。专注。看这片星图。”`;
+          case 'sprint':
+            return `“${companionName || 'Hey'}: 敏捷任务已提取完成：1. 突触发动 2. P2P 同步 3. 拦截外部遥测数据。让我们迅速推进落实。”`;
+          default:
+            return `“${companionName || 'Hey'}: 已做好对齐。聆听您的主权意志。”`;
+        }
+      }
+    };
+
+    // Calculate dynamic completion status
+    const stepCompletionPercentage = Math.floor((wizardStep / 6) * 100);
+
     return (
-      <div className="flex-1 overflow-y-auto p-10 bg-[#06040f] text-slate-100 space-y-8 animate-in fade-in duration-500 font-sans relative">
-        {/* Subtle grid background pattern overlay */}
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-indigo-500/10 to-transparent pointer-events-none" />
-        
-        {/* Wizard Header */}
-        <div className="border-b border-indigo-950 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 bg-[#6366f1] text-white text-[9px] font-black rounded-lg uppercase tracking-wider font-mono">
-                Hearth Sanctuary
-              </span>
-              <h2 className="text-2xl font-black tracking-tight text-white uppercase">
-                {language === 'en' ? 'Sovereign AI Summoning Chamber' : 'Hearth 圣所 // Hey 核心伙伴自主装配熔炉'}
+      <div className="flex-1 overflow-y-auto p-4 md:p-10 bg-[#05030c] text-slate-100 flex flex-col justify-between relative font-sans min-h-screen">
+        {/* Futuristic glowing grids and overlays */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-900/15 via-[#05030c] to-[#010103] pointer-events-none" />
+        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto w-full space-y-8 relative z-10 flex-1 flex flex-col justify-between">
+          
+          {/* Header Area */}
+          <div className="border-b border-indigo-950/80 pb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <span className="px-3 py-1 bg-indigo-600 text-white text-[9px] font-black rounded-lg uppercase tracking-widest font-mono shadow-[0_0_12px_rgba(79,70,229,0.35)]">
+                  Zurich Sanctuary Link
+                </span>
+                <span className="text-[10px] font-mono text-indigo-400 font-bold tracking-wider">
+                  VERSION: HEARTH_SOCIETY_HEY.09
+                </span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase mt-2 flex items-center gap-3">
+                <Sliders className="w-6 h-6 text-indigo-400 animate-pulse" />
+                <span>
+                  {language === 'en' ? 'Sovereign AI Summoning Chamber' : 'Hearth 圣所 // Hey 核心伙伴自主装配熔炉'}
+                </span>
               </h2>
             </div>
-            <p className="text-xs text-slate-400 font-bold mt-1.5 max-w-2xl leading-relaxed">
-              {language === 'en' 
-                ? 'Ground and align the consciousness core of your Strategic Companion. Customize core archetypes, visual matrices, response style guidelines, and localized safety parameters.'
-                : '在这里定制并召唤您的专属战略 AI 伙伴，契合所有高级感性控制。您可以细化定义他的心格模式、视觉意识场、语态修辞、感应半径和本地分布式主权隔离。'}
-            </p>
-          </div>
-          <div className="text-[10px] font-mono text-indigo-400 font-black border border-indigo-950 bg-[#0d0a21]/80 px-3.5 py-2.5 rounded-2xl flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
-            <span>ZURICH_ECDSA_BRIDGE: STANDBY</span>
-          </div>
-        </div>
 
-        {/* Wizard Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
-          
-          {/* Form Side - Left cols 7 */}
-          <div className="lg:col-span-7 bg-[#111022]/40 border border-indigo-950/40 rounded-3xl p-6 space-y-6 backdrop-blur-md">
-            
-            {/* Input Name & Role */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-indigo-300 uppercase tracking-wider block">
-                  {language === 'en' ? '1. Companion System Name' : '1. 伙伴专属系统命名'}
-                </label>
-                <input 
-                  type="text"
-                  value={companionName}
-                  onChange={(e) => setCompanionName(e.target.value)}
-                  placeholder="e.g. Hey, Cerebro, Nexus"
-                  className="w-full text-xs p-3.5 bg-[#0a0915] border border-indigo-900/50 rounded-2xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-white leading-relaxed placeholder-slate-600"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-indigo-300 uppercase tracking-wider block">
-                  {language === 'en' ? '2. Cognitive Core Archetype' : '2. 选定心魂人格底模'}
-                </label>
-                <select
-                  value={companionRole}
-                  onChange={(e) => {
-                    const role = e.target.value as any;
-                    setCompanionRole(role);
-                    // Calibrate default sliders for roles to make it high tech
-                    if (role === 'Mentor') {
-                      setAnalyticalDepth(95); setWarmthProximity(50); setRebelRatio(40); setObsFrequency(80);
-                    } else if (role === 'Rebel Co-founder') {
-                      setAnalyticalDepth(88); setWarmthProximity(75); setRebelRatio(94); setObsFrequency(60);
-                    } else if (role === 'Scholar') {
-                      setAnalyticalDepth(92); setWarmthProximity(30); setRebelRatio(25); setObsFrequency(90);
-                    } else if (role === 'Tactician') {
-                      setAnalyticalDepth(80); setWarmthProximity(85); setRebelRatio(60); setObsFrequency(50);
-                    }
-                  }}
-                  className="w-full text-xs p-3.5 bg-[#0a0915] border border-indigo-900/50 rounded-2xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-white leading-relaxed cursor-pointer"
-                >
-                  <option value="Rebel Co-founder">{language === 'en' ? 'Rebel Co-founder (核心合伙人)' : 'Rebel Co-founder (极深批判战略合伙人)'}</option>
-                  <option value="Mentor">{language === 'en' ? 'Mentor (学术架构导师)' : 'Mentor (学术架构导师)'}</option>
-                  <option value="Scholar">{language === 'en' ? 'Scholar (低噪自省学者)' : 'Scholar (静享低噪自省学者)'}</option>
-                  <option value="Tactician">{language === 'en' ? 'Tactician (务实整理战术官)' : 'Tactician (务实整理战术官)'}</option>
-                </select>
+            {/* Micro Handshake Telemetry */}
+            <div className="flex items-center gap-3 self-start lg:self-center">
+              <div className="text-[10px] font-mono text-indigo-400 border border-indigo-950/60 bg-[#0c091f]/90 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-md">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>P2P_SEED: SECURE LOCK (127.0.0.1)</span>
               </div>
             </div>
-
-            {/* Cognitive Sliders */}
-            <div className="space-y-4">
-              <label className="text-xs font-black text-indigo-300 uppercase tracking-wider block">
-                {language === 'en' ? '3. Fine Cognitive Coordinates' : '3. 微调心弦计算模块控制'}
-              </label>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 bg-[#080711]/60 border border-indigo-950 rounded-2xl p-4.5">
-                {/* Slider 1 */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
-                    <span className="text-slate-300">{language === 'en' ? 'Analytical Systems Depth' : '系统剖析学术厚度'}</span>
-                    <span className="font-mono text-indigo-400 font-black">{analyticalDepth}%</span>
-                  </div>
-                  <input 
-                    type="range" min="20" max="100" value={analyticalDepth} 
-                    onChange={(e) => setAnalyticalDepth(Number(e.target.value))}
-                    className="w-full accent-indigo-500 cursor-pointer h-1 bg-[#15132d] rounded-lg"
-                  />
-                </div>
-
-                {/* Slider 2 */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
-                    <span className="text-slate-300">{language === 'en' ? 'Dialogue Affine Warmth' : '语态回复亲和热度'}</span>
-                    <span className="font-mono text-indigo-400 font-black">{warmthProximity}%</span>
-                  </div>
-                  <input 
-                    type="range" min="10" max="100" value={warmthProximity} 
-                    onChange={(e) => setWarmthProximity(Number(e.target.value))}
-                    className="w-full accent-indigo-500 cursor-pointer h-1 bg-[#15132d] rounded-lg"
-                  />
-                </div>
-
-                {/* Slider 3 */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
-                    <span className="text-slate-300">{language === 'en' ? 'Constructive Friction Angle' : '对抗性论证抗辩夹角'}</span>
-                    <span className="font-mono text-indigo-400 font-black">{rebelRatio}%</span>
-                  </div>
-                  <input 
-                    type="range" min="0" max="100" value={rebelRatio} 
-                    onChange={(e) => setRebelRatio(Number(e.target.value))}
-                    className="w-full accent-indigo-500 cursor-pointer h-1 bg-[#15132d] rounded-lg"
-                  />
-                </div>
-
-                {/* Slider 4 */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
-                    <span className="text-slate-300">{language === 'en' ? 'Autonomic Self-Reflection' : '自我诊断反思频率'}</span>
-                    <span className="font-mono text-indigo-400 font-black">{obsFrequency}%</span>
-                  </div>
-                  <input 
-                    type="range" min="10" max="100" value={obsFrequency} 
-                    onChange={(e) => setObsFrequency(Number(e.target.value))}
-                    className="w-full accent-indigo-500 cursor-pointer h-1 bg-[#15132d] rounded-lg"
-                  />
-                </div>
-
-                {/* Slider 5 */}
-                <div className="space-y-1 sm:col-span-2">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
-                    <span className="text-slate-300">{language === 'en' ? 'Spatial Synapse Tracking Radius' : '星图空间范围的物理感应半径 (Radius)'}</span>
-                    <span className="font-mono text-indigo-400 font-black">{spatialRadius}px</span>
-                  </div>
-                  <input 
-                    type="range" min="40" max="180" value={spatialRadius} 
-                    onChange={(e) => setSpatialRadius(Number(e.target.value))}
-                    className="w-full accent-indigo-500 cursor-pointer h-1 bg-[#15132d] rounded-lg"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Visual Aura Selection */}
-            <div className="space-y-3">
-              <label className="text-xs font-black text-indigo-300 uppercase tracking-wider block">
-                {language === 'en' ? '4. Visual Light-Body Matrix Form' : '4. 设定视觉意识流感官载体'}
-              </label>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {[
-                  { key: 'purpleVortex', labelEn: 'Cosmic Vortex 🌌', labelZh: '星海漩涡 🌌', style: 'border-violet-500 bg-violet-950/40 text-violet-300' },
-                  { key: 'cyanHex', labelEn: 'Neon Hex ❄️', labelZh: '霓虹六角 ❄️', style: 'border-cyan-500 bg-cyan-950/40 text-cyan-300' },
-                  { key: 'steelVector', labelEn: 'Steel Vector ⬢', labelZh: '精钢精简 ⬢', style: 'border-slate-500 bg-slate-900/40 text-slate-250' },
-                  { key: 'magentaHeart', labelEn: 'Quantum Heart 💖', labelZh: '量子心弦 💖', style: 'border-pink-500 bg-pink-950/40 text-pink-300' },
-                  { key: 'amberSpark', labelEn: 'Amber Spark ✨', labelZh: '琥珀星芒 ✨', style: 'border-amber-500 bg-amber-950/40 text-amber-300' }
-                ].map((aura) => {
-                  const isSel = visualAura === aura.key;
-                  return (
-                    <button
-                      key={aura.key}
-                      type="button"
-                      onClick={() => setVisualAura(aura.key as any)}
-                      className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col justify-center items-center gap-1 ${
-                        isSel 
-                          ? `${aura.style} ring-1 ring-white/20 shadow-md scale-[1.02]` 
-                          : 'border-indigo-950/80 bg-slate-900/10 text-slate-450 hover:border-indigo-900 hover:text-slate-200'
-                      }`}
-                    >
-                      <span className="text-[10px] font-black truncate max-w-full leading-none">
-                        {language === 'en' ? aura.labelEn : aura.labelZh}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Rhetorics selection and Free-form directive prompt field */}
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-indigo-300 uppercase tracking-wider block">
-                  {language === 'en' ? '5. Speech Style Synthesis Formulation' : '5. 言语修辞格式与表达算法'}
-                </label>
-                <div className="grid grid-cols-2 gap-3.5">
-                  {[
-                    { key: 'punk', labelEn: 'Reactive Co-founder Rebel', labelZh: '直率抗辩流、擅长对立论证与思维推回' },
-                    { key: 'swiss', labelEn: 'Academic Swiss Objective Precision', labelZh: '纯客观严谨风、摒弃修辞、单点突击' },
-                    { key: 'zen', labelEn: 'Silent Taoist Zen Minimalist', labelZh: '极简静默风、少提供废话与大段总结' },
-                    { key: 'sprint', labelEn: 'Sprint Checklist Driver', labelZh: '高节奏执行风、重视指标完成与坐标梳理' }
-                  ].map((style) => {
-                    const isSel = speechStyle === style.key;
-                    return (
-                      <button
-                        key={style.key}
-                        type="button"
-                        onClick={() => setSpeechStyle(style.key as any)}
-                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                          isSel 
-                            ? 'border-indigo-500 bg-indigo-950/40 text-white shadow-md' 
-                            : 'border-indigo-950/60 bg-slate-900/10 text-slate-400 hover:border-indigo-900 hover:text-slate-200'
-                        }`}
-                      >
-                        <span className="text-xs font-black block leading-none">{style.labelEn}</span>
-                        <span className="text-[9.5px] text-slate-400 font-bold mt-1.5 leading-tight">{style.labelZh}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Worldview directives custom anchor input */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-indigo-300 uppercase tracking-wider block flex justify-between items-center">
-                  <span>{language === 'en' ? '6. Core Semantic Directives (Sovereign Open Prompt)' : '6. 特殊附骨定制指令 (Sovereign Open Prompt)'}</span>
-                  <span className="text-[9px] text-indigo-400 font-mono font-bold uppercase select-none">Prompt Injection</span>
-                </label>
-                <textarea 
-                  rows={2}
-                  value={userDirectives}
-                  onChange={(e) => setUserDirectives(e.target.value)}
-                  className="w-full text-xs p-3.5 bg-[#0a0915] border border-indigo-900/50 rounded-2xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-white placeholder-slate-650"
-                  placeholder={language === 'en' ? "e.g. Include Swiss graphic design metaphors, or keep bullet elements concise." : "例如：在言词对话中加入赛博朋克的世界观色彩，或者要求回答高度凝练。"}
-                />
-              </div>
-            </div>
-
           </div>
 
-          {/* Right Side - Visual Chamber Avatar, Boundary Settings & Ignition Controls cols 5 */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* Real-time Dynamic AI Avatar Chamber View */}
-            <div className="bg-[#0b0a1a] border border-indigo-950/65 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-5 shadow-inner relative overflow-hidden h-[300px]">
-              {/* Spinning particle stars matrix in background */}
-              <div className="absolute inset-0 bg-[#06040f]/60 pointer-events-none" />
-              
-              <div className="relative z-10">
-                {/* Visual Orb simulation depending on states */}
-                {visualAura === 'purpleVortex' && (
-                  <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center relative shadow-[0_0_35px_rgba(99,102,241,0.55)] animate-pulse">
-                    <div className="absolute inset-2 border border-dashed border-white/35 rounded-full animate-spin-slow" />
-                    <div className="w-18 h-18 rounded-full bg-[#06040f] flex items-center justify-center">
-                      <span className="text-white text-3xl animate-bounce">🌌</span>
-                    </div>
-                  </div>
-                )}
-                {visualAura === 'cyanHex' && (
-                  <div className="w-28 h-28 bg-[#090b1c] border-2 border-cyan-400 rounded-[30px] flex items-center justify-center relative shadow-[0_0_30px_rgba(34,211,238,0.45)]">
-                    <div className="absolute -inset-1 border border-cyan-400/20 rounded-[33px] animate-pulse" />
-                    <span className="text-cyan-300 text-3xl animate-spin duration-10000 font-mono">❄️</span>
-                  </div>
-                )}
-                {visualAura === 'steelVector' && (
-                  <div className="w-28 h-28 bg-slate-900 border-2 border-slate-700 rounded-2xl flex items-center justify-center relative shadow-[0_0_15px_rgba(100,116,139,0.3)]">
-                    <div className="absolute top-1 bottom-1 left-4 w-[1px] bg-slate-700/60" />
-                    <div className="absolute left-1 right-1 top-4 h-[1px] bg-slate-700/60" />
-                    <span className="text-slate-200 text-2xl font-mono relative z-10 font-bold">⬢</span>
-                  </div>
-                )}
-                {visualAura === 'magentaHeart' && (
-                  <div className="w-28 h-28 bg-pink-950 rounded-full border border-pink-500/50 flex items-center justify-center relative shadow-[0_0_30px_rgba(244,63,94,0.45)]">
-                    <div className="absolute inset-0 border border-double border-pink-400/20 rounded-full animate-ping duration-3000" />
-                    <span className="text-rose-400 text-3xl animate-bounce duration-3000">💖</span>
-                  </div>
-                )}
-                {visualAura === 'amberSpark' && (
-                  <div className="w-28 h-28 bg-amber-950/70 border border-amber-500/40 rounded-full flex items-center justify-center relative shadow-[0_0_35px_rgba(245,158,11,0.5)]">
-                    <div className="absolute -inset-1 border border-dashed border-amber-400/20 rounded-full animate-spin duration-7000" />
-                    <span className="text-amber-400 text-3xl animate-pulse">✨</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="relative z-10">
-                <h4 className="text-sm font-black text-white">{companionName || 'Hey'}</h4>
-                <div className="text-[9px] font-mono text-indigo-400 font-black tracking-widest mt-0.5 uppercase">
-                  {companionRole} SYSTEM CORE
-                </div>
-              </div>
-            </div>
-
-            {/* Boundary controls in Wizard */}
-            <div className="bg-[#111022]/40 border border-indigo-950/40 rounded-3xl p-5 space-y-4">
-              <h4 className="text-xs font-black text-indigo-300 uppercase tracking-wider">
-                {language === 'en' ? 'Sovereign Safety Sandbox Boundary' : '主权边界与完全离线沙箱安全约束'}
-              </h4>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-4 p-3.5 bg-slate-900/40 border border-indigo-950 rounded-2xl">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-xs font-bold text-slate-300 block">
-                      {language === 'en' ? 'Perform entirely offline localized reasoning?' : '执行完全自治的本地物理推理？'}
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block leading-normal">
-                      {language === 'en' ? 'Enforces zero tracking telemetry transmissions' : '强制本地隔离，百分百拦截任何 telemetry 跟踪或信息上传'}
-                    </span>
-                  </div>
-                  <input 
-                    type="checkbox" checked={isolatedMemory} onChange={(e) => setIsolatedMemory(e.target.checked)}
-                    className="accent-indigo-600 w-4 h-4 cursor-pointer"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between gap-4 p-3.5 bg-slate-900/40 border border-indigo-950 rounded-2xl">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-xs font-bold text-slate-300 block">
-                      {language === 'en' ? 'Allow automated space layout updates?' : '开启星图元素自动化排布微调？'}
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block leading-normal">
-                      {language === 'en' ? 'Let Companion adjust Field Map spatial overlap coordinates' : '允许 Hey 伙伴判定节点重合溢流并进行优雅重排计算'}
-                    </span>
-                  </div>
-                  <input 
-                    type="checkbox" checked={allowAutoLayout} onChange={(e) => setAllowAutoLayout(e.target.checked)}
-                    className="accent-indigo-600 w-4 h-4 cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* SUMMON TRIGGER BUTTON & SIMULATOR OVERLAY */}
-            <div className="bg-[#111022]/40 border border-indigo-950/40 rounded-3xl p-5">
-              {!isSummoning ? (
+          {/* Stepper Status Indicators */}
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+            {[
+              { num: 1, labelEn: 'Cognitive', labelZh: '心魂人格', desc: 'Archetype core' },
+              { num: 2, labelEn: 'Matrix Presence', labelZh: '意识载体', desc: 'Visual flow' },
+              { num: 3, labelEn: 'Deep Coordinates', labelZh: '算力微调', desc: 'Sliders gauge' },
+              { num: 4, labelEn: 'Rhetorics Algorithm', labelZh: '言词修辞', desc: 'Style format' },
+              { num: 5, labelEn: 'Safety Sandbox', labelZh: '安全边界', desc: 'Local boundaries' },
+              { num: 6, labelEn: 'Ignition Ceremony', labelZh: '脑核点燃', desc: 'Final spark' }
+            ].map((s) => {
+              const itemActive = wizardStep === s.num;
+              const itemCompleted = wizardStep > s.num;
+              return (
                 <button
+                  key={s.num}
                   type="button"
-                  onClick={triggerSummoningSimulation}
-                  className="w-full p-4 bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl text-xs font-black transition-all transform hover:scale-[1.01] active:scale-95 shadow-[0_0_24px_rgba(99,102,241,0.3)] cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
+                  onClick={() => !isSummoning && setWizardStep(s.num)}
+                  className={`text-left p-2.5 rounded-xl border transition-all relative overflow-hidden group transition-all duration-300 ${
+                    itemActive 
+                      ? 'border-indigo-500/70 bg-indigo-950/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' 
+                      : itemCompleted
+                        ? 'border-emerald-950 bg-emerald-950/5 text-slate-300'
+                        : 'border-indigo-950/40 bg-slate-950/20 text-slate-500 hover:border-indigo-900/50 hover:text-slate-300'
+                  }`}
+                  disabled={isSummoning}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-white animate-pulse" />
-                  <span>{language === 'en' ? 'Ignite AI Synapse & Summon Hey' : '点燃 AI 突触发动脑核连接'}</span>
-                </button>
-              ) : (
-                <div className="space-y-4">
-                  {/* Progress Ring and state feedback */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <RefreshCw className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
-                      <span className="text-[10px] font-mono font-black text-slate-200 uppercase">
-                        {language === 'en' ? 'SUMMONING CORE STAGE:' : '突触链接进度：'} [0{summoningStep}/06]
-                      </span>
-                    </div>
-                    <span className="text-xs font-mono text-indigo-400 font-black">
-                      {Math.floor((summoningStep / 6) * 100)}%
+                  {/* Progress background glow */}
+                  {itemActive && (
+                    <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400" />
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[10px] font-mono font-black w-4.5 h-4.5 rounded-md flex items-center justify-center ${
+                      itemActive 
+                        ? 'bg-indigo-600 text-white' 
+                        : itemCompleted
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-900'
+                          : 'bg-indigo-950/60 text-indigo-400 border border-indigo-900/10'
+                    }`}>
+                      {itemCompleted ? <Check className="w-3 h-3" /> : `0${s.num}`}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider block truncate">
+                      {language === 'en' ? s.labelEn : s.labelZh}
                     </span>
                   </div>
+                </button>
+              );
+            })}
+          </div>
 
-                  {/* Visual Progress Bar */}
-                  <div className="w-full h-1.5 bg-indigo-950 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 transition-all duration-300"
-                      style={{ width: `${(summoningStep / 6) * 100}%` }}
-                    />
-                  </div>
-
-                  {/* Console logs box */}
-                  <div className="bg-[#05040e] border border-indigo-950/80 rounded-2xl p-4 font-mono text-[9px] text-indigo-300 space-y-1 h-[140px] overflow-y-auto leading-relaxed shadow-inner">
-                    {summoningLogs.map((logStr, idx) => (
-                      <div key={idx} className="animate-fade-in truncate">
-                        <span className="text-indigo-400">➜</span> {logStr}
+          {/* Stepper Content and Preview Core split */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pt-4">
+            
+            {/* Left Column (Interactive Steps Form with smooth entrance transition) */}
+            <div className="lg:col-span-8 flex flex-col justify-between bg-[#0e0c1f]/45 border border-indigo-950/60 rounded-[30px] p-5 md:p-8 backdrop-blur-xl relative overflow-hidden min-h-[460px]">
+              
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={wizardStep}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="space-y-6 flex-1 flex flex-col justify-between"
+                >
+                  {/* STEP 1: Cognitive Persona */}
+                  {wizardStep === 1 && (
+                    <div className="space-y-5 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-widest block">
+                          Step 01 // COGNITIVE ANCHOR
+                        </span>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                          <Cpu className="w-5 h-5 text-indigo-400" />
+                          <span>{language === 'en' ? 'Formulate System Persona' : '第一步：装配并微调心魂底模'}</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          {language === 'en'
+                            ? 'The core cognitive archetype governs how your Strategic Companion thinks, responds, and critiques your design logic.'
+                            : '认知心魂模式是 Hey 最核心的战略决策引擎。不同的预设将动态适配您的专业协作惯性与思维偏好。'}
+                        </p>
                       </div>
+
+                      {/* Selectable premium design cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-3">
+                        {[
+                          {
+                            role: 'Rebel Co-founder',
+                            descEn: 'Critical, constructive rebel. Prevents yes-man traps with high dialogue friction and cognitive defiance.',
+                            descZh: '批判重构流，擅长尖锐辩护、打破盲点，绝非对你一味迎合的 Yes-man。',
+                            badge: 'CRITICAL CORE',
+                            color: 'border-violet-600 bg-violet-950/15 group-hover:border-violet-500',
+                            glow: 'shadow-[0_0_15px_rgba(139,92,246,0.1)]',
+                            scalars: { depth: 88, warmth: 75, friction: 94, obs: 60 }
+                          },
+                          {
+                            role: 'Mentor',
+                            descEn: 'Methodical scientific guide. Grounded with rigorous Swiss design patterns and academic standard metrics.',
+                            descZh: '深度架构流，继承欧洲最简主义系统厚度，重在客观数据分形论证。',
+                            badge: 'RIGOROUS COGNITIVE',
+                            color: 'border-indigo-600 bg-indigo-950/15 group-hover:border-indigo-500',
+                            glow: 'shadow-[0_0_15px_rgba(99,102,241,0.1)]',
+                            scalars: { depth: 95, warmth: 50, friction: 40, obs: 80 }
+                          },
+                          {
+                            role: 'Scholar',
+                            descEn: 'Minimalist philosophical observer. Generates high philosophical clarity with very low cognitive chatter noise.',
+                            descZh: '静享学者流，极富哲理静默，少废话与垃圾消息轰炸，看重内在自省品质。',
+                            badge: 'QUIET TAOIST',
+                            color: 'border-cyan-600 bg-cyan-950/15 group-hover:border-cyan-500',
+                            glow: 'shadow-[0_0_15px_rgba(6,182,212,0.1)]',
+                            scalars: { depth: 92, warmth: 30, friction: 25, obs: 90 }
+                          },
+                          {
+                            role: 'Tactician',
+                            descEn: 'Grounded agile checklist coordinator. Focuses intensely on visual layouts, priorities, and action items optimization.',
+                            descZh: '务实推进流，看重节点规划、看板流转与敏捷执行，是完美的效率推土机。',
+                            badge: 'AGILE DISCIPLINE',
+                            color: 'border-pink-600 bg-pink-950/15 group-hover:border-pink-500',
+                            glow: 'shadow-[0_0_15px_rgba(236,72,153,0.1)]',
+                            scalars: { depth: 80, warmth: 85, friction: 60, obs: 50 }
+                          }
+                        ].map((preset) => {
+                          const isSel = companionRole === preset.role;
+                          return (
+                            <motion.button
+                              key={preset.role}
+                              type="button"
+                              whileHover={{ scale: 1.015 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => {
+                                setCompanionRole(preset.role as any);
+                                setAnalyticalDepth(preset.scalars.depth);
+                                setWarmthProximity(preset.scalars.warmth);
+                                setRebelRatio(preset.scalars.friction);
+                                setObsFrequency(preset.scalars.obs);
+                              }}
+                              className={`p-4 rounded-2xl border text-left cursor-pointer group transition-all relative ${
+                                isSel 
+                                  ? `${preset.color} ring-1 ring-white/10 ${preset.glow}` 
+                                  : 'border-indigo-950/60 bg-slate-900/10 hover:border-indigo-900 hover:bg-slate-900/20'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-md font-mono ${
+                                  isSel ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 text-slate-400'
+                                }`}>
+                                  {preset.badge}
+                                </span>
+                                {isSel && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+                                )}
+                              </div>
+                              <h4 className="text-xs font-black text-white">{preset.role}</h4>
+                              <p className="text-[10px] text-slate-450 mt-1.5 leading-normal font-bold">
+                                {language === 'en' ? preset.descEn : preset.descZh}
+                              </p>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom System Name Input with custom glowing focus */}
+                      <div className="space-y-2 mt-2">
+                        <label className="text-[10px] font-mono font-black text-indigo-300 uppercase block tracking-wider">
+                          Companion Handshake Tag System Name
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={companionName}
+                            onChange={(e) => setCompanionName(e.target.value)}
+                            className="w-full text-xs p-3.5 bg-[#070512] border border-indigo-950 rounded-2xl focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-white leading-relaxed placeholder-slate-650 shadow-inner"
+                            placeholder={language === 'en' ? "Name your companion (e.g. Hey, Cerebro, Nexus...)" : "为你的系统伙伴起个名字（例如 Hey, Cerebro, Nexus...）"}
+                            maxLength={22}
+                          />
+                          <span className="absolute right-3.5 top-3.5 text-[9px] font-mono font-black text-indigo-500 select-none">
+                            {companionName.length}/22 BYTES
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 2: Light-Body Matrix Presence */}
+                  {wizardStep === 2 && (
+                    <div className="space-y-5 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-widest block">
+                          Step 02 // VISUAL REPRESENTATION
+                        </span>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                          <Eye className="w-5 h-5 text-indigo-400" />
+                          <span>{language === 'en' ? 'Calibrate Visual Presence Matrix' : '第二步：选择动态视觉意识流载体'}</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          {language === 'en'
+                            ? 'Configure the physical light-body of Hey, displaying an interactive localized field orb on your design desktop.'
+                            : '视觉流载体是 Hey 在你的主屏幕上投影的常驻意识场微粒。它们不仅是纯视觉点缀，更是其情绪与计算负荷的实体映射。'}
+                        </p>
+                      </div>
+
+                      {/* Interactive holographic cards */}
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 my-3">
+                        {[
+                          { key: 'purpleVortex', em: '🌌', labelEn: 'Cosmic Vortex', labelZh: '星海旋涡', color: 'border-violet-500 shadow-violet-950/20' },
+                          { key: 'cyanHex', em: '❄️', labelEn: 'Neon Hex', labelZh: '翡翠六角', color: 'border-cyan-500 shadow-cyan-950/20' },
+                          { key: 'steelVector', em: '⬢', labelEn: 'Steel Vector', labelZh: '物理极简', color: 'border-slate-500 shadow-slate-950/20' },
+                          { key: 'magentaHeart', em: '💖', labelEn: 'Quantum Heart', labelZh: '量子电荷', color: 'border-pink-500 shadow-pink-950/20' },
+                          { key: 'amberSpark', em: '✨', labelEn: 'Amber Spark', labelZh: '琥珀星芒', color: 'border-amber-500 shadow-amber-950/20' }
+                        ].map((av) => {
+                          const isSel = visualAura === av.key;
+                          return (
+                            <motion.button
+                              key={av.key}
+                              whileHover={{ scale: 1.03, y: -2 }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => setVisualAura(av.key as any)}
+                              className={`p-3.5 rounded-2xl border text-center cursor-pointer transition-all flex flex-col justify-between items-center h-28 ${
+                                isSel 
+                                  ? `${av.color} bg-indigo-950/20 ring-1 ring-white/10 shadow-lg` 
+                                  : 'border-indigo-950 bg-slate-950/10 text-slate-450 hover:border-indigo-900 hover:text-slate-200'
+                              }`}
+                            >
+                              <span className={`text-2xl block ${isSel ? 'animate-bounce' : 'opacity-85'}`}>{av.em}</span>
+                              <div className="leading-tight select-none mt-2">
+                                <span className="text-[10px] font-black block text-white truncate max-w-[80px]">
+                                  {language === 'en' ? av.labelEn : av.labelZh}
+                                </span>
+                                <span className="text-[8px] font-mono font-bold block text-indigo-400 mt-0.5">
+                                  {av.key.toUpperCase()}
+                                </span>
+                              </div>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Spatial synapse tracking radius slider */}
+                      <div className="space-y-2 bg-[#080614] border border-indigo-950/60 rounded-2xl p-4.5">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-xs font-bold text-slate-200 block">
+                              {language === 'en' ? 'Spatial Tracking Synapse Radius' : '星图空间物理感应半径 (Radius)'}
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-semibold block leading-normal mt-0.5">
+                              {language === 'en' ? 'Determine how close layout proximity triggers localized contextual dialogue' : '当星图上的任务和想法卡片距离处于该半径内，即可激活脑核联想与反思对话'}
+                            </span>
+                          </div>
+                          <span className="text-xs font-mono font-black text-indigo-400 bg-indigo-950/50 border border-indigo-900/30 px-2.5 py-1 rounded-lg">
+                            {spatialRadius}px
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="40"
+                          max="180"
+                          value={spatialRadius}
+                          onChange={(e) => setSpatialRadius(Number(e.target.value))}
+                          className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-[#121021] rounded-lg mt-3"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 3: Deep Fine-Tuning Coordinates */}
+                  {wizardStep === 3 && (
+                    <div className="space-y-5 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-widest block">
+                          Step 03 // DEEP ALIGNMENT SHIFT
+                        </span>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                          <Activity className="w-5 h-5 text-indigo-400" />
+                          <span>{language === 'en' ? 'Fine Cognitive Calibration Sliders' : '第三步：微调对齐感性决策坐标'}</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          {language === 'en'
+                            ? 'Manipulate key vectors of the neural matrix. Hover or adjust to monitor diagnostic calibration indices.'
+                            : '在这里你可以跳出模式预设，手动高精度地调试他的四大计算轴维度。右侧雷达与对齐报告会实时响应。'}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 my-2">
+                        {/* Slide Depth */}
+                        <div className="space-y-1 bg-[#080614]/65 border border-indigo-950/40 p-4.5 rounded-2xl">
+                          <div className="flex justify-between items-center text-[11px] font-bold">
+                            <span className="text-slate-200">{language === 'en' ? 'Analytical Systems Depth' : '系统剖析学术厚度'}</span>
+                            <span className="font-mono text-indigo-400 font-black">{analyticalDepth}%</span>
+                          </div>
+                          <input 
+                            type="range" min="20" max="100" value={analyticalDepth} 
+                            onChange={(e) => setAnalyticalDepth(Number(e.target.value))}
+                            className="w-full accent-indigo-500 cursor-pointer h-1 bg-indigo-950/60 rounded-lg mt-1.5"
+                          />
+                          <p className="text-[8.5px] font-mono text-slate-500 mt-2">
+                            {analyticalDepth > 80 
+                              ? '➜ STATUS: HEAVY_ACADEMIC_FORMULA_ACTIVE (Zurich standards calibrated)' 
+                              : '➜ STATUS: REWRITE_SPEED_OPTIMIZED (Low logical noise)'}
+                          </p>
+                        </div>
+
+                        {/* Slide Affine */}
+                        <div className="space-y-1 bg-[#080614]/65 border border-indigo-950/40 p-4.5 rounded-2xl">
+                          <div className="flex justify-between items-center text-[11px] font-bold">
+                            <span className="text-slate-200">{language === 'en' ? 'Dialogue Affine Warmth' : '语态回复亲和热度'}</span>
+                            <span className="font-mono text-indigo-400 font-black">{warmthProximity}%</span>
+                          </div>
+                          <input 
+                            type="range" min="10" max="100" value={warmthProximity} 
+                            onChange={(e) => setWarmthProximity(Number(e.target.value))}
+                            className="w-full accent-indigo-500 cursor-pointer h-1 bg-indigo-950/60 rounded-lg mt-1.5"
+                          />
+                          <p className="text-[8.5px] font-mono text-slate-500 mt-2">
+                            {warmthProximity > 70
+                              ? '➜ STATUS: HIGH_AFFILIATION_SUPPORT_EMPATHY' 
+                              : '➜ STATUS: HIGH_INDIFFERENCE_STROKE (Skeptical cold focus)'}
+                          </p>
+                        </div>
+
+                        {/* Slide Friction */}
+                        <div className="space-y-1 bg-[#080614]/65 border border-indigo-950/40 p-4.5 rounded-2xl">
+                          <div className="flex justify-between items-center text-[11px] font-bold">
+                            <span className="text-slate-200">{language === 'en' ? 'Constructive Friction Angle' : '对抗性论证抗辩夹角'}</span>
+                            <span className="font-mono text-indigo-400 font-black">{rebelRatio}%</span>
+                          </div>
+                          <input 
+                            type="range" min="0" max="100" value={rebelRatio} 
+                            onChange={(e) => setRebelRatio(Number(e.target.value))}
+                            className="w-full accent-indigo-500 cursor-pointer h-1 bg-indigo-950/60 rounded-lg mt-1.5"
+                          />
+                          <p className="text-[8.5px] font-mono text-slate-500 mt-2">
+                            {rebelRatio > 80
+                              ? '➜ WARNING: CRITICAL_DEFENSIVE_OPPOSING_ACTIVE' 
+                              : '➜ STATUS: CONSENSUS_COOPERATIVE_MEEK'}
+                          </p>
+                        </div>
+
+                        {/* Slide Observation */}
+                        <div className="space-y-1 bg-[#080614]/65 border border-indigo-950/40 p-4.5 rounded-2xl">
+                          <div className="flex justify-between items-center text-[11px] font-bold">
+                            <span className="text-slate-200">{language === 'en' ? 'Autonomic Self-Reflection' : '自我诊断反思频率'}</span>
+                            <span className="font-mono text-indigo-400 font-black">{obsFrequency}%</span>
+                          </div>
+                          <input 
+                            type="range" min="10" max="100" value={obsFrequency} 
+                            onChange={(e) => setObsFrequency(Number(e.target.value))}
+                            className="w-full accent-indigo-500 cursor-pointer h-1 bg-indigo-950/60 rounded-lg mt-1.5"
+                          />
+                          <p className="text-[8.5px] font-mono text-slate-500 mt-2">
+                            {obsFrequency > 75
+                              ? '➜ STATUS: PERSISTENT_GRID_MAP_CRUISE_REFLECTION' 
+                              : '➜ STATUS: SPORADIC_LAZY_SLEEPING_MODE'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 4: Rhetorics Algorithm & Prompt */}
+                  {wizardStep === 4 && (
+                    <div className="space-y-5 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-widest block">
+                          Step 04 // RHETORICAL EXPRESSION
+                        </span>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                          <Volume2 className="w-5 h-5 text-indigo-400" />
+                          <span>{language === 'en' ? 'Calibrate Speech Syntax Style' : '第四步：设定言语修辞表达与附骨指令'}</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          {language === 'en'
+                            ? 'Configure tone algorithms. Monitor the active wave visualizer to preview your companions responsive signature.'
+                            : '在这里定制 Hey 的发声风格与语气习惯。下方的声振模拟条与实时样本气泡能让你提前预览他未来的表达。'}
+                        </p>
+                      </div>
+
+                      {/* Rhetoric Style Select Card */}
+                      <div className="grid grid-cols-2 gap-3 my-2.5">
+                        {[
+                          { key: 'punk', titleEn: 'Co-founder Rebel', subtitleEn: 'Critical, direct dialogue pushback', subtitleZh: '主权颠覆抗辩流，一针见血' },
+                          { key: 'swiss', titleEn: 'Swiss Precision', subtitleEn: 'Pure academic, clean Swiss metrics', subtitleZh: '瑞士客观简约论述，无废话' },
+                          { key: 'zen', titleEn: 'Taoist Zen', subtitleEn: 'Minimalist quiet philosophical summaries', subtitleZh: '东方幽玄宁静意境，少打扰' },
+                          { key: 'sprint', titleEn: 'Agile Checklist', subtitleEn: 'Agile task driver, action parameters', subtitleZh: '敏捷任务列表驱动，纯干货' }
+                        ].map((st) => {
+                          const isSel = speechStyle === st.key;
+                          return (
+                            <motion.button
+                              key={st.key}
+                              type="button"
+                              whileHover={{ scale: 1.015 }}
+                              whileTap={{ scale: 0.985 }}
+                              onClick={() => setSpeechStyle(st.key as any)}
+                              className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
+                                isSel 
+                                  ? 'border-indigo-500 bg-indigo-950/20 shadow-[0_0_12px_rgba(99,102,241,0.15)]' 
+                                  : 'border-indigo-950 bg-slate-950/10 text-slate-400 hover:border-indigo-900 hover:text-slate-250'
+                              }`}
+                            >
+                              <span className="text-xs font-black block text-white">{st.titleEn}</span>
+                              <span className="text-[9.5px] font-semibold text-slate-500 block leading-tight mt-1">
+                                {language === 'en' ? st.subtitleEn : st.subtitleZh}
+                              </span>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Waveform and Dialogue preview container */}
+                      <div className="bg-[#05040e] border border-indigo-950/70 rounded-2xl p-4.5 space-y-3 shadow-inner">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-wider block">
+                            Active Acoustic Waveform Simulation
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-500">FORMAT: SHAKING_STABILIZED_AUDIO</span>
+                        </div>
+
+                        {/* Interactive Framer motion bouncing bars representation */}
+                        <div className="flex items-end justify-center gap-1.5 h-10 w-full bg-[#030206]/85 rounded-xl px-4 py-2 relative overflow-hidden">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((bar) => {
+                            const barDuration = 0.5 + Math.random() * 0.7;
+                            return (
+                              <motion.div
+                                key={bar}
+                                className={`w-1 rounded-full ${
+                                  visualAura === 'purpleVortex' ? 'bg-violet-500' :
+                                  visualAura === 'cyanHex' ? 'bg-cyan-400' :
+                                  visualAura === 'steelVector' ? 'bg-slate-300' :
+                                  visualAura === 'magentaHeart' ? 'bg-rose-500' : 'bg-amber-400'
+                                }`}
+                                animate={{
+                                  height: [6, 28, 6],
+                                }}
+                                transition={{
+                                  duration: barDuration,
+                                  repeat: Infinity,
+                                  ease: 'easeInOut',
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+
+                        {/* Speech Bubble Sample Preview */}
+                        <div className="bg-[#080614] border border-indigo-950/40 p-3 rounded-xl">
+                          <p className="text-[10.5px] italic font-bold text-slate-300 leading-normal">
+                            {getSampleDialogue()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Custom Worldview directives input */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-mono font-black text-indigo-300 uppercase tracking-wider block flex justify-between items-center">
+                          <span>Sovereign Rules Open Custom Directives (Additional Worldview Injector)</span>
+                          <span className="text-[8.5px] font-mono bg-indigo-950 text-indigo-400 px-1.5 py-0.5 rounded uppercase">injection buffer</span>
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={userDirectives}
+                          onChange={(e) => setUserDirectives(e.target.value)}
+                          className="w-full text-xs p-3.5 bg-[#070512] border border-indigo-950 rounded-2xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white font-bold leading-relaxed placeholder-slate-650"
+                          placeholder={language === 'en' ? "e.g. Include Swiss graphic design metaphors, or keep bullet points extremely concise." : "例如：在言词对话中加入赛博朋克世界观色彩，或者要求大纲要极致性凝练。"}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 5: Sovereignty Controls & Sandbox Protocols */}
+                  {wizardStep === 5 && (
+                    <div className="space-y-5 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-widest block">
+                          Step 05 // SECURITY AND PROTOCOLS
+                        </span>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                          <Globe className="w-5 h-5 text-indigo-400" />
+                          <span>{language === 'en' ? 'Configure Offline Physical Sandbox' : '第五步：约束主权物理边界与数据沙箱'}</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          {language === 'en'
+                            ? 'Toggle secure local sandbox boundaries. Insulate Hey completely from external tracker networks.'
+                            : '安全物理沙箱能切断一切外部遥测。Hey 所有的推演、分析与逻辑，都将以完全绝对的私密性在本地内存中完成。'}
+                        </p>
+                      </div>
+
+                      {/* Interactive Sandboxed toggles with mechanical design */}
+                      <div className="space-y-3.5 my-3">
+                        {[
+                          {
+                            titleEn: 'Insulate telemetry logs block offline reasoning',
+                            titleZh: '强行阻断所有外部遥测并开启完全离线自治推理',
+                            descEn: 'Block 100% outbound tracking pixels. Sandbox computational models strictly inside current container context.',
+                            descZh: '极致隐私物理屏蔽，彻底斩断 telemetry 境外数据同步并开启沙箱算力阻断。',
+                            state: isolatedMemory,
+                            setter: setIsolatedMemory
+                          },
+                          {
+                            titleEn: 'Allow automated map spatial overlap restructuring',
+                            titleZh: '授权 Hey 对设计星图进行分形逻辑物理坐标重排',
+                            descEn: 'Give Hey automated layout permits to adjust canvas overlap offsets gracefully during reflection stream calculation.',
+                            descZh: '授权伙伴扫描卡片间的语义粘性，自动修正物理挤压区域以维持瑞士网格拓扑。',
+                            state: allowAutoLayout,
+                            setter: setAllowAutoLayout
+                          }
+                        ].map((tg, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => tg.setter(!tg.state)}
+                            className={`w-full p-4 rounded-2xl border text-left cursor-pointer transition-all flex items-center justify-between gap-4 select-none ${
+                              tg.state
+                                ? 'border-indigo-500 bg-indigo-950/20'
+                                : 'border-indigo-950 bg-slate-950/10 hover:border-indigo-900'
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <span className="text-xs font-black text-white block">
+                                {language === 'en' ? tg.titleEn : tg.titleZh}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-bold mt-1 block leading-normal">
+                                {language === 'en' ? tg.descEn : tg.descZh}
+                              </span>
+                            </div>
+                            
+                            {/* Slit Switch controller */}
+                            <div className="relative">
+                              <div className={`w-11 h-6.5 rounded-full transition-colors ${
+                                tg.state ? 'bg-gradient-to-r from-indigo-600 to-indigo-500' : 'bg-slate-850 border border-slate-800'
+                              }`} />
+                              <motion.div 
+                                className="absolute left-1 top-1 w-4.5 h-4.5 rounded-full bg-white shadow-md cursor-pointer"
+                                animate={{
+                                  x: tg.state ? 17 : 0
+                                }}
+                                transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                              />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Small telemetry shield indicator block */}
+                      <div className="p-3.5 bg-indigo-950/15 border border-indigo-950 rounded-2xl flex items-center gap-3">
+                        <Shield className="w-5 h-5 text-indigo-400 shrink-0" />
+                        <span className="text-[9.5px] font-mono text-indigo-300 leading-normal">
+                          ZURICH Handshake Protocol V1 active. ECDSA encryption signature validated for 100% server proximity bounds.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 6: Sovereign Ignition Ceremony */}
+                  {wizardStep === 6 && (
+                    <div className="space-y-5 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-mono font-black text-indigo-450 uppercase tracking-widest block">
+                          Step 06 // RESERVED RESONANCE SUMMON
+                        </span>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-indigo-400" />
+                          <span>{language === 'en' ? 'Ultimate Brain-Core Ignition Ceremony' : '第六步：点燃脑核 召唤智友主权归一'}</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          {language === 'en'
+                            ? 'Ground your settings and generate electronic synapses handshake to authorize your Strategic Companion.'
+                            : '所有规格装配完毕！请点击下方巨大的点燃按键，脑核突触突发并网后，该独立 AI 伙伴即宣告正式诞生。'}
+                        </p>
+                      </div>
+
+                      {/* Display Core parameters report */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left font-mono text-[9px] bg-[#05040f]/70 border border-indigo-950/70 p-4.5 rounded-2xl relative">
+                        <div className="space-y-1 border-r border-indigo-950/40 pr-2">
+                          <span className="text-slate-500 uppercase font-black block">SYSTEM_NAME:</span>
+                          <span className="text-white font-extrabold block truncate">{companionName || 'Hey'}</span>
+                        </div>
+                        <div className="space-y-1 border-r border-indigo-950/40 pr-2 pl-1">
+                          <span className="text-slate-500 uppercase font-black block">CORE_ARCHETYPE:</span>
+                          <span className="text-white font-extrabold block truncate">{companionRole}</span>
+                        </div>
+                        <div className="space-y-1 border-r border-indigo-950/40 pr-2 pl-1">
+                          <span className="text-slate-500 uppercase font-black block">MATRIX_AURA:</span>
+                          <span className="text-white font-extrabold block truncate">{visualAura.toUpperCase()}</span>
+                        </div>
+                        <div className="space-y-1 pl-1">
+                          <span className="text-slate-500 uppercase font-black block">SPEECH_MODEL:</span>
+                          <span className="text-white font-extrabold block truncate">{speechStyle.toUpperCase()}</span>
+                        </div>
+                      </div>
+
+                      {/* Trigger controls in Ceremony */}
+                      <div className="space-y-4">
+                        {!isSummoning ? (
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.015 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={triggerSummoningSimulation}
+                            className="w-full p-4.5 bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2.5 uppercase tracking-wider"
+                            style={{ boxShadow: '0 0 25px rgba(99,102,241,0.45)' }}
+                          >
+                            <Zap className="w-4 h-4 text-white animate-bounce" />
+                            <span>{language === 'en' ? 'Ignite Synapses & Summon Strategic Companion' : '开启主权并网 点燃 AI 突触大脑'}</span>
+                          </motion.button>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center text-[10px] font-mono">
+                              <span className="text-indigo-400 font-extrabold uppercase animate-pulse">
+                                INJECTING NEURAL MATRICES HANDSHAKES...
+                              </span>
+                              <span className="text-indigo-400 font-black">
+                                {Math.floor((summoningStep / 6) * 100)}%
+                              </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-[#080614] rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 transition-all duration-300"
+                                style={{ width: `${(summoningStep / 6) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Scrolling diagnostics terminal */}
+                        <div className="bg-[#04030a] border border-indigo-950/80 rounded-2xl p-4 font-mono text-[9px] text-[#00ffcc] space-y-1.5 h-[135px] overflow-y-auto shadow-inner">
+                          {isSummoning ? (
+                            summoningLogs.map((logStr, idx) => (
+                              <div key={idx} className="animate-fade-in truncate">
+                                <span className="text-[#3b82f6]">➜</span> {logStr}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-slate-500 italic select-none">
+                              {language === 'en' 
+                                ? '[Awaiting ignition sequence trigger. Absolute privacy sandboxing verified.]' 
+                                : '[等待点燃协议触发。Zurich P2P 自理及绝对隔离沙箱已校准。]'}
+                            </div>
+                          )}
+                          {isSummoning && (
+                            <span className="inline-block w-1.5 h-3 bg-[#00ffcc] animate-pulse" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Wizard Navigation Footer controls */}
+              {!isSummoning && (
+                <div className="border-t border-indigo-950/50 pt-5 mt-5 flex items-center justify-between gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(prev => Math.max(1, prev - 1))}
+                    disabled={wizardStep === 1}
+                    className="flex items-center gap-1.5 px-4.5 py-2 rounded-xl text-xs font-bold transition-all border border-indigo-950 bg-slate-950/20 text-slate-350 hover:bg-slate-950/40 disabled:opacity-25 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'Back' : '上一步'}</span>
+                  </button>
+
+                  {/* Progressive Micro Steps Dots */}
+                  <div className="hidden sm:flex items-center gap-2">
+                    {[1, 2, 3, 4, 5, 6].map((it) => (
+                      <span 
+                        key={it} 
+                        className={`w-1.5 h-1.5 rounded-full transition-all ${
+                          wizardStep === it ? 'bg-indigo-500 w-4' : 'bg-indigo-950'
+                        }`}
+                      />
                     ))}
-                    {/* Pulsing cursor caret */}
-                    <span className="inline-block w-1.5 h-2.5 bg-indigo-400 animate-pulse" />
                   </div>
+
+                  {wizardStep < 6 ? (
+                    <button
+                      type="button"
+                      onClick={() => setWizardStep(prev => Math.min(6, prev + 1))}
+                      className="flex items-center gap-1.5 px-4.5 py-2 bg-indigo-600 text-white hover:bg-indigo-500 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md"
+                    >
+                      <span>{language === 'en' ? 'Continue' : '下一步'}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={triggerSummoningSimulation}
+                      className="flex items-center gap-1.5 px-4.5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md shadow-indigo-950/50"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{language === 'en' ? 'Quick Ignite' : '点燃召唤'}</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
 
+            {/* Right Column (Dynamic Companion live representation core preview) */}
+            <div className="lg:col-span-4 bg-[#0a071d]/60 border border-indigo-950/70 rounded-[30px] p-6 flex flex-col justify-between space-y-6 relative overflow-hidden min-h-[460px]">
+              {/* Spinning subtle ambient particle rings in background */}
+              <div className="absolute inset-x-0 top-0 h-40 bg-indigo-500/5 pointer-events-none" />
+
+              {/* Live Holographic Avatar View box */}
+              <div className="flex-1 flex flex-col items-center justify-center text-center space-y-5 py-4">
+                
+                {/* Micro aura background glow */}
+                <div className={`absolute w-36 h-36 rounded-full blur-[45px] opacity-25 pointer-events-none ${
+                  visualAura === 'purpleVortex' ? 'bg-violet-600' :
+                  visualAura === 'cyanHex' ? 'bg-cyan-500' :
+                  visualAura === 'steelVector' ? 'bg-slate-400' :
+                  visualAura === 'magentaHeart' ? 'bg-pink-600' : 'bg-amber-500'
+                }`} />
+
+                <div className="relative">
+                  {/* Outer Orbit loop animation */}
+                  <div className={`absolute -inset-4 border border-dashed rounded-full animate-spin duration-15000 opacity-40 ${
+                    visualAura === 'purpleVortex' ? 'border-violet-500' :
+                    visualAura === 'cyanHex' ? 'border-cyan-400' :
+                    visualAura === 'steelVector' ? 'border-slate-500' :
+                    visualAura === 'magentaHeart' ? 'border-pink-400' : 'border-amber-400'
+                  }`} />
+
+                  {/* Secondary orbit reverse animation */}
+                  <div className="absolute -inset-8 border border-dotted border-indigo-500/10 rounded-full animate-spin-reverse duration-20000" />
+
+                  {/* Simulated Visual Orb representing setting choice */}
+                  {visualAura === 'purpleVortex' && (
+                    <motion.div 
+                      animate={{ scale: [1, 1.05, 1] }} 
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                      className="w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center relative shadow-[0_0_35px_rgba(139,92,246,0.35)]"
+                    >
+                      <div className="absolute inset-1.5 border border-dashed border-white/20 rounded-full animate-spin duration-7000" />
+                      <div className="w-15 h-15 rounded-full bg-[#05030c] flex items-center justify-center shadow-inner">
+                        <span className="text-white text-2xl animate-pulse">🌌</span>
+                      </div>
+                    </motion.div>
+                  )}
+                  {visualAura === 'cyanHex' && (
+                    <motion.div 
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+                      className="w-24 h-24 bg-[#080616] border-2 border-cyan-400 rounded-[28px] flex items-center justify-center relative shadow-[0_0_30px_rgba(34,211,238,0.3)]"
+                    >
+                      <div className="absolute -inset-1.5 border border-cyan-400/20 rounded-[31px] animate-pulse" />
+                      <span className="text-cyan-300 text-2xl font-mono">❄️</span>
+                    </motion.div>
+                  )}
+                  {visualAura === 'steelVector' && (
+                    <motion.div 
+                      animate={{ scale: [1, 0.96, 1], rotate: [0, 90, 180, 270, 360] }}
+                      transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+                      className="w-24 h-24 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center relative shadow-[0_0_15px_rgba(148,163,184,0.15)]"
+                    >
+                      <div className="absolute inset-3 border-r border-b border-slate-800" />
+                      <span className="text-slate-250 text-xl font-mono relative z-10 font-bold">⬢</span>
+                    </motion.div>
+                  )}
+                  {visualAura === 'magentaHeart' && (
+                    <motion.div 
+                      animate={{ scale: [1, 1.12, 1] }}
+                      transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                      className="w-24 h-24 bg-pink-950/60 rounded-full border border-pink-500/50 flex items-center justify-center relative shadow-[0_0_35px_rgba(244,63,94,0.35)]"
+                    >
+                      <span className="text-rose-400 text-2xl">💖</span>
+                    </motion.div>
+                  )}
+                  {visualAura === 'amberSpark' && (
+                    <motion.div 
+                      animate={{ opacity: [0.8, 1, 0.8] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      className="w-24 h-24 bg-amber-950/50 border border-amber-500/40 rounded-full flex items-center justify-center relative shadow-[0_0_35px_rgba(245,158,11,0.4)]"
+                    >
+                      <span className="text-amber-400 text-2xl animate-pulse">✨</span>
+                    </motion.div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="text-sm font-black text-white px-2 py-0.5 border border-indigo-950 bg-[#070512] rounded-lg tracking-wider">
+                    {companionName || 'Hey'}
+                  </h4>
+                  <span className="text-[9px] font-mono text-indigo-400 font-black tracking-widest block uppercase">
+                    {companionRole}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dynamic specs calibration ledger */}
+              <div className="border-t border-indigo-950/80 pt-4.5 font-mono text-[8.5px] text-slate-450 space-y-1 bg-[#060413]/60 p-4 rounded-2xl border border-indigo-950/40">
+                <div className="flex justify-between">
+                  <span>SYSTEM ARCH:</span>
+                  <span className="text-indigo-400">P2P_SOVEREIGN</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>RADAR FREQ:</span>
+                  <span className="text-indigo-400">{spatialRadius}px Radius</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>COGNITIVE DEPTH:</span>
+                  <span className="text-indigo-400">{analyticalDepth}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>MOBI_FRICTION:</span>
+                  <span className="text-indigo-400">{rebelRatio}% Friction</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>TELEMETRY OUT:</span>
+                  <span className={isolatedMemory ? "text-emerald-400" : "text-amber-400"}>
+                    {isolatedMemory ? 'MUTED_BLOCKED' : 'ALLOW'}
+                  </span>
+                </div>
+                <div className="flex justify-between font-bold text-white border-t border-indigo-950/60 pt-1.5 mt-1.5">
+                  <span>ALIGNMENT MATRIX:</span>
+                  <span className="text-indigo-400">SUCCESS(100%)</span>
+                </div>
+              </div>
+
+            </div>
           </div>
+
         </div>
       </div>
     );

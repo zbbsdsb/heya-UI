@@ -178,6 +178,7 @@ export default function FieldMapCanvas({
   // Connection Builder State (line-drawing option)
   const [activeTool, setActiveTool] = useState<'select' | 'connection' | 'boundary'>('select');
   const [connectionSourceId, setConnectionSourceId] = useState<string | null>(null);
+  const [connectorMousePos, setConnectorMousePos] = useState({ x: 0, y: 0 });
 
   // --- DYNAMIC SIGNAL-PROPAGATION ROUTER (SPRouter) STATES ---
   const [activePackets, setActivePackets] = useState<{
@@ -621,6 +622,14 @@ export default function FieldMapCanvas({
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    // Track cursor coordinate in untransformed canvas space
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relX = e.clientX - rect.left;
+    const relY = e.clientY - rect.top;
+    const canvasX = (relX / zoom) - panOffset.x;
+    const canvasY = (relY / zoom) - panOffset.y;
+    setConnectorMousePos({ x: canvasX, y: canvasY });
+
     if (draggedNodeId) {
       const newX = Math.round((e.clientX / zoom) - dragOffset.x);
       const newY = Math.round((e.clientY / zoom) - dragOffset.y);
@@ -969,8 +978,8 @@ export default function FieldMapCanvas({
               <line 
                 x1={originNode.x + dimSrc.width / 2}
                 y1={originNode.y + dimSrc.height / 2}
-                x2={(originNode.x + dimSrc.width + 100)} // Placeholder end
-                y2={(originNode.y + dimSrc.height + 50)}
+                x2={connectorMousePos.x}
+                y2={connectorMousePos.y}
                 stroke="#6366f1"
                 strokeWidth={2}
                 strokeDasharray="4,4"

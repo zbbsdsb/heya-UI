@@ -53,6 +53,11 @@ export interface MuseIdea {
   content: string;
   createdAt: string;
   convertedToNodeId?: string;
+  title?: string;
+  category?: string;
+  contraAssumption?: string;
+  implementationRisk?: string;
+  suggestedConnections?: string[];
 }
 
 export interface ForgeAgent {

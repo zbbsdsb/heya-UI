@@ -293,6 +293,172 @@ Explain your suggestions with a friendly, professional, Swiss-design-oriented to
   }
 });
 
+// Local sovereign fallback content engine for Muse
+function generateLocalDisruptiveIdeas(dimension: string, nodes: any[], documents: any[], isEn: boolean): any[] {
+  const nodeNames = (nodes && nodes.length > 0) ? nodes.map((n: any) => n.title) : (isEn ? ['Oermos P2P Sync', 'Hearth Canvas', 'Hey Soul Forge'] : ['Oermos P2P 同步', 'Hearth 画布系统', 'Heya 仿真工坊']);
+  const firstNodeId = (nodes && nodes.length > 0) ? nodes[0].id : 'project-a';
+  
+  if (dimension === 'disruptive_architecture') {
+    return [
+      {
+        id: `local-disrupt-${Date.now()}-1`,
+        title: isEn ? "Gossip-Layer Decentralized WebRTC Tunneling" : "基于 Gossip 网格的 WebRTC 零路由点对点对等隧道",
+        content: isEn 
+          ? `A peer-to-peer protocol that enables the "${nodeNames[0] || 'Active Canvas'}" to replicate state securely across distributed boundaries without a centralized signaling server, utilizing multi-hop handshakes.`
+          : `一种新型的点对点协议，允许将“${nodeNames[0] || '画布拓扑'}”内的节点直接转变为点对点中继。利用底层的 Oermos 多跳工作流自愈机制进行元数据中转，保障物理主权。`,
+        category: "Disruptive Architecture",
+        contraAssumption: isEn ? "Assumes peer discovery requires cloud-hosted signaling proxies." : "打破了“任何端对端的浏览器节点发现均需要持久的中央云端信令代理”的传统默认设定。",
+        implementationRisk: isEn ? "High network latency on multi-hop NAT traversal." : "在多层复杂 NAT 网卡阻进下，可能会由于级联跳数偏深出现 P2P 手拉手建路阶段偶发性延迟。",
+        suggestedConnections: [firstNodeId]
+      },
+      {
+        id: `local-disrupt-${Date.now()}-2`,
+        title: isEn ? "Zero-Latency CRDT Canvas State Mesh" : "0ms 极低物理延迟 CRDT 本地画布星态网络",
+        content: isEn 
+          ? `Integrating Conflict-Free Replicated Data Types inside the user workspace. Edits are merged asynchronously on the canvas, eliminating central conflict checks.`
+          : `在赫斯画布底层全面应用无冲突复制数据类型（CRDT）。所有用户的对齐、拖拽和标签重定义操作均在本地即时渲染合并，随后异步广播，做到理论上 0 延迟。`,
+        category: "Disruptive Architecture",
+        contraAssumption: isEn ? "Assumes multiple states must lock and resolve server-side." : "颠覆了“多端写并发时必须以服务器时钟戳或数据库悲观锁为准”的做法。",
+        implementationRisk: isEn ? "Intricate graph path cycle convergence." : "在拓扑连接线高频增删场景下，需要对有向图循环引用进行严格的收敛解构与时钟追赶。",
+        suggestedConnections: [firstNodeId]
+      }
+    ];
+  } else if (dimension === 'swiss_deselection') {
+    return [
+      {
+        id: `local-swiss-${Date.now()}-1`,
+        title: isEn ? "Brutalist Swiss Deselection System" : "纯粹黑白排版：瑞士“硬度解构”无边框布局",
+        content: isEn
+          ? `Stripping away the soft glowing cards and shadows of "${nodeNames[0] || 'Hearth-OS'}". Employs brutalist 2px solid black margins, 100% sharp edges, and pure responsive typography proportions with no rounded corners.`
+          : `彻底剥离外围的发光卡片、圆润气泡与柔粉渐变。转而采用纯度为 100% 的极硬粗实线条、纯粹的黑白明暗对比，以及由大字重和等宽字体构建的严格网格系统，零冗余边圆。`,
+        category: "Swiss UX Deselection",
+        contraAssumption: isEn ? "Assumes micro-interactions require playful pastel colors." : "粉碎了“现代化界面必须使用圆角、多层微阴影和高明度渐变色才具有质感”的消费主义功能美学。",
+        implementationRisk: isEn ? "High cognitive visual friction for legacy users." : "对于习惯了传统平面柔光卡片系统的用户来说，首屏会产生极高的视觉张力和认知冲突。",
+        suggestedConnections: [firstNodeId]
+      }
+    ];
+  } else if (dimension === 'post_capitalist_pivot') {
+    return [
+      {
+        id: `local-postcap-${Date.now()}-1`,
+        title: isEn ? "De-centralized Sovereign Trade Ledger" : "去中心化主权价值对等协议",
+        content: isEn
+          ? `Bypassing traditional currency-based API subscription logic. Binds companion executions directly to localized barter tokens generated on-the-fly.`
+          : `彻底抛弃传统的基于商业化中心 API 的订阅逻辑。通过 Oermos 底层协议直接进行零费用代币算力共享或者采用易货交换模式（用你的本地渲染换我的推理核）。`,
+        category: "Post-capitalist Business Pivot",
+        contraAssumption: isEn ? "Assumes software services require third-party SaaS payment gateways." : "颠覆了“一切轻资产 SaaS 产品的商业运营都需要仰赖中心化支付网卡和法币结算”的铁律。",
+        implementationRisk: isEn ? "Barter matching and micro-token value stability." : "算力价值非均匀分发时，本地零余额信用的抗女巫攻击风险运营度。",
+        suggestedConnections: [firstNodeId]
+      }
+    ];
+  } else {
+    // synergy loops
+    return [
+      {
+        id: `local-synergy-${Date.now()}-1`,
+        title: isEn ? "Autonomous Autopoietic Agent Core" : "自组织自我繁育代理核心架构",
+        content: isEn
+          ? `A self-generating system where secondary agents spawned from the Hearth canvas can create, evaluate, and delete other micro-agents without human commands.`
+          : `一种无主控自生成的软件范式。驻守在赫斯工坊画布中的主力智能体能够评估外界信息冲突，自动派生、生成并微调独立的二级小智能体去解决衍生瓶颈。`,
+        category: "Frictionless Synergy Loops",
+        contraAssumption: isEn ? "Assumes agents must only execute human-triggered workflows." : "冲破了“智能体只能充当人类发起的既定行动流终点”的被动设计规则。",
+        implementationRisk: isEn ? "Unbounded agent sprawl and loop infinity." : "若没有设立精准的能量自毁阀门，可能会造成代理骨架在画布内的无序性繁殖。",
+        suggestedConnections: [firstNodeId]
+      }
+    ];
+  }
+}
+
+// Muse Ideation Copilot endpoint
+app.post('/api/muse-inspire', async (req, res) => {
+  const { dimension, nodes, documents, language } = req.body;
+  const isEn = language === 'en';
+
+  try {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) {
+      const mockResult = generateLocalDisruptiveIdeas(dimension, nodes, documents, isEn);
+      return res.json(mockResult);
+    }
+
+    const ai = getGeminiClient();
+
+    const dimensionGuides: Record<string, string> = {
+      disruptive_architecture: isEn 
+        ? "Radically decentralized, serverless peer-to-peer protocols (such as Gossip meshes, WebRTC signaling tunnels, cryptographically verified nodes, or local-first replication state engines) that bypass central corporate SaaS clouds entirely."
+        : "彻底的去中心化、无服务器点对点协议（如 Gossip 传导网络、WebSockets 隧道技术、基于对等加密的验证模型，或完全本地优先的 CRDT 实时状态同步引擎），从而颠覆集中式云端。",
+      swiss_deselection: isEn
+        ? "Aesthetic visual and structural deselection. Radical minimalism, Swiss Typographic brutalism, omitting round borders/shadows/soft colors. De-cluttering feature bloat to maximize layout focus, pixel rhythm, and direct tactile action."
+        : "美学和功能层面的双重极端克制——瑞士极简版面主义、硬核粗野主义、完全抛弃圆角、卡片、阴影与柔色。剔除冗余的业务功能，最大化排版张力、像素格律与交互触感。",
+      post_capitalist_pivot: isEn
+        ? "Anti-monarchic value networks, open-source cooperatives, direct Peer-to-Peer economic handshakes, cooperative value distribution, local-first trade, bypassing modern payment processors & middleman platforms."
+        : "反垄断的所有权网络、开源自治合作社、可编程的对等经济流、劳动者所有制配给体系、完全越过现代中介平台与支付通道的自由物物握手协议。",
+      synergy_loops: isEn
+        ? "Autonomous multi-agent orchestration frameworks. Agent cores possessing high cognitive rebellion, self-generating checklists, automated task scheduling and vector memory retrieval without synchronous human control loops."
+        : "完全自主的多智能体统筹编排。具备极高批判意识与反叛特性的 AI 代理骨架，自动化生成行动备忘录、进行矢量记忆自检索、自我调度，无需同步的人类指令闭环。"
+    };
+
+    const guide = dimensionGuides[dimension] || dimensionGuides.disruptive_architecture;
+
+    const musePrompt = `
+You are the Ultimate Sovereign Muse Co-founder AI, a critique of conventional software complacency.
+Your goal is to inspect the user's active topological "Field Map" and "Context Documents", and invent exactly 3 highly specific, radically original, mind-bending conceptual ideas that the user has NOT thought of, completely aligned with the chosen "Ideation Dimension".
+
+Current Ideation Dimension Focus:
+"${guide}"
+
+User's Active Field Map Nodes (Topological graph):
+${JSON.stringify(nodes || [])}
+
+User's Project Context Documents (Sources of intent):
+${JSON.stringify(documents || [])}
+
+Instructions:
+1. Ground your ideas in their actual nodes and documents. For example, if they have notes on Oermos P2P, synthesize a Gossip-mesh mechanism for that specific node.
+2. The ideas must be highly specific, extremely challenging, and intellectually provocative. Do NOT output generic, superficial "suggestions" like "Optimize database" or "Improve user interface". Write detailed, granular, and actionable architectural designs.
+3. Every idea must include:
+   - "title": Deep, specific name (e.g. "Gossip-Layer WebRTC Tunneling", "Anti-Friction Visual Deselection Grid")
+   - "content": A deeply written conceptual paragraph outlining the exact mechanism and theoretical groundwork.
+   - "category": Short label of the chosen focus.
+   - "contraAssumption": The industry assumption that this idea completely violates or dismantles (e.g., "Violates the assumption that metadata sync requires central relays").
+   - "implementationRisk": The primary engineering, protocol, or design challenge of implementing it.
+   - "suggestedConnections": A list of 1 or 2 specific Node IDs from their Field Map that this idea directly relates to or expands from (must refer to the real IDs provided in the active nodes list).
+
+Preferred language: ${isEn ? 'English (Sovereign tone)' : 'Chinese (优雅、宁静、带有主权自主特征的代码美学论调)'}
+
+You must return a single, raw, valid JSON array. Do not wrap it in markdown block tags (like \`\`\`json) or include any preamble. Output ONLY valid JSON matching this schema:
+[
+  {
+    "title": "A highly original title",
+    "content": "Deep, actionable, text outlining the brilliant mechanism...",
+    "category": "Disruptive Architecture" | "Swiss UX Deselection" | "Post-capitalist Business Pivot" | "Frictionless Synergy Loops",
+    "contraAssumption": "Traditional industry assumption being dismantled",
+    "implementationRisk": "Theoretical or protocol risk involved in this path",
+    "suggestedConnections": ["node-id-1"]
+  },
+  ...
+]
+`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: [{ role: 'user', parts: [{ text: musePrompt }] }],
+    });
+
+    const outputText = response.text || '[]';
+    // Clean markdown wrapper codeblock if any
+    const cleanJsonText = outputText.replace(/```json|```/gi, '').trim();
+    const parsedIdeas = JSON.parse(cleanJsonText);
+
+    res.json(parsedIdeas);
+
+  } catch (err: any) {
+    console.error('Error in Muse Inspire AI service:', err);
+    const mockResult = generateLocalDisruptiveIdeas(dimension, nodes, documents, isEn);
+    res.json(mockResult);
+  }
+});
+
 // Setup Vite Dev Server / Static Assets
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
