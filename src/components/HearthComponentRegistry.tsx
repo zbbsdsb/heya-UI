@@ -9,158 +9,226 @@ import {
   Compass, 
   Target, 
   Clock, 
-  Cpu, 
-  Plus, 
   Trash2, 
   ArrowUp, 
   ArrowDown, 
   ArrowLeft, 
   ArrowRight, 
-  UserPlus, 
-  Star, 
   Activity, 
   Link2, 
-  Layers, 
-  RefreshCw, 
   Eye, 
-  Shield, 
-  Terminal, 
   X, 
-  CheckSquare, 
-  SlidersHorizontal,
-  ChevronRight,
-  Code
+  Code,
+  Share2,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
-import { NodeData, NodeType, ChecklistItem } from '../types';
+import { NodeData, NodeType, ChecklistItem, Binder, BinderType } from '../types';
+import HearthNavigatorSidebar from './HearthNavigatorSidebar';
+import HearthBinderHub from './HearthBinderHub';
+import HearthComponentSimulator from './HearthComponentSimulator';
+import HearthFolderExplorer from './HearthFolderExplorer';
 
 interface HearthComponentRegistryProps {
   nodes: NodeData[];
   setNodes: React.Dispatch<React.SetStateAction<NodeData[]>>;
-  language?: 'en' | 'zh';
   selectedIdFromMain?: string;
+  language: 'en' | 'zh';
   onNavigateToNode?: (nodeId: string) => void;
 }
-
-const localT = {
-  en: {
-    title: "Hearth Topology Component Registry",
-    desc: "A cybernetic operational workbench. Interact with live-rendered widgets representing your nodes, wiring relations & shifting coordinates directly on a spatial digital-blueprint layout.",
-    gridMapTitle: "Digital-Blueprint Spatial Coordinates Matrix",
-    gridMapDesc: "Select coordinates, shift positions using arrows, and wire topological paths.",
-    widgetTitle: "Operational-Component Simulator Frame",
-    widgetDesc: "Interact with the real, live-simulated functional applet corresponding to your node status.",
-    nodeType: "Node Class",
-    coordinates: "Blueprint Spatial Coordinates",
-    addNode: "Register New Matrix Node",
-    deleteNode: "Unregister Component",
-    connectTo: "Establish Vector Link Path",
-    connectedLinks: "Active Handshake Connections",
-    logicalOperator: "Logical Ingress Gate",
-    members: "Assigned Task Members",
-    tags: "Component Tags",
-    hashBtn: "Compute Security Fingerprint",
-    hashProgress: "Computing SHA-256 Registry Hash...",
-    hashActive: "SHA-256 Secure Fingerprint",
-    agentLogs: "Agent Cognitive Log Shell",
-    agentRun: "Trigger Memory Scan Probe",
-    milestones: "Milestone Execution Checks",
-    addMilestone: "Add Milestone",
-    milestonePlaceholder: "e.g., Deliver WebRTC handshake module proof",
-    progressSlider: "Pipeline Execution Completeness",
-    divergenceCoef: "Cognitive Rebellion Factor",
-    quickPrompt: "Sandbox Fleeting Draft Prompt",
-    castSpark: "Spawn Idea Spark",
-    noNodeSelected: "No component selected. Click any node pin on the blueprint grid to activate its live operational widget!",
-    shiftUp: "Shift Node North (-15px)",
-    shiftDown: "Shift Node South (+15px)",
-    shiftLeft: "Shift Node West (-15px)",
-    shiftRight: "Shift Node East (+15px)",
-    createdText: "Component registered into local memory successfully.",
-    deletedText: "Component unregistered from registry matrix."
-  },
-  zh: {
-    title: "赫斯拓扑组件注册与真态虚拟空间",
-    desc: "网络协同控制台。在左侧空间坐标图谱与右侧高保真组件运行沙盒之间实时双向绑定。在这里，每一个节点都是一个真正可与之互动的响应式应用组件。",
-    gridMapTitle: "数字化空间矩阵蓝图 (交互拓扑图)",
-    gridMapDesc: "直观审视节点坐标，用物理方向键盘微调相对位置，建立连线路径。",
-    widgetTitle: "核心组件真实运转模拟舱 (Simulator)",
-    widgetDesc: "交互模拟运行该级节点相对应的真实功能。每一次点击和进度调整均将实时更新拓扑网。 ",
-    nodeType: "拓扑节点类目",
-    coordinates: "空间物理坐标系定位",
-    addNode: "注册全新拓扑节点",
-    deleteNode: "注销此注册组件",
-    connectTo: "构建空间逻辑通道连线",
-    connectedLinks: "已激活的下游握手节点对",
-    logicalOperator: "逻辑网关拦截算符",
-    members: "已指派的工坊协作成员",
-    tags: "组件特性标签",
-    hashBtn: "计算物理防篡改哈希指纹码",
-    hashProgress: "正在校验本地物料生成 SHA-256 注册特征值...",
-    hashActive: "SHA-256 复合安全验证签名",
-    agentLogs: "AGI 主权代理思考决策日志沙漏",
-    agentRun: "探询代理空间特征语义区",
-    milestones: "节点周期里程碑校验清单",
-    addMilestone: "新增里程碑",
-    milestonePlaceholder: "例如：交付 WebRTC 握手广播模块原型",
-    progressSlider: "流水线执行深度 (手动微调进度分值)",
-    divergenceCoef: "反常识发散偏差指数 (叛逆度系数)",
-    quickPrompt: "灵感沙盒内容即刻编写",
-    castSpark: "向思想池播撒灵感碎屑",
-    noNodeSelected: "暂未选中组件。请点击左侧数字矩阵中的任意节点圆点，便可立刻拉进对应的真态运行面板！",
-    shiftUp: "向北偏移相对空间 (-15px)",
-    shiftDown: "向南偏移相对空间 (+15px)",
-    shiftLeft: "向西偏移相对空间 (-15px)",
-    shiftRight: "向东偏移相对空间 (+15px)",
-    createdText: "新拓扑组件已注册至底层核心，矩阵自适应扩张。",
-    deletedText: "注销组件成功，该节点已从所有的拓扑路径中剥落。"
-  }
-};
 
 export default function HearthComponentRegistry({
   nodes,
   setNodes,
-  language = 'en',
   selectedIdFromMain,
+  language,
   onNavigateToNode
 }: HearthComponentRegistryProps) {
-  const lVal = localT[language];
   
-  // Track selected node ID
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(() => {
-    if (selectedIdFromMain) return selectedIdFromMain;
-    return nodes.length > 0 ? nodes[0].id : null;
-  });
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(selectedIdFromMain || null);
 
-  // Sync state update when prop changes
   useEffect(() => {
     if (selectedIdFromMain) {
       setSelectedNodeId(selectedIdFromMain);
     }
   }, [selectedIdFromMain]);
 
-  // Handle selected Node data helper
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+
+  // Drag handles for tactile physical nodes in 1000x800 container
+  const handleNodeDragStart = (e: React.MouseEvent, nodeId: string) => {
+    e.preventDefault();
+    setSelectedNodeId(nodeId);
+    setDraggingNodeId(nodeId);
+    if (typeof (window as any).playTactileChime === 'function') {
+      (window as any).playTactileChime('click');
+    }
+
+    const canvasContainer = e.currentTarget.parentElement;
+    if (!canvasContainer) return;
+
+    const handleDragMove = (moveEvent: MouseEvent) => {
+      const rect = canvasContainer.getBoundingClientRect();
+      const rawX = ((moveEvent.clientX - rect.left) / rect.width) * 1000;
+      const rawY = ((moveEvent.clientY - rect.top) / rect.height) * 800;
+
+      // Restrict coordinate range to fit beautifully inside board bounds
+      const clampedX = Math.round(Math.max(40, Math.min(960, rawX)));
+      const clampedY = Math.round(Math.max(40, Math.min(760, rawY)));
+
+      setNodes(prev => prev.map(n => {
+        if (n.id === nodeId) {
+          return {
+            ...n,
+            x: clampedX,
+            y: clampedY,
+            updatedAt: '2026/06/10'
+          };
+        }
+        return n;
+      }));
+    };
+
+    const handleDragEnd = () => {
+      setDraggingNodeId(null);
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+    };
+
+    window.addEventListener('mousemove', handleDragMove);
+    window.addEventListener('mouseup', handleDragEnd);
+  };
+
+  const handleNodeTouchStart = (e: React.TouchEvent, nodeId: string) => {
+    setSelectedNodeId(nodeId);
+    setDraggingNodeId(nodeId);
+    const canvasContainer = e.currentTarget.parentElement;
+    if (!canvasContainer) return;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.touches.length === 0) return;
+      const touch = moveEvent.touches[0];
+      const rect = canvasContainer.getBoundingClientRect();
+      const rawX = ((touch.clientX - rect.left) / rect.width) * 1000;
+      const rawY = ((touch.clientY - rect.top) / rect.height) * 800;
+
+      const clampedX = Math.round(Math.max(40, Math.min(960, rawX)));
+      const clampedY = Math.round(Math.max(40, Math.min(760, rawY)));
+
+      setNodes(prev => prev.map(n => {
+        if (n.id === nodeId) {
+          return {
+            ...n,
+            x: clampedX,
+            y: clampedY,
+            updatedAt: '2026/06/10'
+          };
+        }
+        return n;
+      }));
+    };
+
+    const handleTouchEnd = () => {
+      setDraggingNodeId(null);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+  };
+
   const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
-  // New Node Registration modal / states
+  // Dictionary localization map
+  const loc = {
+    en: {
+      title: 'Hearth Component Registry',
+      desc: 'Sovereign hardware, database references, and virtual runtimes registry map. Bind clouds, local file directories, and cloud storage targets directly to logical coordinate endpoints.',
+      registerBtn: 'Sow Component Spark',
+      gridMapTitle: 'Spatial Blueprint Grid Canvas',
+      gridMapDesc: 'Coordinate nodes connected by physical routing links on a 1000x800 topology layer.',
+      addNode: 'Sow New Component Element',
+      noNodeSelected: 'Select or register a component from the left navigator folder to project onto workspace.',
+      createdText: 'Sovereign node successfully sowed to logical coordinate workspace.',
+      deletedText: 'Component telemetry successfully purged from topology database.',
+      syncSuccess: 'State synchronized with hardware binder successfully.',
+
+      shiftUp: 'Shift anchor north-pole (+Y)',
+      shiftDown: 'Shift anchor south-pole (-Y)',
+      shiftLeft: 'Shift anchor west-gate (-X)',
+      shiftRight: 'Shift anchor east-gate (+X)',
+      connectTo: 'Cross-Pipeline Signal Route Linkage',
+      milestones: 'Operational Milestone Directives',
+      progressSlider: 'Pipeline Stage Completion Meter',
+      addMilestone: '+ DIRECTIVE',
+      milestonePlaceholder: 'Define logical checkpoint...',
+      hashBtn: '🔐 Compute Crypto Hash',
+      hashActive: '🔐 Cryptographic Integrity Signature',
+      hashProgress: 'Calculating SHA-256 signature...',
+      agentLogs: 'Autonomic Daemon Runtime Stack',
+      agentRun: '⚡ Execute Scan',
+      divergenceCoef: 'Divergent Creativity Index',
+      quickPrompt: 'Formulate Orthodox Seed Spark',
+      castSpark: 'Sow Spark',
+      tags: 'COMPILING SYSTEM META-TAGS / PROPERTIES'
+    },
+    zh: {
+      title: 'Hearth 物理与虚拟拓扑注册中心',
+      desc: '专有应用、离线文件夹、Cloudflare R2 存储与边缘计算组件。将现实世界硬件与多端端点，通过高精控制线对齐投影在逻辑平面。',
+      registerBtn: '播种全新引擎粒子',
+      gridMapTitle: '空间蓝图拓扑网格',
+      gridMapDesc: '在 1000x800 的二维粒子场上，微调物理拓扑并自由连接各个管线。',
+      addNode: '注册注册拓扑宿主节点',
+      noNodeSelected: '请在侧栏文件夹选中任何组件，或点击右上角播种新组件以启动调试网格。',
+      createdText: '新拓扑单元播种至蓝图逻辑节点。',
+      deletedText: '该组件对应的所有逻辑通路与映射均已安全移除。',
+      syncSuccess: '已完成单链物理健康探测及状态拉取。',
+
+      shiftUp: '逻辑轴向北偏置 (+Y)',
+      shiftDown: '逻辑轴向南偏置 (-Y)',
+      shiftLeft: '逻辑轴向西偏置 (-X)',
+      shiftRight: '逻辑轴向东偏置 (+X)',
+      connectTo: '信号路由及下行物理管路绑定',
+      milestones: '逻辑达成与断言清单',
+      progressSlider: '管线阶段性审计进度',
+      addMilestone: '+ 核心检查项',
+      milestonePlaceholder: '拟定系统物理或逻辑检查断言...',
+      hashBtn: '🔐 验证加密物理指纹',
+      hashActive: '🔐 唯一组件硬件完整性指纹',
+      hashProgress: '正在生成 SHA-256 位防篡改摘要...',
+      agentLogs: '自治 Daemon 内部追踪堆栈',
+      agentRun: '⚡ 启动诊断',
+      divergenceCoef: '灵感创意散度系数',
+      quickPrompt: '草拟打破桎梏的灵感设想',
+      castSpark: '投放火种',
+      tags: '当前已编译元数据标签与物理特征集'
+    }
+  };
+
+  const lVal = loc[language];
+
+  // Forms and actions states
   const [isNewNodeFormOpen, setIsNewNodeFormOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [newType, setNewType] = useState<NodeType>('project');
   const [newDesc, setNewDesc] = useState('');
-  const [newType, setNewType] = useState<NodeType>('todo');
-  const [newX, setNewX] = useState(400);
-  const [newY, setNewY] = useState(300);
+  const [newX, setNewX] = useState(150);
+  const [newY, setNewY] = useState(150);
 
-  // Simulation interactive internal states (resets on node change)
+  // Computing and AI-simulation states
   const [computingHash, setComputingHash] = useState(false);
   const [computedHashCode, setComputedHashCode] = useState<string | null>(null);
-  
-  // Agent prompt logs simulation
-  const [agentTriggerCount, setAgentTriggerCount] = useState(0);
   const [agentLogs, setAgentLogs] = useState<string[]>([]);
+  const [agentTriggerCount, setAgentTriggerCount] = useState(0);
   const [horizonProtocol, setHorizonProtocol] = useState('Heuristic Gravity');
-  
-  // Muse simulator controls
-  const [divergenceVal, setDivergenceVal] = useState(72);
+  const [divergenceVal, setDivergenceVal] = useState(50);
   const [musePromptText, setMusePromptText] = useState('');
+
+  // Navigator search and filter states
+  const [navSearch, setNavSearch] = useState('');
+  const [navTypeFilter, setNavTypeFilter] = useState<string>('all');
 
   // Interactive milestone input state
   const [newMilestoneText, setNewMilestoneText] = useState('');
@@ -180,6 +248,38 @@ export default function HearthComponentRegistry({
       setComputedHashCode(null);
     }
   }, [selectedNodeId, selectedNode?.id]);
+
+  // Auto load initialized high-fidelity binder examples if empty or undefined
+  useEffect(() => {
+    if (selectedNode && selectedNode.binders === undefined) {
+      setNodes(prev => prev.map(n => {
+        if (n.id === selectedNode.id) {
+          return {
+            ...n,
+            binders: [
+              {
+                id: `binder-local-${n.id}`,
+                type: 'local_folder',
+                name: language === 'en' ? 'Local Component Directory' : '本端工程源码目录',
+                path: `~/Workspace/blueprint/nodes/${n.type}/${n.id.slice(-6)}`,
+                status: 'synced',
+                lastSyncedAt: '08:44:18'
+              },
+              {
+                id: `binder-r2-${n.id}`,
+                type: 'cloudflare_r2',
+                name: language === 'en' ? 'Cloudflare R2 Bucket Assets' : 'Cloudflare R2 云端媒体桶',
+                path: `r2://hearth-assets/bucket-${n.id.slice(-6)}`,
+                status: 'active',
+                lastSyncedAt: '08:44:18'
+              }
+            ]
+          };
+        }
+        return n;
+      }));
+    }
+  }, [selectedNodeId, selectedNode?.id, setNodes, language]);
 
   // Trigger agent memory simulation
   const handleAgentScan = () => {
@@ -261,7 +361,7 @@ export default function HearthComponentRegistry({
     setIsNewNodeFormOpen(false);
 
     window.dispatchEvent(new CustomEvent('heya-toast', {
-      detail: { message: lVal.createdText, type: 'success' }
+      detail: { message: language === 'en' ? 'Sovereign node successfully sowed.' : '新拓扑单元播种至蓝图逻辑节点。', type: 'success' }
     }));
   };
 
@@ -285,7 +385,7 @@ export default function HearthComponentRegistry({
           ...n,
           x: Math.max(80, Math.min(1000, n.x + dx)),
           y: Math.max(80, Math.min(800, n.y + dy)),
-          updatedAt: '22026/06/10'
+          updatedAt: '2026/06/10'
         };
       }
       return n;
@@ -449,7 +549,7 @@ export default function HearthComponentRegistry({
     setSelectedNodeId(remainingNodes.length > 0 ? remainingNodes[0].id : null);
 
     window.dispatchEvent(new CustomEvent('heya-toast', {
-      detail: { message: lVal.deletedText, type: 'warn' }
+      detail: { message: language === 'en' ? 'Sovereign components successfully unregistered.' : '拓扑架构组件已完成物理注销。', type: 'warn' }
     }));
   };
 
@@ -479,6 +579,19 @@ export default function HearthComponentRegistry({
     setMusePromptText('');
   };
 
+  // Define dynamic column spans to support a gorgeous 4-column layout when a node is selected!
+  const col1Class = isNavCollapsed ? 'lg:col-span-1' : 'lg:col-span-3';
+
+  const col2Class = selectedNode 
+    ? (isNavCollapsed ? 'lg:col-span-4' : 'lg:col-span-3') 
+    : (isNavCollapsed ? 'lg:col-span-7' : 'lg:col-span-5');
+
+  const col3Class = selectedNode
+    ? (isNavCollapsed ? 'lg:col-span-4' : 'lg:col-span-3')
+    : 'lg:col-span-4';
+
+  const col4Class = 'lg:col-span-3 animate-in slide-in-from-right-4 duration-300';
+
   return (
     <div className="flex-1 overflow-y-auto bg-[#fafafa] p-10 space-y-8 animate-in fade-in-20 duration-300">
       
@@ -493,164 +606,294 @@ export default function HearthComponentRegistry({
               <h2 className="text-2xl font-black text-[#0f172a] tracking-tight">
                 {lVal.title}
               </h2>
-              <p className="text-[11px] text-slate-500 font-bold mt-0.5 max-w-xl leading-relaxed">
+              <p className="text-[11px] text-slate-505 font-bold mt-0.5 max-w-xl leading-relaxed">
                 {lVal.desc}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Action Header controls */}
-        <button 
+        <button
           onClick={() => {
             (window as any).playTactileChime?.('click');
-            setIsNewNodeFormOpen(!isNewNodeFormOpen);
+            setIsNewNodeFormOpen(true);
           }}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-md shadow-indigo-100 flex items-center gap-1.5"
+          className="px-5 py-3 h-11 bg-indigo-600 hover:bg-indigo-700 hover:scale-101 active:scale-99 text-white font-extrabold text-xs tracking-wide rounded-xl shadow-lg shadow-indigo-600/10 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap self-start md:self-auto"
         >
-          <Plus className="w-4 h-4" />
-          <span>{lVal.addNode}</span>
+          <Share2 className="w-4 h-4 text-indigo-200 fill-indigo-100/10" />
+          <span>{lVal.registerBtn}</span>
         </button>
       </div>
 
-      {/* New Node Pop-up Drawer (Blueprint Style) */}
+      {/* New Node Pop-up Drawer */}
       {isNewNodeFormOpen && (
-        <form onSubmit={handleRegisterNode} className="p-6 bg-white border-2 border-dashed border-indigo-200 rounded-2xl space-y-4 max-w-2xl animate-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center justify-between border-b pb-3 border-slate-100">
-            <h4 className="text-xs font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
-              <Grid className="w-4 h-4 animate-spin" />
-              <span>{lVal.addNode}</span>
-            </h4>
+        <form 
+          onSubmit={handleRegisterNode}
+          className="bg-white border-2 border-indigo-600 rounded-3xl p-6 shadow-xl space-y-4 relative overflow-hidden animate-in zoom-in-95 duration-200"
+        >
+          <div className="absolute top-0 right-0 p-4">
             <button 
               type="button" 
               onClick={() => setIsNewNodeFormOpen(false)}
-              className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg"
+              className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
+          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center border border-indigo-100">
+              <Grid className="w-4 h-4 text-indigo-500" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-[#0f172a] uppercase tracking-wide">
+                {lVal.addNode}
+              </h4>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Component Technical Title</span>
+              <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">Component Technical Title</span>
               <input 
                 type="text" 
                 placeholder="e.g., Gossip Protocol Tunnel" 
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 required
-                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-350 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-501 rounded-xl font-bold"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-350 focus:bg-white focus:outline-none rounded-xl font-bold"
               />
             </div>
 
             <div className="space-y-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">{lVal.nodeType}</span>
+              <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">Component Archetype Class</span>
               <select 
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as NodeType)}
-                className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:outline-none"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none rounded-xl font-semibold"
               >
-                <option value="project">Project Target Suite (Cluster Planning)</option>
-                <option value="todo">Execution Pipeline Vector (Checked Milestones)</option>
-                <option value="agent">Autonomous Strategy Controller (AI Logs Daemon)</option>
-                <option value="muse font-bold">Inspiration Deck (Divergent Sparks Sandbox)</option>
-                <option value="resource">Registry Base Network Asset (Static Code Modules)</option>
+                <option value="project">📁 Project Module Directory</option>
+                <option value="todo">🟢 Active Pipeline Task</option>
+                <option value="resource">📦 Resource Database</option>
+                <option value="agent">🤖 Sovereign Agent</option>
+                <option value="muse">💡 Inspiration Sandbox</option>
               </select>
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">Canvas Horiz Alignment (X Coordinate: 50~950)</span>
+              <input 
+                type="number" 
+                min={50}
+                max={950}
+                value={newX}
+                onChange={(e) => setNewX(parseInt(e.target.value) || 120)}
+                required
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none rounded-xl font-mono font-bold"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">Canvas Vert Alignment (Y Coordinate: 50~750)</span>
+              <input 
+                type="number" 
+                min={50}
+                max={750}
+                value={newY}
+                onChange={(e) => setNewY(parseInt(e.target.value) || 120)}
+                required
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none rounded-xl font-mono font-bold"
+              />
+            </div>
+          </div>
+
           <div className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Component Registry Functional Description</span>
+            <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">System Capability Description</span>
             <textarea 
-              rows={2} 
-              placeholder="Describe core duties and parameters embedded in this topological component..." 
+              rows={2}
+              placeholder="System parameters, interfaces or functional descriptions..."
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
-              className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-501 font-semibold leading-relaxed"
+              className="w-full text-xs px-3.5 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none rounded-xl font-semibold leading-relaxed"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Coordinates Grid X (80 - 1000)</span>
-              <input 
-                type="number" 
-                min={80} 
-                max={1000} 
-                value={newX}
-                onChange={(e) => setNewX(parseInt(e.target.value) || 400)}
-                className="w-full text-xs px-3.5 py-2 bg-slate-50 border border-slate-250 rounded-xl font-mono font-bold"
-              />
-            </div>
-            <div className="space-y-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Coordinates Grid Y (80 - 800)</span>
-              <input 
-                type="number" 
-                min={80} 
-                max={800} 
-                value={newY}
-                onChange={(e) => setNewY(parseInt(e.target.value) || 300)}
-                className="w-full text-xs px-3.5 py-2 bg-slate-50 border border-slate-250 rounded-xl font-mono font-bold"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2.5 pt-3">
+          <div className="flex justify-end gap-2 pt-2">
             <button 
-              type="button" 
+              type="button"
               onClick={() => setIsNewNodeFormOpen(false)}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold text-xs rounded-xl"
+              className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-500 font-extrabold text-[11px] rounded-xl transition-all"
             >
               Cancel
             </button>
             <button 
-              type="submit" 
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-sm"
+              type="submit"
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] rounded-xl shadow-lg shadow-indigo-600/10 transition-all"
             >
-              Register Component Matrix
+              Confirm Sowing
             </button>
           </div>
         </form>
       )}
 
-      {/* 2. Double-Hand Workspace Matrix Panel */}
+      {/* 2. Three-Column Workspace Studio Redesign */}
+      {/* Dynamic Column widths based on sidebar state */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* ================= LEFT 5 COLS: INTERACTIVE BLUEPRINT MAP ================= */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* ================= COLUMN 1: COMPONENTS DIRECTORY SIDEBAR ================= */}
+        <div className={`${col1Class} h-full transition-all duration-300 relative`}>
+          {isNavCollapsed ? (
+            <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-3 shadow-sm h-full flex flex-col items-center justify-between min-h-[400px] animate-in slide-in-from-left-4 duration-300">
+              <div className="flex flex-col items-center gap-6">
+                {/* Expand button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    (window as any).playTactileChime?.('click');
+                    setIsNavCollapsed(false);
+                  }}
+                  className="p-1 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-all border border-indigo-200 hover:text-indigo-700 active:scale-95 text-[10px] font-black font-mono flex items-center justify-center gap-1 cursor-pointer"
+                  title={language === 'en' ? 'Click to expand directory' : '展开左侧面板'}
+                >
+                  <ChevronsRight className="w-5 h-5 animate-pulse" />
+                </button>
+
+                {/* Tiny Icon representation */}
+                <div className="flex flex-col gap-5 text-center mt-6">
+                  <div className="flex flex-col items-center gap-1" title="Clusters">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200/50 flex items-center justify-center">
+                      <Grid className="w-4 h-4 text-indigo-500" />
+                    </div>
+                    <span className="text-[10px] font-black font-mono text-slate-400">
+                      {nodes.filter(n => n.type === 'project').length}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-1" title="Pipelines">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/50 flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <span className="text-[10px] font-black font-mono text-slate-400">
+                      {nodes.filter(n => n.type === 'todo').length}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-1" title="Agents">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-200/50 flex items-center justify-center font-mono">
+                      🤖
+                    </div>
+                    <span className="text-[10px] font-black font-mono text-slate-400">
+                      {nodes.filter(n => n.type === 'agent').length}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-1" title="Sandboxes">
+                    <div className="w-8 h-8 rounded-xl bg-pink-50 border border-pink-200/50 flex items-center justify-center">
+                      <Compass className="w-4 h-4 text-pink-500" />
+                    </div>
+                    <span className="text-[10px] font-black font-mono text-slate-400">
+                      {nodes.filter(n => n.type === 'muse').length}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-1" title="Assets">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center">
+                      <Code className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <span className="text-[10px] font-black font-mono text-slate-400">
+                      {nodes.filter(n => n.type === 'resource').length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[8px] font-black text-indigo-400 font-mono rotate-90 uppercase py-6 whitespace-nowrap tracking-widest leading-none select-none">
+                H-CORE DIRECTORY
+              </div>
+            </div>
+          ) : (
+            <div className="relative animate-in slide-in-from-left-4 duration-300">
+              {/* Collapse button inside the fully expanded sidebar */}
+              <button
+                type="button"
+                onClick={() => {
+                  (window as any).playTactileChime?.('click');
+                  setIsNavCollapsed(true);
+                }}
+                className="absolute right-4 top-4 p-1 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-indigo-600 rounded-xl transition-all border border-slate-200/70 z-30 cursor-pointer active:scale-90"
+                title={language === 'en' ? 'Click to collapse directory' : '收起左侧面板'}
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+              <HearthNavigatorSidebar
+                nodes={nodes}
+                selectedNodeId={selectedNodeId}
+                setSelectedNodeId={setSelectedNodeId}
+                language={language}
+                onAddNodeClick={() => {
+                  (window as any).playTactileChime?.('click');
+                  setIsNewNodeFormOpen(true);
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ================= COLUMN 2: SPATIAL CANVAS BLUEPRINT & BINDING HUB ================= */}
+        <div className={`${col2Class} space-y-6 transition-all duration-300 animate-in fade-in-30`}>
           <div className="bg-[#0b0c16] border border-slate-900 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-600/10 blur-3xl rounded-full pointer-events-none" />
             <div className="absolute left-6 bottom-6 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full pointer-events-none" />
 
             <div className="relative z-10 space-y-5">
-              <div>
-                <h3 className="text-xs font-black text-slate-350 uppercase tracking-widest flex items-center gap-1.5">
-                  <Grid className="w-4 h-4 text-indigo-400 animate-pulse" />
-                  <span>{lVal.gridMapTitle}</span>
-                </h3>
-                <p className="text-[10px] text-slate-500 font-bold mt-1 max-w-sm">
-                  {lVal.gridMapDesc}
-                </p>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xs font-black text-slate-350 uppercase tracking-widest flex items-center gap-1.5">
+                    <Grid className="w-4 h-4 text-indigo-400 animate-pulse" />
+                    <span>{lVal.gridMapTitle}</span>
+                  </h3>
+                  <p className="text-[10px] text-slate-505 font-medium mt-1 leading-relaxed">
+                    {lVal.gridMapDesc}
+                  </p>
+                </div>
+                {draggingNodeId && (
+                  <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[8px] uppercase tracking-wider font-extrabold rounded-md animate-pulse">
+                    ● DRAGGING ACTIVE
+                  </span>
+                )}
               </div>
 
               {/* Blueprint Interactive Vector Canvas Board */}
-              <div className="w-full h-[320px] bg-[#020205] border border-indigo-950/80 rounded-2xl relative overflow-hidden flex items-center justify-center">
-                {/* Simulated coordinate background dots */}
+              <div className="w-full h-[280px] bg-[#020205] border border-indigo-950/85 rounded-2xl relative overflow-hidden flex items-center justify-center shadow-lg cursor-crosshair">
                 <div className="absolute inset-0 select-none pointer-events-none opacity-[0.06]" style={{
                   backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
                   backgroundSize: '20px 20px'
                 }} />
 
-                {/* Simulated center coordinate rule tags */}
-                <div className="absolute left-3 top-3 font-mono text-[8px] text-slate-600 leading-none">
-                  SOVEREIGN RANGING: 1000 x 800 GRID
+                <div className="absolute left-3 top-3 font-mono text-[8px] text-slate-550 leading-none">
+                  GRID PRODUCER SCALE: 1000x800 | INTERACTIVE DRAG-LOCK
                 </div>
 
-                {/* Vector SVG path calculations */}
+                {/* Horizontal & Vertical Crosshair alignment wires during active dragging */}
+                {draggingNodeId && (() => {
+                  const dNode = nodes.find(n => n.id === draggingNodeId);
+                  if (!dNode) return null;
+                  const percentX = (dNode.x / 1000) * 100 + '%';
+                  const percentY = (dNode.y / 800) * 100 + '%';
+                  return (
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                      {/* X aligning wire */}
+                      <line x1="0" y1={percentY} x2="100%" y2={percentY} stroke="#f59e0b" strokeWidth="0.75" strokeDasharray="3 3" opacity="0.6" />
+                      {/* Y aligning wire */}
+                      <line x1={percentX} y1="0" x2={percentX} y2="100%" stroke="#f59e0b" strokeWidth="0.75" strokeDasharray="3 3" opacity="0.6" />
+                    </svg>
+                  );
+                })()}
+
                 <svg className="absolute inset-0 w-full h-full pointer-events-none">
                   {nodes.map((n) => {
-                    // Map nodes internal x,y coordinates into simulated canvas matrix proportions
-                    // Canvas scale maps width mapping: x / 1000 -> canvas px, height: y / 800 -> canvas px
                     const scaledX1 = (n.x / 1000) * 100 + '%';
                     const scaledY1 = (n.y / 800) * 100 + '%';
 
@@ -664,7 +907,7 @@ export default function HearthComponentRegistry({
 
                       return (
                         <line 
-                          key={`${n.id}-${targetId}`}
+                           key={`${n.id}-${targetId}`}
                           x1={scaledX1}
                           y1={scaledY1}
                           x2={scaledX2}
@@ -679,7 +922,6 @@ export default function HearthComponentRegistry({
                   })}
                 </svg>
 
-                {/* Nodes rendering as selectable coordinate pins */}
                 {nodes.map((n) => {
                   const percentX = (n.x / 1000) * 100;
                   const percentY = (n.y / 800) * 100;
@@ -695,24 +937,28 @@ export default function HearthComponentRegistry({
                   return (
                     <button
                       key={n.id}
+                      type="button"
+                      onMouseDown={(e) => handleNodeDragStart(e, n.id)}
+                      onTouchStart={(e) => handleNodeTouchStart(e, n.id)}
                       onClick={() => {
                         (window as any).playTactileChime?.('click');
                         setSelectedNodeId(n.id);
                       }}
-                      className="absolute translate-x-[-50%] translate-y-[-50%] transition-all duration-300 group z-20 cursor-pointer"
+                      className={`absolute translate-x-[-50%] translate-y-[-50%] transition-transform duration-75 group z-20 cursor-move ${
+                        isSelected ? 'scale-125 z-30' : 'hover:scale-115'
+                      }`}
                       style={{ left: `${percentX}%`, top: `${percentY}%` }}
-                      title={`${n.title} (X: ${n.x}, Y: ${n.y})`}
+                      title={`${n.title} (X: ${n.x}, Y: ${n.y}) - Drag directly to re-position`}
                     >
-                      <span className={`relative flex h-3.5 w-3.5 items-center justify-center rounded-full ${typeColor} ring-4 transition-all duration-300 hover:scale-135 leading-none shadow-md ${
-                        isSelected ? 'ring-amber-500/80 scale-125' : ''
+                      <span className={`relative flex h-4 w-4 items-center justify-center rounded-full ${typeColor} ring-4 transition-all duration-300 leading-none shadow-md ${
+                        isSelected ? 'ring-amber-500/80' : ''
                       }`}>
                         {isSelected && (
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-900 absolute" />
                         )}
                       </span>
 
-                      {/* Floating dynamic tag hover overlays */}
-                      <span className="pointer-events-none absolute left-5 top-0 transform -translate-y-1/2 bg-slate-950 border border-slate-800 text-[8.5px] font-black text-slate-300 rounded px-1.5 py-0.5 tracking-tight font-mono opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      <span className="pointer-events-none absolute left-5 top-0 transform -translate-y-1/2 bg-slate-950 border border-slate-800 text-[8.5px] font-black text-slate-300 rounded px-1.5 py-0.5 tracking-tight font-mono opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
                         {n.title} ({n.x},{n.y})
                       </span>
                     </button>
@@ -722,110 +968,109 @@ export default function HearthComponentRegistry({
 
               {/* Coordinates Control & Direction Arrow Console */}
               {selectedNode && (
-                <div className="bg-[#121320] border border-slate-900/60 rounded-2xl p-5 space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b border-indigo-950/50">
-                    <div className="font-mono text-[10px] text-indigo-400 font-extrabold uppercase">
-                      ⚓ Anchor Location Telemetry
+                <div className="bg-[#121320] border border-slate-900/60 rounded-2xl p-4 space-y-3 animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex justify-between items-center pb-1.5 border-b border-indigo-950/50">
+                    <div className="font-mono text-[9px] text-indigo-400 font-extrabold uppercase tracking-wider">
+                      ⚓ Anchor Location Telemetry (Try Dragging Nodes!)
                     </div>
-                    <span className="px-2 py-0.5 bg-slate-900 text-indigo-300 rounded font-mono text-[9px] font-bold">
+                    <span className="px-2 py-0.5 bg-slate-900 text-indigo-300 rounded font-mono text-[8.5px] font-bold">
                       X: {selectedNode.x}px | Y: {selectedNode.y}px
                     </span>
                   </div>
 
-                  {/* High fidelity arrows panel pad (Tactile shift mechanics) */}
-                  <div className="grid grid-cols-12 gap-4 items-center">
-                    
+                  <div className="grid grid-cols-12 gap-3 items-center">
                     {/* Console arrows container on left */}
-                    <div className="col-span-6 flex justify-center py-2 relative">
-                      <div className="w-24 h-24 rounded-full bg-slate-950 border-2 border-slate-800/80 p-0.5 relative flex items-center justify-center">
+                    <div className="col-span-6 flex justify-center py-1">
+                      <div className="w-20 h-20 rounded-full bg-slate-950 border-2 border-slate-800/80 p-0.5 relative flex items-center justify-center shadow-inner">
                         <button 
+                          type="button"
                           onClick={() => handleShiftCoordinate('up')}
-                          className="absolute top-1 p-1 hover:bg-slate-800 text-indigo-400 hover:text-white rounded transition-all active:scale-90"
+                          className="absolute top-0.5 p-1 hover:bg-slate-8 w-6 h-6 hover:bg-slate-800 text-indigo-400 hover:text-white rounded transition-all active:scale-90 flex items-center justify-center cursor-pointer"
                           title={lVal.shiftUp}
                         >
-                          <ArrowUp className="w-4 h-4" />
+                          <ArrowUp className="w-3.5 h-3.5" />
                         </button>
                         <button 
+                          type="button"
                           onClick={() => handleShiftCoordinate('down')}
-                          className="absolute bottom-1 p-1 hover:bg-slate-800 text-indigo-400 hover:text-white rounded transition-all active:scale-90"
+                          className="absolute bottom-0.5 p-1 hover:bg-slate-8 w-6 h-6 hover:bg-slate-800 text-indigo-400 hover:text-white rounded transition-all active:scale-90 flex items-center justify-center cursor-pointer"
                           title={lVal.shiftDown}
                         >
-                          <ArrowDown className="w-4 h-4" />
+                          <ArrowDown className="w-3.5 h-3.5" />
                         </button>
                         <button 
+                          type="button"
                           onClick={() => handleShiftCoordinate('left')}
-                          className="absolute left-1 p-1 hover:bg-slate-800 text-indigo-400 hover:text-white rounded transition-all active:scale-90"
+                          className="absolute left-0.5 p-1 hover:bg-slate-8 w-6 h-6 hover:bg-slate-800 text-indigo-400 hover:text-white rounded transition-all active:scale-90 flex items-center justify-center cursor-pointer"
                           title={lVal.shiftLeft}
                         >
-                          <ArrowLeft className="w-4 h-4" />
+                          <ArrowLeft className="w-3.5 h-3.5" />
                         </button>
                         <button 
+                          type="button"
                           onClick={() => handleShiftCoordinate('right')}
-                          className="absolute right-1 p-1 hover:bg-slate-800 text-indigo-400 hover:text-white rounded transition-all active:scale-90"
+                          className="absolute right-0.5 p-1 hover:bg-slate-8 w-6 h-6 hover:bg-slate-800 text-indigo-400 hover:text-white rounded transition-all active:scale-90 flex items-center justify-center cursor-pointer"
                           title={lVal.shiftRight}
                         >
-                          <ArrowRight className="w-4 h-4" />
+                          <ArrowRight className="w-3.5 h-3.5" />
                         </button>
-                        
-                        <div className="w-6 h-6 rounded-full bg-[#080914] border border-slate-800 shadow shadow-inner" />
+                        <div className="w-5 h-5 rounded-full bg-[#080914] border border-slate-800 shadow shadow-inner" />
                       </div>
                     </div>
 
-                    {/* Quick navigation and jump handles on right */}
+                    {/* Navigation controllers */}
                     <div className="col-span-6 space-y-2">
-                      <span className="text-[8.5px] font-bold text-slate-500 uppercase tracking-widest block font-mono">
-                        Global Teleport Control
-                      </span>
                       <button
+                        type="button"
                         onClick={() => {
                           (window as any).playTactileChime?.('success');
                           if (onNavigateToNode) {
                             onNavigateToNode(selectedNode.id);
                           }
                         }}
-                        className="w-full py-2 bg-indigo-600/30 hover:bg-indigo-600/40 border-2 border-indigo-500/20 text-indigo-300 font-extrabold text-[10px] rounded-xl flex items-center justify-center gap-1.5 transition-all text-center"
+                        className="w-full py-1.5 bg-indigo-600/30 hover:bg-indigo-600/45 border border-indigo-505/20 text-indigo-300 font-extrabold text-[9.5px] rounded-xl flex items-center justify-center gap-1 transition-all text-center cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Locate on Field Map</span>
+                        <span>Locate on Field</span>
                       </button>
 
                       <button
+                        type="button"
                         onClick={handleDeleteNodeRegistry}
-                        className="w-full py-2 bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-rose-400/90 font-extrabold text-[10px] rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                        className="w-full py-1.5 bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-rose-450 font-extrabold text-[9.5px] rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>Unregister Component</span>
+                        <span>Unregister Node</span>
                       </button>
                     </div>
-
                   </div>
-
                 </div>
               )}
 
-              {/* Connections wire mapper list */}
+              {/* Downstream Path Connections */}
               {selectedNode && (
-                <div className="bg-[#121320] border border-slate-900/60 rounded-2xl p-5 space-y-3">
+                <div className="bg-[#121320] border border-slate-900/60 rounded-2xl p-4 space-y-2">
                   <div className="font-mono text-[9px] text-slate-400 font-black uppercase tracking-wider flex items-center gap-1.5">
                     <Link2 className="w-3.5 h-3.5 text-indigo-400" />
                     <span>{lVal.connectTo}</span>
                   </div>
 
-                  <div className="max-h-[140px] overflow-y-auto space-y-1.5 pr-2 custom-scroll">
+                  <div className="max-h-[110px] overflow-y-auto space-y-1.5 pr-1.5 custom-scroll">
                     {nodes.filter(n => n.id !== selectedNode.id).map((on) => {
                       const isConnected = selectedNode.connections.includes(on.id);
                       return (
                         <button
                           key={on.id}
+                          type="button"
                           onClick={() => toggleNodeConnection(on.id)}
-                          className={`w-full p-2 rounded-xl text-left font-semibold text-[11px] font-mono border transition-all flex items-center justify-between ${
+                          className={`w-full p-2 rounded-xl text-left font-semibold text-[10px] font-mono border transition-all flex items-center justify-between cursor-pointer ${
                             isConnected 
                               ? 'bg-slate-900 border-indigo-600/80 text-amber-300' 
                               : 'bg-slate-950/80 border-slate-900 text-slate-400 hover:border-slate-800'
                           }`}
                         >
-                          <span className="truncate">📍 {on.title}</span>
-                          <span className="text-[9px] font-bold">
+                          <span className="truncate flex items-center">📍 {on.title}</span>
+                          <span className="text-[8.5px] font-bold shrink-0">
                             {isConnected ? '✓ Connected' : '+ Wire Link'}
                           </span>
                         </button>
@@ -834,409 +1079,67 @@ export default function HearthComponentRegistry({
                   </div>
                 </div>
               )}
-
             </div>
           </div>
+
+          {/* Physically Bridged Binders Hub */}
+          {selectedNode && (
+            <HearthBinderHub
+              selectedNode={selectedNode}
+              nodes={nodes}
+              setNodes={setNodes}
+              language={language}
+            />
+          )}
         </div>
 
-        {/* ================= RIGHT 7 COLS: COMPONENT ACTION SIMULATOR ================= */}
-        <div className="lg:col-span-7">
+        {/* ================= COLUMN 3: PERFORMANCE DIGITAL-TWIN SIMULATOR ================= */}
+        <div className={`${col3Class} h-full`}>
           {selectedNode ? (
-            <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-7 shadow-sm space-y-6 relative overflow-hidden">
-              
-              {/* Telemetry Indicator ribbons */}
-              <div className="absolute top-0 left-8 transform -translate-y-1/2 flex items-center gap-2">
-                <span className="px-3.5 py-1 text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white rounded-md shadow-sm">
-                  {lVal.widgetTitle}
-                </span>
-                
-                <span className="px-3.5 py-1 text-[9px] font-black font-mono uppercase tracking-widest bg-amber-500 text-white rounded-md shadow-sm">
-                  ACTIVE MATRIX ID: {selectedNode.id}
-                </span>
-              </div>
-
-              {/* Node standard structural fields editor panel */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 pt-3">
-                <div className="md:col-span-6 space-y-1">
-                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">Component Active Host Label</span>
-                  <input 
-                    type="text" 
-                    value={selectedNode.title}
-                    onChange={(e) => handleUpdateNodeStringField('title', e.target.value)}
-                    className="w-full text-sm font-black text-[#0f172a] px-3.5 py-2 border border-slate-200 focus:border-indigo-505 focus:outline-none rounded-xl"
-                  />
-                </div>
-
-                <div className="md:col-span-3 space-y-1">
-                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">Runtime Status</span>
-                  <select
-                    value={selectedNode.status || 'active'}
-                    onChange={(e) => handleUpdateNodeStringField('status', e.target.value)}
-                    className="w-full text-xs font-bold px-2 py-2 border border-slate-200 rounded-xl focus:outline-none"
-                  >
-                    <option value="draft">📁 Draft Component</option>
-                    <option value="active">🟢 Active Matrix</option>
-                    <option value="completed">🏆 Finished Module</option>
-                    <option value="archived">📦 Compressed Archive</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-3 space-y-1">
-                  <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">Logical Ingress Gate</span>
-                  <select
-                    value={selectedNode.logicalOperator || 'AND'}
-                    onChange={(e) => handleUpdateNodeStringField('logicalOperator', e.target.value)}
-                    className="w-full text-xs font-bold px-2 py-2 border border-slate-200 rounded-xl focus:outline-none"
-                  >
-                    <option value="AND">AND GATE</option>
-                    <option value="OR">OR GATE</option>
-                    <option value="NOT">NOT GATE</option>
-                    <option value="XOR">XOR GATE</option>
-                    <option value="INPUT">RAW SEED</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">Functional Capabilities Decriptor</span>
-                <textarea 
-                  rows={2}
-                  value={selectedNode.description}
-                  onChange={(e) => handleUpdateNodeStringField('description', e.target.value)}
-                  className="w-full text-xs font-medium leading-relaxed px-3.5 py-2 border border-slate-200 focus:border-indigo-505 focus:outline-none rounded-xl"
-                />
-              </div>
-
-              {/* ================= TYPE-SPECIFIC ACTIVE LIVE APPLET SIMULATORS ================= */}
-              
-              {/* CASE A: project typology */}
-              {selectedNode.type === 'project' && (
-                <div className="p-6 bg-slate-50/75 border border-slate-200/60 rounded-2xl space-y-5 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center pb-2 border-b">
-                    <h5 className="text-xs font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5 font-mono">
-                      <Target className="w-4 h-4 text-indigo-500 fill-indigo-500/20 animate-pulse" />
-                      <span>{lVal.milestones}</span>
-                    </h5>
-                    <span className="text-[10px] font-mono font-bold text-slate-500">
-                      Module Complete: {selectedNode.progress}%
-                    </span>
-                  </div>
-
-                  {/* Milestones checklists map */}
-                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                    {selectedNode.checklist.length === 0 ? (
-                      <p className="text-[10.5px] text-slate-400 font-bold py-4 text-center border border-dashed rounded-xl">
-                        Zero check milestones assigned. Fill in the field below to spawn downstreams.
-                      </p>
-                    ) : (
-                      selectedNode.checklist.map((item) => (
-                        <div key={item.id} className="p-2.5 bg-white border rounded-xl flex items-center justify-between shadow-sm">
-                          <button
-                            onClick={() => toggleMilestoneComplete(item.id)}
-                            className="flex items-center gap-2.5 text-left text-xs font-bold text-slate-700 select-none cursor-pointer"
-                          >
-                            <span className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
-                              item.done 
-                                ? 'bg-indigo-600 border-indigo-700 text-white' 
-                                : 'border-slate-300 hover:border-indigo-500'
-                            }`}>
-                              {item.done && <span className="text-[9px] font-black">✓</span>}
-                            </span>
-                            <span className={item.done ? 'line-through text-slate-400' : ''}>
-                              {item.text}
-                            </span>
-                          </button>
-
-                          <button 
-                            onClick={() => deleteMilestone(item.id)}
-                            className="p-1 hover:bg-rose-50 text-slate-350 hover:text-red-500 rounded-md transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* Add checkpoint inline */}
-                  <form onSubmit={handleAddMilestone} className="flex gap-2.5">
-                    <input 
-                      type="text" 
-                      placeholder={lVal.milestonePlaceholder}
-                      value={newMilestoneText}
-                      onChange={(e) => setNewMilestoneText(e.target.value)}
-                      required
-                      className="flex-1 text-xs px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-501 font-semibold"
-                    />
-                    <button 
-                      type="submit"
-                      className="px-4.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] rounded-xl flex items-center gap-1.5 shadow"
-                    >
-                      <span>{lVal.addMilestone}</span>
-                    </button>
-                  </form>
-                </div>
-              )}
-
-              {/* CASE B: todo typology */}
-              {selectedNode.type === 'todo' && (
-                <div className="p-6 bg-emerald-50/15 border border-emerald-100 rounded-2xl space-y-5 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                    <h5 className="text-xs font-black uppercase text-emerald-700 tracking-wider flex items-center gap-1.5 font-mono">
-                      <Clock className="w-4 h-4 text-emerald-500 animate-spin" style={{ animationDuration: '6s' }} />
-                      <span>{lVal.progressSlider}</span>
-                    </h5>
-                    <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-100/40 px-2 py-0.5 rounded">
-                      {selectedNode.progress}% Done
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 py-2">
-                    <input 
-                      type="range" 
-                      min={0} 
-                      max={100} 
-                      value={selectedNode.progress} 
-                      onChange={handleProgressSliderChange}
-                      className="w-full h-2.5 bg-emerald-100/50 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                    />
-                    <div className="flex justify-between text-[9px] font-black text-slate-400 font-mono">
-                      <span>0% DISPATCHED</span>
-                      <span>50% INGRESS PIPELINE</span>
-                      <span>100% AUDITED MASTER</span>
-                    </div>
-                  </div>
-
-                  {/* Standard checklist simulation as checkpoints list */}
-                  <div className="p-4 bg-white border rounded-xl border-emerald-150 space-y-2">
-                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block font-mono">
-                      Pipeline Sanity Assertions Check
-                    </span>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                        <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Source codes fully integrated in Hearth registry bundle</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                        <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Logical Gates passed without structural circular dependencies</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* CASE C: resource typology */}
-              {selectedNode.type === 'resource' && (
-                <div className="p-6 bg-slate-50/75 border border-slate-200/60 rounded-2xl space-y-4 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                    <h5 className="text-xs font-black uppercase text-amber-700 tracking-wider flex items-center gap-1.5 font-mono">
-                      <SlidersHorizontal className="w-4 h-4 text-amber-500 animate-pulse" />
-                      <span>Workspace Module Reference Link Code</span>
-                    </h5>
-                    <span className="text-[10px] font-mono font-bold text-slate-500">
-                      Module Class: static
-                    </span>
-                  </div>
-
-                  {/* Registry simulated codebase snippet block */}
-                  <div className="p-4 bg-slate-900 border border-slate-950 rounded-xl space-y-2">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
-                      <span className="text-[8.5px] font-mono font-bold text-indigo-400 uppercase tracking-tight">
-                        Import Code snippet
-                      </span>
-                      <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    </div>
-                    <pre className="text-[10.5px] font-mono text-slate-300 font-medium overflow-x-auto select-all leading-relaxed leading-5">
-                      <code>
-{`import { HearthKernel } from '@hearth/core';
-
-// Anchor dependency handle references
-const registryHandle = HearthKernel.locate('${selectedNode.id}');
-console.log('[System Engine] Binding status: ', registryHandle.status);
-console.log('[Coordinate Node] Space vector: ', [${selectedNode.x}, ${selectedNode.y}]);`}
-                      </code>
-                    </pre>
-                  </div>
-
-                  {/* Hash calculations */}
-                  <div className="pt-2">
-                    {computedHashCode ? (
-                      <div className="p-3 bg-emerald-50 border border-emerald-250 rounded-xl space-y-1">
-                        <span className="text-[8.5px] font-black uppercase tracking-wider text-emerald-700 font-mono block">
-                          {lVal.hashActive}
-                        </span>
-                        <p className="text-[10px] text-slate-600 font-mono font-semibold break-all">
-                          🔒 {computedHashCode}
-                        </p>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={calculateShaRegistry}
-                        disabled={computingHash}
-                        className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-amber-300 text-[10.5px] font-black uppercase tracking-widest rounded-xl transition-all shadow flex items-center justify-center gap-1.5"
-                      >
-                        <Shield className="w-4 h-4 text-amber-300" />
-                        <span>{computingHash ? lVal.hashProgress : lVal.hashBtn}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* CASE D: agent typology */}
-              {selectedNode.type === 'agent' && (
-                <div className="p-6 bg-purple-50/15 border border-purple-100 rounded-2xl space-y-4 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center pb-2 border-b border-purple-100/40">
-                    <h5 className="text-xs font-black uppercase text-purple-700 tracking-wider flex items-center gap-1.5 font-mono">
-                      <Terminal className="w-4 h-4 text-purple-500 animate-pulse" />
-                      <span>{lVal.agentLogs}</span>
-                    </h5>
-                    
-                    <span className="text-[9px] font-mono font-black text-purple-500 px-1.5 py-0.5 bg-purple-50 rounded">
-                      DAEMON HEALTHY
-                    </span>
-                  </div>
-
-                  {/* Console logs display */}
-                  <div className="p-4 bg-[#0a0a14] border border-slate-900 rounded-xl max-h-[140px] overflow-y-auto space-y-1.5 custom-scroll">
-                    {agentLogs.map((log, idx) => (
-                      <div key={idx} className="font-mono text-[9.5px] text-zinc-300 leading-relaxed font-medium">
-                        {log}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <div className="space-y-1">
-                      <span className="text-[8.5px] font-black uppercase tracking-widest text-slate-400 font-mono">
-                        FOCUS HORIZON STRATEGY
-                      </span>
-                      <select 
-                        value={horizonProtocol}
-                        onChange={(e) => setHorizonProtocol(e.target.value)}
-                        className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border rounded-xl font-bold focus:outline-none"
-                      >
-                        <option value="Heuristic Gravity">Heuristic Gravity Align</option>
-                        <option value="Logical Sieve">Sub-Logical Task Sieve</option>
-                        <option value="Swiss Deselect Pro">Swiss Minimal Deselection Core</option>
-                      </select>
-                    </div>
-
-                    <div className="flex items-end">
-                      <button
-                        onClick={handleAgentScan}
-                        className="w-full py-2 bg-[#09090f] hover:bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow flex items-center justify-center gap-1.5 border border-slate-800"
-                      >
-                        <Activity className="w-3.5 h-3.5 text-purple-400" />
-                        <span>{lVal.agentRun}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* CASE E: muse typology */}
-              {selectedNode.type === 'muse' && (
-                <div className="p-6 bg-pink-50/15 border border-pink-100 rounded-2xl space-y-4 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center pb-2 border-b border-pink-100/40">
-                    <h5 className="text-xs font-black uppercase text-pink-700 tracking-wider flex items-center gap-1.5 font-mono">
-                      <Compass className="w-4 h-4 text-pink-500 fill-pink-500/10 animate-spin" style={{ animationDuration: '10s' }} />
-                      <span>{language === 'en' ? 'Inspiration Sandbox Simulator' : '逆向思维发散沙盒模拟舱'}</span>
-                    </h5>
-                    
-                    <span className="text-[10px] font-mono font-bold text-pink-600 bg-pink-100/40 px-2.5 py-0.5 rounded">
-                      Sparks active
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold text-slate-505">
-                      <span>{lVal.divergenceCoef}</span>
-                      <span className="font-mono">{divergenceVal}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min={0} 
-                      max={120} 
-                      value={divergenceVal} 
-                      onChange={(e) => setDivergenceVal(parseInt(e.target.value))}
-                      className="w-full h-2 bg-pink-100 rounded-lg appearance-none cursor-pointer accent-pink-500"
-                    />
-                  </div>
-
-                  {/* Sowing seed input directly */}
-                  <form onSubmit={handleLocalMuseCast} className="space-y-2">
-                    <span className="text-[8.5px] font-black uppercase tracking-widest text-slate-400 font-mono block">
-                      {lVal.quickPrompt}
-                    </span>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        placeholder={language === 'en' ? 'Jot down unorthodox feature concepts...' : '草拟一项离经叛道的创新设想...'} 
-                        value={musePromptText}
-                        onChange={(e) => setMusePromptText(e.target.value)}
-                        required
-                        className="flex-1 text-xs px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-pink-400 font-bold"
-                      />
-                      <button 
-                        type="submit" 
-                        className="px-4 py-2 bg-[#1c0812] text-pink-300 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shrink-0"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                        <span>{lVal.castSpark}</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Metadata tags list wrapper */}
-              <div className="space-y-1.5 border-t pt-4">
-                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">
-                  {lVal.tags}
-                </span>
-
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedNode.tags.map((tag, idx) => (
-                    <span 
-                      key={idx} 
-                      className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-black font-mono rounded"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-
-                  <button 
-                    onClick={() => {
-                      (window as any).playTactileChime?.('click');
-                      const freshTag = prompt(language === 'en' ? 'Enter tag string:' : '输入新特性标签字符串:');
-                      if (freshTag && freshTag.trim()) {
-                        setNodes(prev => prev.map(n => {
-                          if (n.id === selectedNode.id) {
-                            return { ...n, tags: [...n.tags, freshTag.trim()] };
-                          }
-                          return n;
-                        }));
-                      }
-                    }}
-                    className="px-2.5 py-1 border border-dashed border-slate-350 hover:bg-slate-50 text-slate-500 hover:text-slate-700 text-[10px] font-black font-mono rounded transition-colors"
-                  >
-                    + NEW TAG
-                  </button>
-                </div>
-              </div>
-
-            </div>
+            <HearthComponentSimulator
+              selectedNode={selectedNode}
+              language={language}
+              setNodes={setNodes}
+              computingHash={computingHash}
+              computedHashCode={computedHashCode}
+              calculateShaRegistry={calculateShaRegistry}
+              agentLogs={agentLogs}
+              horizonProtocol={horizonProtocol}
+              setHorizonProtocol={setHorizonProtocol}
+              handleAgentScan={handleAgentScan}
+              divergenceVal={divergenceVal}
+              setDivergenceVal={setDivergenceVal}
+              musePromptText={musePromptText}
+              setMusePromptText={setMusePromptText}
+              handleLocalMuseCast={handleLocalMuseCast}
+              newMilestoneText={newMilestoneText}
+              setNewMilestoneText={setNewMilestoneText}
+              handleAddMilestone={handleAddMilestone}
+              toggleMilestoneComplete={toggleMilestoneComplete}
+              deleteMilestone={deleteMilestone}
+              handleProgressSliderChange={handleProgressSliderChange}
+              handleUpdateNodeStringField={handleUpdateNodeStringField}
+            />
           ) : (
-            <div className="p-20 text-center rounded-3xl bg-white border border-slate-200/50 text-slate-400 space-y-4">
+            <div className="p-16 text-center rounded-3xl bg-white border border-slate-200/60 text-slate-450 space-y-4">
               <Compass className="w-10 h-10 mx-auto text-slate-300 animate-pulse" />
-              <p className="text-xs font-bold font-mono max-w-sm mx-auto leading-relaxed">
+              <p className="text-xs font-bold font-mono max-w-[200px] mx-auto leading-relaxed text-slate-400">
                 {lVal.noNodeSelected}
               </p>
             </div>
           )}
         </div>
+
+        {/* ================= COLUMN 4: ACTIVE COMPONENT CODE MODULE & FILESYSTEM ================= */}
+        {selectedNode && (
+          <div className={`${col4Class}`}>
+            <HearthFolderExplorer 
+              nodeType={selectedNode.type}
+              nodeTitle={selectedNode.title}
+              language={language}
+            />
+          </div>
+        )}
 
       </div>
 

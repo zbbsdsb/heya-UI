@@ -12,6 +12,19 @@ export interface ChecklistItem {
   dueDate?: string;
 }
 
+export type BinderType = 'local_folder' | 'cloudflare_r2' | 'github_repo' | 'custom_api';
+
+export interface Binder {
+  id: string;
+  type: BinderType;
+  name: string;
+  path: string; // Folder path, bucket name/endpoint, etc.
+  secretKey?: string; // Optional secret token/key or cloudflare API keys
+  region?: string; // Optional S3/R2 region
+  status: 'active' | 'synced' | 'unauthorized' | 'error';
+  lastSyncedAt?: string;
+}
+
 export interface NodeData {
   id: string;
   type: NodeType;
@@ -36,6 +49,7 @@ export interface NodeData {
   codeSnippet?: string;
   logicalOperator?: 'AND' | 'OR' | 'NOT' | 'XOR' | 'INPUT';
   logicalValue?: boolean;
+  binders?: Binder[];
 }
 
 export interface SubFieldData {
