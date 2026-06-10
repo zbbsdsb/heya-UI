@@ -55,7 +55,7 @@ export default function App() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('project-a');
   const [language, setLanguage] = useState<'en' | 'zh'>('en');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [swissTheme, setSwissTheme] = useState(false);
+  const [swissTheme, setSwissTheme] = useState(true);
   const [warpTargetCoords, setWarpTargetCoords] = useState<{ x: number; y: number; label: string } | null>(null);
   const [isToolPreviewOpen, setIsToolPreviewOpen] = useState(false);
   const [toolPreviewPosition, setToolPreviewPosition] = useState({ x: 300, y: 250 });

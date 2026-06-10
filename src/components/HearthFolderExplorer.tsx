@@ -17,7 +17,15 @@ import {
   FileCheck, 
   Search,
   Database,
-  Play
+  Play,
+  Maximize2,
+  Minimize2,
+  Columns2,
+  Rows2,
+  Eye,
+  EyeOff,
+  Type,
+  X
 } from 'lucide-react';
 
 interface FileNode {
@@ -315,6 +323,11 @@ export default function HearthFolderExplorer({
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [fileSearch, setFileSearch] = useState('');
 
+  // Customizable IDE states
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<'side' | 'stacked' | 'code-only'>('side');
+  const [fontSize, setFontSize] = useState<'xs' | 'sm' | 'base'>('xs');
+
   const loc = {
     en: {
       explorerTitle: 'Active Project Module Filesystem',
@@ -325,6 +338,14 @@ export default function HearthFolderExplorer({
       metaSize: 'PHYSICAL WEIGHT:',
       metaCheck: 'INTEGRITY SIGNATURE:',
       backText: 'Clear Selector',
+      layoutText: 'Layout Orientation',
+      layoutSide: 'Split Dual-Pane',
+      layoutStacked: 'Stacked Panes',
+      layoutCodeOnly: 'Code Focus',
+      fontSizeText: 'Text Scale',
+      fullscreenEnter: 'Fullscreen IDE',
+      fullscreenExit: 'Exit Fullscreen',
+      treeToggle: 'Toggle File Tree'
     },
     zh: {
       explorerTitle: '当前挂载项目工程文件树 (Collapsible Filesystem)',
@@ -334,7 +355,15 @@ export default function HearthFolderExplorer({
       noFileText: '请在左侧文件树中选中任何文件，以此加载指纹指认及物理源码审计。',
       metaSize: '物理字节体积:',
       metaCheck: '哈希防篡改指纹:',
-      backText: '清除选择'
+      backText: '清除选择',
+      layoutText: '视图布局方式',
+      layoutSide: '左右双栏分屏',
+      layoutStacked: '上下分栏分屏',
+      layoutCodeOnly: '代码面板独占',
+      fontSizeText: '字体缩放',
+      fullscreenEnter: '进入全屏工作区',
+      fullscreenExit: '退出全屏',
+      treeToggle: '树结构开关'
     }
   };
 
@@ -436,24 +465,163 @@ export default function HearthFolderExplorer({
     );
   };
 
-  return (
-    <div className="bg-[#0b0c16] border border-slate-900 rounded-3xl p-6 shadow-xl relative overflow-hidden space-y-4">
-      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-600/5 blur-3xl rounded-full pointer-events-none" />
+  // Dynamic styles and dimensions for layout customization
+  let treeColSpan = "md:col-span-5";
+  let codeColSpan = "md:col-span-7";
 
-      {/* Header info */}
-      <div className="pb-3 border-b border-indigo-950/45">
-        <h4 className="text-xs font-black text-slate-350 uppercase tracking-widest flex items-center gap-1.5">
-          <FolderOpen className="w-4 h-4 text-indigo-400" />
-          <span>{lVal.explorerTitle}</span>
-        </h4>
-        <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">
-          {lVal.explorerSub} <span className="text-indigo-400 font-mono">[{nodeTitle}]</span>
-        </p>
+  if (layoutMode === 'stacked') {
+    treeColSpan = "md:col-span-12";
+    codeColSpan = "md:col-span-12";
+  } else if (layoutMode === 'code-only') {
+    treeColSpan = "hidden";
+    codeColSpan = "md:col-span-12";
+  } else { // 'side'
+    if (isFullscreen) {
+      treeColSpan = "md:col-span-4 lg:col-span-3";
+      codeColSpan = "md:col-span-8 lg:col-span-9";
+    } else {
+      treeColSpan = "md:col-span-5";
+      codeColSpan = "md:col-span-7";
+    }
+  }
+
+  const treeHeightClass = isFullscreen 
+    ? "h-[380px] md:h-[520px]" 
+    : "max-h-[220px]";
+
+  const codeHeightClass = isFullscreen 
+    ? "h-[320px] md:h-[460px]" 
+    : "max-h-[160px]";
+
+  return (
+    <div className={`transition-all duration-300 relative overflow-hidden ${
+      isFullscreen 
+        ? 'fixed inset-0 bg-[#060714] z-[9999] p-8 md:p-12 overflow-y-auto flex flex-col justify-between space-y-6' 
+        : 'bg-[#0b0c16] border border-slate-900 rounded-3xl p-6 shadow-xl space-y-4'
+    }`}>
+      {/* Absolute ambient lights backdrops */}
+      <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-600/5 blur-3xl rounded-full pointer-events-none" />
+      <div className="absolute left-1/3 bottom-0 w-80 h-80 bg-purple-600/5 blur-3xl rounded-full pointer-events-none" />
+
+      {/* 1. Header info & Premium Control Bar */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between pb-4 border-b border-indigo-950/45 gap-4">
+        <div>
+          <h4 className="text-xs font-black text-slate-350 uppercase tracking-widest flex items-center gap-1.5 flex-wrap">
+            <FolderOpen className="w-4 h-4 text-indigo-400" />
+            <span>{lVal.explorerTitle}</span>
+            {isFullscreen ? (
+              <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[8.5px] uppercase tracking-wider font-extrabold rounded animate-pulse">
+                ● FULLSCREEN WORKSPACE ACTIVE
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 bg-indigo-500/5 border border-indigo-500/10 text-slate-550 font-mono text-[8px] uppercase tracking-wider font-bold rounded">
+                ● MODULAR
+              </span>
+            )}
+          </h4>
+          <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">
+            {lVal.explorerSub} <span className="text-indigo-400 font-mono">[{nodeTitle}]</span>
+          </p>
+        </div>
+
+        {/* IDE Controls Deck */}
+        <div className="flex flex-wrap items-center gap-2 bg-[#020205]/95 p-1.5 rounded-xl border border-indigo-950/60 select-none shrink-0 self-start xl:self-center shadow-lg">
+          
+          {/* File tree toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              setLayoutMode(prev => prev === 'code-only' ? 'side' : 'code-only');
+            }}
+            title={lVal.treeToggle}
+            className={`p-1.5 rounded-lg transition-all border cursor-pointer active:scale-95 ${
+              layoutMode === 'code-only' 
+                ? 'bg-amber-500/10 border-amber-500/40 text-amber-400' 
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            {layoutMode === 'code-only' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+
+          <div className="h-4 w-[1px] bg-indigo-950/80" />
+
+          {/* Side by side layout */}
+          <button
+            type="button"
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              setLayoutMode('side');
+            }}
+            title={lVal.layoutSide}
+            className={`p-1.5 rounded-lg transition-all border cursor-pointer active:scale-95 ${
+              layoutMode === 'side' 
+                ? 'bg-indigo-600/25 border-indigo-500/40 text-indigo-300' 
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            <Columns2 className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Stacked layout */}
+          <button
+            type="button"
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              setLayoutMode('stacked');
+            }}
+            title={lVal.layoutStacked}
+            className={`p-1.5 rounded-lg transition-all border cursor-pointer active:scale-95 ${
+              layoutMode === 'stacked' 
+                ? 'bg-indigo-600/25 border-indigo-500/40 text-indigo-300' 
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            <Rows2 className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="h-4 w-[1px] bg-indigo-950/80" />
+
+          {/* Font scale toggler */}
+          <button
+            type="button"
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              setFontSize(prev => prev === 'xs' ? 'sm' : prev === 'sm' ? 'base' : 'xs');
+            }}
+            title={`${lVal.fontSizeText}: ${fontSize.toUpperCase()}`}
+            className="p-1 px-2 border border-slate-800 hover:border-slate-700 bg-slate-950/80 text-[9px] font-black font-mono text-slate-300 hover:text-white rounded-lg cursor-pointer flex items-center gap-1 active:scale-95 transition-all"
+          >
+            <Type className="w-3 h-3 text-indigo-400" />
+            <span>{fontSize.toUpperCase()}</span>
+          </button>
+
+          <div className="h-4 w-[1px] bg-indigo-950/80" />
+
+          {/* Fullscreen Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              setIsFullscreen(!isFullscreen);
+            }}
+            title={isFullscreen ? lVal.fullscreenExit : lVal.fullscreenEnter}
+            className={`p-1.5 rounded-lg transition-all border cursor-pointer active:scale-95 ${
+              isFullscreen 
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 animate-pulse' 
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 min-h-[260px]">
+      {/* 2. Responsive Multi-Layout Split Engine */}
+      <div className={`grid grid-cols-1 md:grid-cols-12 gap-5 ${isFullscreen ? 'flex-1 min-h-0' : 'min-h-[260px]'}`}>
+        
         {/* Left Tree column */}
-        <div className="md:col-span-5 bg-slate-950/60 ring-1 ring-slate-900/80 p-3 rounded-2xl flex flex-col justify-between space-y-3">
+        <div className={`${treeColSpan} bg-[#020205] ring-1 ring-indigo-950/50 p-4 rounded-2xl flex flex-col justify-between space-y-3 shadow-inner transition-all duration-300`}>
           
           {/* File Search */}
           <div className="relative">
@@ -463,25 +631,28 @@ export default function HearthFolderExplorer({
               placeholder={lVal.searchPlaceholder}
               value={fileSearch}
               onChange={(e) => setFileSearch(e.target.value)}
-              className="w-full text-[10px] pl-8 pr-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full text-[10px] pl-8 pr-2.5 py-1.5 bg-slate-900 border border-indigo-950/40 rounded-lg text-slate-300 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
 
           {/* Directory node explorer */}
-          <div className="flex-1 overflow-y-auto max-h-[220px] pr-1.5 custom-scroll space-y-0.5">
+          <div className={`flex-1 pr-1.5 custom-scroll space-y-0.5 overflow-y-auto ${treeHeightClass}`}>
             {currentTree.map(node => renderFileSystemNode(node, '', 0))}
           </div>
           
-          <div className="text-[8.5px] text-indigo-450 font-mono flex justify-between uppercase pt-1 border-t border-indigo-950/30">
+          <div className="text-[8.5px] text-indigo-400 font-mono flex justify-between uppercase pt-2 border-t border-indigo-950/30">
             <span>FILESYSTEM METRIC</span>
             <span>TYPE: {nodeType.toUpperCase()}</span>
           </div>
         </div>
 
         {/* Right Preview column */}
-        <div className="md:col-span-7 bg-[#020205] border border-indigo-950/85 p-4 rounded-2xl flex flex-col justify-between min-h-[240px]">
+        <div className={`${codeColSpan} bg-[#010103] border border-indigo-950/80 p-5 rounded-2xl flex flex-col justify-between transition-all duration-300 ${
+          isFullscreen ? 'h-full' : 'min-h-[240px]'
+        }`}>
           {selectedFile ? (
-            <div className="flex flex-col justify-between h-full space-y-3.5 animate-in fade-in-25 duration-200">
+            <div className="flex flex-col justify-between h-full space-y-4 animate-in fade-in-25 duration-200">
+              
               {/* Header metrics */}
               <div className="flex justify-between items-start pb-2 border-b border-indigo-950/45">
                 <div>
@@ -494,23 +665,59 @@ export default function HearthFolderExplorer({
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => setSelectedFile(null)}
-                  className="px-2 py-0.5 bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-slate-200 rounded font-mono text-[8.5px] uppercase border border-slate-800"
-                >
-                  {lVal.backText}
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Tree Quick Toggler for code-only setup */}
+                  {layoutMode === 'code-only' && (
+                    <button 
+                      onClick={() => {
+                        (window as any).playTactileChime?.('click');
+                        setLayoutMode('side');
+                      }}
+                      className="px-2 py-0.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded font-mono text-[8.5px] uppercase border border-indigo-500/20 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                    >
+                      <span>📂 {lVal.treeToggle}</span>
+                    </button>
+                  )}
+
+                  <button 
+                    onClick={() => setSelectedFile(null)}
+                    className="px-2 py-1 bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-slate-200 rounded font-mono text-[8.5px] uppercase border border-indigo-950/60 cursor-pointer transition-all active:scale-95"
+                  >
+                    {lVal.backText}
+                  </button>
+                </div>
               </div>
 
-              {/* Code Snippet */}
-              <div className="flex-1 overflow-auto bg-[#04040a] border border-slate-900/60 rounded-xl p-3 max-h-[160px] custom-scroll">
-                <pre className="text-[10px] font-mono text-indigo-200 leading-relaxed overflow-x-auto whitespace-pre">
-                  <code>{selectedFile.snippet || '// No preview available.'}</code>
-                </pre>
+              {/* Code Snippet with Beautiful line numbers & layout-adapted height */}
+              <div className={`flex-1 overflow-auto bg-[#04040a]/90 border border-indigo-950/60 rounded-xl p-4 ${codeHeightClass} custom-scroll`}>
+                {(() => {
+                  const rawSnippet = selectedFile.snippet || '// No preview available.';
+                  const snippetLines = rawSnippet.split('\n');
+                  return (
+                    <div className="flex font-mono leading-relaxed text-left">
+                      {/* Line Numbers column */}
+                      <div className="select-none text-slate-650 text-right pr-3.5 border-r border-indigo-950/40 shrink-0 font-mono text-[9px] space-y-1">
+                        {snippetLines.map((_, idx) => (
+                          <div key={idx} className="h-4.5">{idx + 1}</div>
+                        ))}
+                      </div>
+                      {/* Code body */}
+                      <pre className={`flex-1 pl-4 overflow-x-auto whitespace-pre font-mono text-indigo-200 space-y-1 ${
+                        fontSize === 'xs' ? 'text-[10px]' : fontSize === 'sm' ? 'text-xs md:text-[13px]' : 'text-sm md:text-[15px]'
+                      }`}>
+                        {snippetLines.map((line, idx) => (
+                          <div key={idx} className="h-4.5 hover:bg-indigo-500/5 px-1 rounded transition-colors whitespace-pre">
+                            <code>{line || ' '}</code>
+                          </div>
+                        ))}
+                      </pre>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Security info flag */}
-              <div className="bg-indigo-950/30 border border-indigo-505/10 p-2 rounded-xl text-[8.5px] font-mono space-y-0.5 text-slate-400">
+              <div className="bg-indigo-950/20 border border-indigo-500/5 p-2.5 rounded-xl text-[8.5px] font-mono space-y-1 text-slate-500">
                 <div>
                   <span className="text-[#6366f1] font-black">{lVal.metaCheck}</span>
                 </div>
