@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft,
   ArrowRight,
@@ -32,9 +32,11 @@ import HeyCompanion from './components/HeyCompanion';
 import ForgeLogic from './components/ForgeLogic';
 import MuseIdeation from './components/MuseIdeation';
 import OermosNetwork from './components/OermosNetwork';
-import RelationsTopology from './components/RelationsTopology';
+import WorkspaceToolList from './components/WorkspaceToolList';
 import ProjectSpace from './components/ProjectSpace';
 import HearthComponentRegistry from './components/HearthComponentRegistry';
+import ExploreRealmNavigator from './components/ExploreRealmNavigator';
+import DraggableToolPreview from './components/DraggableToolPreview';
 
 import { NodeData, MuseIdea, NodeType } from './types';
 import { translations } from './locales';
@@ -54,6 +56,46 @@ export default function App() {
   const [language, setLanguage] = useState<'en' | 'zh'>('en');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [swissTheme, setSwissTheme] = useState(false);
+  const [warpTargetCoords, setWarpTargetCoords] = useState<{ x: number; y: number; label: string } | null>(null);
+  const [isToolPreviewOpen, setIsToolPreviewOpen] = useState(false);
+  const [toolPreviewPosition, setToolPreviewPosition] = useState({ x: 300, y: 250 });
+  const toolPreviewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnterToolList = (rect: DOMRect) => {
+    if (toolPreviewTimeoutRef.current) {
+      clearTimeout(toolPreviewTimeoutRef.current);
+      toolPreviewTimeoutRef.current = null;
+    }
+    const targetX = Math.round(rect.right + 12);
+    const targetY = Math.max(10, Math.round(rect.top - 50));
+    setToolPreviewPosition({ x: targetX, y: targetY });
+    setIsToolPreviewOpen(true);
+  };
+
+  const handleMouseLeaveToolList = () => {
+    if (toolPreviewTimeoutRef.current) {
+      clearTimeout(toolPreviewTimeoutRef.current);
+    }
+    toolPreviewTimeoutRef.current = setTimeout(() => {
+      setIsToolPreviewOpen(false);
+    }, 400); // 400ms delay to move cursor onto target popover smoothly
+  };
+
+  const handleMouseEnterToolPreview = () => {
+    if (toolPreviewTimeoutRef.current) {
+      clearTimeout(toolPreviewTimeoutRef.current);
+      toolPreviewTimeoutRef.current = null;
+    }
+  };
+
+  const handleMouseLeaveToolPreview = () => {
+    if (toolPreviewTimeoutRef.current) {
+      clearTimeout(toolPreviewTimeoutRef.current);
+    }
+    toolPreviewTimeoutRef.current = setTimeout(() => {
+      setIsToolPreviewOpen(false);
+    }, 300);
+  };
   
   // Custom states matching interactive mesh requirements
   const [audioSfx, setAudioSfx] = useState(() => {
@@ -724,6 +766,8 @@ export default function App() {
         chatHistory={chatHistory}
         language={language}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onMouseEnterToolList={handleMouseEnterToolList}
+        onMouseLeaveToolList={handleMouseLeaveToolList}
       />
 
       {/* 2. Main content block routing */}
@@ -799,6 +843,12 @@ export default function App() {
               setSelectedNodeId={setSelectedNodeId}
               onAddMapItem={handleAddMapItemDirectly}
               language={language}
+              warpTargetCoords={warpTargetCoords}
+              onClearWarpTarget={() => setWarpTargetCoords(null)}
+              onDoubleClickNode={(nodeId) => {
+                setSelectedNodeId(nodeId);
+                setActiveTab('component');
+              }}
             />
           )}
 
@@ -836,9 +886,8 @@ export default function App() {
             <OermosNetwork language={language} />
           )}
 
-          {activeTab === 'relations' && (
-            <RelationsTopology 
-              nodes={nodes}
+          {activeTab === 'toollist' && (
+            <WorkspaceToolList 
               language={language}
             />
           )}
@@ -857,42 +906,17 @@ export default function App() {
             />
           )}
 
-          {/* TAB 4: Explore (Research, inspiration, and grounding exploration field) */}
+          {/* TAB 4: Explore (Quantum Warp & Spatial Sovereign Domain Navigator) */}
           {activeTab === 'explore' && (
-            <div className="flex-1 overflow-y-auto p-10 space-y-6 animate-in fade-in-20 duration-300">
-              <div>
-                <h2 className="text-xl font-extrabold text-[#0f172a] flex items-center gap-1.5">
-                  <Compass className="w-5.5 h-5.5 text-indigo-500" />
-                  <span>Grounding Exploration Field</span>
-                </h2>
-                <p className="text-xs text-slate-500 font-semibold mt-1">
-                  Connect academic libraries, evaluate deep research parameters, and seed foundational frameworks (HRDF-1.0).
-                </p>
-              </div>
-
-              {/* Research index display */}
-              <div className="bg-[#f8fafc] border rounded-2xl p-6 flex flex-col items-center justify-center text-center space-y-4 max-w-2xl py-12">
-                <BookOpen className="w-12 h-12 text-[#6366f1]/20 animate-pulse" />
-                <h3 className="text-base font-extrabold text-[#0f172a]">Academic and Methodology Vault Active</h3>
-                <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-md">
-                  We have loaded 252 academic papers and the HRDF-1.0 (Methodology framework). These are loaded directly inside Hey’s vector reference retrieval layers.
-                </p>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => alert('Foundations registered.')}
-                    className="px-4 py-2 bg-black text-white text-xs font-bold rounded-xl hover:bg-neutral-800 transition-all"
-                  >
-                    Load Papers Deck (252)
-                  </button>
-                  <button 
-                    onClick={() => alert('Retrieving guidelines.')}
-                    className="px-4 py-2 border text-xs font-bold rounded-xl text-slate-600 hover:bg-slate-50 transition-all"
-                  >
-                    View HRDF-1.0 Methodology
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ExploreRealmNavigator
+              nodes={nodes}
+              setNodes={setNodes}
+              language={language}
+              onWarpToCoordinates={(x, y, label) => {
+                setWarpTargetCoords({ x, y, label });
+                setActiveTab('fieldmap');
+              }}
+            />
           )}
 
         </div>
@@ -1079,6 +1103,18 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating Draggable Tool List Popover */}
+      {isToolPreviewOpen && (
+        <DraggableToolPreview
+          language={language}
+          initialX={toolPreviewPosition.x}
+          initialY={toolPreviewPosition.y}
+          onClose={() => setIsToolPreviewOpen(false)}
+          onMouseEnter={handleMouseEnterToolPreview}
+          onMouseLeave={handleMouseLeaveToolPreview}
+        />
+      )}
 
     </div>
   );

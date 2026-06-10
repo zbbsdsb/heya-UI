@@ -155,6 +155,9 @@ interface FieldMapCanvasProps {
   setSelectedNodeId: (id: string | null) => void;
   onAddMapItem: (title: string, type: string) => void;
   language?: 'en' | 'zh';
+  warpTargetCoords?: { x: number; y: number; label: string } | null;
+  onClearWarpTarget?: () => void;
+  onDoubleClickNode?: (nodeId: string) => void;
 }
 
 export default function FieldMapCanvas({ 
@@ -163,10 +166,42 @@ export default function FieldMapCanvas({
   selectedNodeId, 
   setSelectedNodeId,
   onAddMapItem,
-  language = 'en'
+  language = 'en',
+  warpTargetCoords,
+  onClearWarpTarget,
+  onDoubleClickNode
 }: FieldMapCanvasProps) {
   const [zoom, setZoom] = useState<number>(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  
+  // Clean up and center when warping from explore
+  useEffect(() => {
+    if (warpTargetCoords) {
+      // Coordinates of the warp target refer to points on our relative layout coordinates
+      // Place the coordinate at the offset center
+      const targetPanX = Math.round(500 - warpTargetCoords.x);
+      const targetPanY = Math.round(300 - warpTargetCoords.y);
+      
+      setPanOffset({ x: targetPanX, y: targetPanY });
+      setZoom(1.1); // Boost zoom on warp target lock
+      
+      if (onClearWarpTarget) {
+        onClearWarpTarget();
+      }
+
+      // Add signal diagnostic entry
+      setSignalLogs(prev => [
+        {
+          id: `warp-${Date.now()}`,
+          text: language === 'en' 
+            ? `☄️ Space-warp engaged! Locked view to [${warpTargetCoords.label}] coordinates: X:${warpTargetCoords.x}, Y:${warpTargetCoords.y}.`
+            : `☄️ 空间跃迁引擎激活！视角定位锁定至 [${warpTargetCoords.label}]（坐标: X:${warpTargetCoords.x}, Y:${warpTargetCoords.y}）。`,
+          timestamp: new Date().toLocaleTimeString()
+        },
+        ...prev
+      ]);
+    }
+  }, [warpTargetCoords, onClearWarpTarget, language]);
   
   // Drag states
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
@@ -771,6 +806,64 @@ export default function FieldMapCanvas({
     }
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const dataStr = e.dataTransfer.getData('text/plain');
+    if (!dataStr) return;
+    try {
+      const data = JSON.parse(dataStr);
+      if (data && data.isNoteDrag && data.text) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const relX = e.clientX - rect.left;
+        const relY = e.clientY - rect.top;
+        const canvasX = Math.round((relX / zoom) - panOffset.x);
+        const canvasY = Math.round((relY / zoom) - panOffset.y);
+        
+        const freshNode: NodeData = {
+          id: `note-node-${Date.now()}`,
+          type: 'todo',
+          title: data.text.length > 20 ? data.text.slice(0, 20) + '...' : data.text,
+          description: data.text,
+          x: canvasX,
+          y: canvasY,
+          progress: 0,
+          members: ['System-Note'],
+          checklist: [],
+          tags: ['Note-Dropped'],
+          connections: [],
+          createdAt: new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+          updatedAt: new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+          status: 'active',
+          syncStatus: 'synced',
+          authorId: 'note-dropper',
+          version: 1,
+          star: false
+        };
+        
+        setNodes(prev => [...prev, freshNode]);
+        (window as any).playTactileChime?.('success');
+
+        window.dispatchEvent(new CustomEvent('heya-toast', {
+          detail: { 
+            message: language === 'en' 
+              ? '📝 Sticky memo materialized inside Field Map!' 
+              : '📝 便签成功在 Field Map 星图中实体化！', 
+            type: 'success' 
+          }
+        }));
+      }
+    } catch(err) {
+      console.error('Dropped data parsing failed', err);
+    }
+  };
+
   return (
     <div 
       className="flex-1 overflow-hidden relative bg-[#fafafa]" 
@@ -778,6 +871,8 @@ export default function FieldMapCanvas({
       onMouseMove={handleCanvasMouseMove}
       onMouseUp={handleCanvasMouseUp}
       onMouseLeave={handleCanvasMouseUp}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       
       {/* Centered Single Viewport Container - Eliminates viewport desynchronization jitter */}
@@ -1149,6 +1244,13 @@ export default function FieldMapCanvas({
               onMouseDown={(e) => !isFilteredOut && handleNodeMouseDown(e, node)}
               onMouseEnter={() => !isFilteredOut && setHoveredNodeId(node.id)}
               onMouseLeave={() => !isFilteredOut && setHoveredNodeId(null)}
+              onDoubleClick={(e) => {
+                if (!isFilteredOut && onDoubleClickNode) {
+                  e.stopPropagation();
+                  (window as any).playTactileChime?.('click');
+                  onDoubleClickNode(node.id);
+                }
+              }}
             >
               {/* Unified Artistic Card Element */}
               <div className={`w-full h-full rounded-2xl bg-white/95 border backdrop-blur-md p-3.5 flex flex-col justify-between select-none relative transition-all duration-300 ${

@@ -10,7 +10,7 @@ import {
   Settings, 
   Lightbulb,
   Radio,
-  Network,
+  ClipboardList,
   Sparkles,
   Bell,
   BookOpen,
@@ -29,25 +29,29 @@ interface SidebarProps {
   chatHistory?: { role: string; content: string }[];
   language?: 'en' | 'zh';
   onOpenSettings?: () => void;
+  onMouseEnterToolList?: (rect: DOMRect) => void;
+  onMouseLeaveToolList?: () => void;
 }
 
 export default function Sidebar({ 
   activeTab, 
   setActiveTab, 
   language = 'en',
-  onOpenSettings
+  onOpenSettings,
+  onMouseEnterToolList,
+  onMouseLeaveToolList
 }: SidebarProps) {
   const tVal = translations[language].sidebar;
 
   const menuItems = [
     { id: 'projectspace', label: 'Project Space', icon: Layers },
     { id: 'fieldmap', label: 'Field Map', icon: Map },
-    { id: 'component', label: language === 'en' ? 'Active Matrix' : '真态矩阵组件', icon: Grid },
+    { id: 'component', label: language === 'en' ? 'Components' : '组件库', icon: Grid },
     { id: 'forge', label: 'Forge', icon: Cpu },
     { id: 'muse', label: 'Muse', icon: Lightbulb },
     { id: 'explore', label: 'Explore', icon: Compass },
     { id: 'oermos', label: 'Oermos P2P', icon: Radio },
-    { id: 'relations', label: 'Relations', icon: Network },
+    { id: 'toollist', label: language === 'en' ? 'Workspace Tools' : '智能工具箱', icon: ClipboardList },
     { id: 'hey', label: 'Hey Companion', icon: Sparkles },
   ];
 
@@ -102,6 +106,16 @@ export default function Sidebar({
                 onClick={() => {
                   (window as any).playTactileChime?.('click');
                   setActiveTab(item.id);
+                }}
+                onMouseEnter={(e) => {
+                  if (item.id === 'toollist' && onMouseEnterToolList) {
+                    onMouseEnterToolList(e.currentTarget.getBoundingClientRect());
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (item.id === 'toollist' && onMouseLeaveToolList) {
+                    onMouseLeaveToolList();
+                  }
                 }}
                 className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-semibold tracking-wide transition-all duration-200 ${
                   isActive

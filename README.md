@@ -27,9 +27,9 @@ Our goal is to make this repository highly interactive, easy to deploy, and visu
 
 ---
 
-## 🎯 4 Core Interactive Differentiators for Showcasing
+## 🎯 Core Interactive Differentiators for Showcasing
 
-To capture developers, investors, and communities, the repository highlights these four unique mechanics:
+To capture developers, investors, and communities, the repository highlights these unique interactive mechanics:
 
 ### 1. ⚡ One-Click High-Fidelity Sandbox Seeder
 To prevent the "cold-start" empty-canvas problem, we integrated a **Sandbox Restorer** directly in the setup modal.
@@ -45,7 +45,18 @@ The newly developed Muse architecture shows how autonomous AI can digest raw con
 Users can toggle the interface from the ambient, colorful, glowing *Liquid Light Theme* into a rigid, highly-disciplined, monochrome **Swiss Typographic Layout**.
 * **Design Honesty**: Eliminates circular cards, soft shadows, and color gradients, substituting 2px rough solid borders, generous negative space, strict spacing metrics, and pure monospaced typography (`JetBrains Mono`).
 
-### 4. 🔊 Tactile Chime Web Synthesizer
+### 4. 🛰️ Explore: Public Topological Realms Explorer
+Deep coordinate teleportation and radar swept scans designed to map out anomalous frequencies.
+* **Quantum Scanning**: Click **Probe Cosmic Frequencies** to deploy a high-frequency coordinate probe. Unearth unmapped signals, custom anomalies, and seed new nodes directly onto precise, random vector offsets on the canvas.
+* **Spatial Warp Engine**: Browse sovereign established classic domains (Zurich, Oasis, Geneva, Tokyo, Nebula) with real-time ping latency simulations. Click **Warp / 空间跃迁** to trigger a physical folding event, smoothly centering and locking the infinite viewport directly onto target physical boundary coordinates.
+
+### 5. 🧰 Sovereign Workspace Toolkit (Micro-Tools)
+An localized suite of productivity assistants, layout inspectors, and hardware synthesizers.
+* **Sticky Memos Board**: Instantly register fleeting notes, directives, or checklist guidelines. Persists locally in the browser's sandbox `localStorage`.
+* **Telemetry Physics Solver**: Input coordinates X, Y and adjust dynamic scaling metrics on a fluid slider track. Generates relative distance vectors and bounds offsets.
+* **Swiss Color Swatches Inspector**: Pre-configured theme colors matching strict brutalist aesthetics with one-click Hex copy commands.
+
+### 6. 🔊 Tactile Chime Web Synthesizer
 A zero-dependency custom Web Audio API synthesizer is baked into the browser context. It creates pristine, clear sine-wave clicks and C-Major arpeggios that play on node drags, settings toggles, and successful node generation, creating immediate haptic pleasure.
 
 ---
@@ -100,7 +111,9 @@ const getOrganicFluidPath = (x: number, y: number, w: number, h: number, id: str
 │   │   ├── MuseIdeation.tsx   # Unstructured document uploader & AI cognitive divergence lab
 │   │   ├── HeyCompanion.tsx   # Left overlay panel for chat, node generators & agents
 │   │   ├── OermosNetwork.tsx  # Interactive WebRTC P2P mesh network mapping simulator
-│   │   └── RelationsTopology.tsx # Structural gravity and cascade dependencies analyzer
+│   │   ├── ExploreRealmNavigator.tsx # Public Topological Realms Explorer with sector scanning & space warping
+│   │   ├── HearthComponentRegistry.tsx # Self-contained components active matrix registry
+│   │   └── WorkspaceToolList.tsx # Localized sticky memos pad, telemetry physics calculators & test soundboard
 │   └── index.css         # Strict custom typography rules (Inter, Space Grotesk) & Tailwind CSS
 ```
 

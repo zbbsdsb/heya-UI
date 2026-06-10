@@ -171,3 +171,36 @@ To transition components from descriptive display cards into autonomous, state-d
     *   Create a local event controller `hEventBus` to notify contextual listeners when spatial collisions or connections are established.
     *   If an `Agent` node is dragged inside the `Execution Matrix` domain, the event bus fires an trigger to spontaneous AI components (`Autonomous Sprouting`), automatically creating connecting node suggestions based on real-time topological trends.
 
+---
+
+## 7. Drag-and-Hover Sovereign Quick Toolkit Popover (ADR-113 Specs)
+
+To boost accessibility and allow high-speed diagnostics without shifting full-tab perspectives, we integrated a floating, physically draggable micro-utility hub triggered instantly by hovering over the "Workspace Tools" menu indicator.
+
+### A. Viewport Attachment & Positioning Contract
+* **Hover Anchor Triggers**: Hovering (`onMouseEnter`) over the `#toollist` sidebar button captures its absolute screen bounding box context via `getBoundingClientRect()`.
+* **Adaptive Alignment Coordinates**: 
+  $$\Delta_x = \text{rect.right} + 12\text{px}$$
+  $$\Delta_y = \max(10, \text{rect.top} - 50\text{px})$$
+* **Non-Snapping Drag Overrides**: If the user has already manually dragged the popover to a customized coordinate point, subsequent hovers will **NOT** override or snap the modal back to default locations. The user's spatial preference is preserved dynamically in memory.
+
+### B. Drag Coordinates & Bounds Clamping Physics
+The floating card is bounded with strict constraints in the client viewport using mouse and touch event listeners:
+```typescript
+const newX = Math.max(10, Math.min(window.innerWidth - 340, initialPos.x + dx));
+const newY = Math.max(10, Math.min(window.innerHeight - 440, initialPos.y + dy));
+```
+* **Touch-Enabled Drag Support**: Leverages touch handlers (`onTouchStart`, `onTouchMove`, and `onTouchEnd`) configured with `{ passive: false }` event overrides to prevent viewport scrolls while dragging the modular widget on mobile screens.
+
+### C. Live Mirror-Sync Event Layer
+* **Shared Storage Bus**: Changes (such as adding or removing sticky notes) write to `localStorage.getItem('heya_workspace_notes')`.
+* **Sync Broadcast Dispatch**: Form submission triggers a global custom sync broadcast event:
+  ```typescript
+  window.dispatchEvent(new CustomEvent('update-toolnotes'));
+  ```
+  This immediately forces the main Workspace tab (`WorkspaceToolList.tsx`) and any other active viewport panels to update their states synchronously.
+
+### D. Audio API Tactile Integrations
+The quick diagnostic synthesizer pads are wired directly to the system's global `(window as any).playTactileChime` synth. Clicking pads invokes accurate high-frequency oscillator sweeps (`sine`, `exponentialRampToValueAtTime`) to verify physical sound card setups without changing focus environments.
+
+
