@@ -521,6 +521,196 @@ export default function App() {
     setSelectedNodeId(id);
   };
 
+  const handleResetDemoSandbox = () => {
+    const defaultNodes: NodeData[] = [
+      {
+        id: 'project-a',
+        type: 'project',
+        title: 'Project A',
+        description: '核心开发，对齐 Oasis 公司对接条件。',
+        x: 380,
+        y: 350,
+        progress: 62,
+        members: ['ceaserzhao', 'Ying', 'Alex', 'David'],
+        checklist: [
+          { id: 'pa-1', text: 'Define system architecture', done: true },
+          { id: 'pa-2', text: 'Align styling design norms', done: true },
+          { id: 'pa-3', text: 'Coordinate with Oasis Co.', done: false }
+        ],
+        tags: ['产品', '开发周期'],
+        connections: ['project-b', 'todo-list', 'research'],
+        star: true,
+        createdAt: '2024/05/28',
+        updatedAt: '2024/05/30',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'ceaserzhao',
+        version: 1,
+        logicalOperator: 'AND',
+        logicalValue: true
+      },
+      {
+        id: 'project-b',
+        type: 'project',
+        title: 'Project B',
+        description: '重点在 Oermos 协议设计，测试 Zurich 基座握手包。',
+        x: 580,
+        y: 220,
+        progress: 48,
+        members: ['ceaserzhao', 'Ying'],
+        checklist: [
+          { id: 'pb-1', text: 'Implement WebRTC handshake', done: true },
+          { id: 'pb-2', text: 'P2P transport validation', done: false }
+        ],
+        tags: ['核心', '网络协议'],
+        connections: ['project-a', 'user-research', 'todo-list'],
+        star: false,
+        createdAt: '2024/05/20',
+        updatedAt: '2024/05/29',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'ceaserzhao',
+        version: 1,
+        logicalOperator: 'INPUT',
+        logicalValue: true
+      },
+      {
+        id: 'todo-list',
+        type: 'todo',
+        title: 'Execution Pipeline',
+        description: '系统底层动态微内核与拓扑运算流执行管线。',
+        x: 480,
+        y: 480,
+        progress: 25,
+        members: ['ceaserzhao', 'Alex'],
+        checklist: [],
+        tags: ['Pipeline', 'Core-Flow'],
+        connections: ['project-a', 'project-b'],
+        star: false,
+        createdAt: '2024/05/25',
+        updatedAt: '2024/05/30',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'ceaserzhao',
+        version: 1,
+        logicalOperator: 'OR',
+        logicalValue: true
+      },
+      {
+        id: 'design-system',
+        type: 'resource',
+        title: 'Registry Matrix',
+        description: '赫斯全局拓扑网络数据寻址与组件注册控制枢纽。',
+        x: 720,
+        y: 470,
+        progress: 100,
+        members: ['Alex', 'David', 'Emma'],
+        checklist: [],
+        tags: ['Registry', 'Base'],
+        connections: ['todo-list'],
+        star: false,
+        createdAt: '2024/05/18',
+        updatedAt: '2024/05/28',
+        status: 'completed',
+        syncStatus: 'synced',
+        authorId: 'Alex',
+        version: 1,
+        logicalOperator: 'NOT',
+        logicalValue: false
+      },
+      {
+        id: 'research',
+        type: 'muse',
+        title: 'Research',
+        description: '市场契机 analysis 与用户心流追踪研讨。',
+        x: 220,
+        y: 280,
+        progress: 30,
+        members: ['ceaserzhao'],
+        checklist: [],
+        tags: ['研究', '创意'],
+        connections: ['project-a'],
+        star: false,
+        createdAt: '2024/05/10',
+        updatedAt: '2024/05/25',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'ceaserzhao',
+        version: 1,
+        logicalOperator: 'INPUT',
+        logicalValue: false
+      },
+      {
+        id: 'user-research',
+        type: 'agent',
+        title: 'User Research Companion',
+        description: '自动分析、提炼并过滤用户反馈。',
+        x: 760,
+        y: 180,
+        progress: 85,
+        members: ['Agent Spark'],
+        checklist: [],
+        tags: ['Agent', 'AI 洞察'],
+        connections: ['project-b'],
+        star: false,
+        createdAt: '2024/05/29',
+        updatedAt: '2024/05/30',
+        status: 'active',
+        syncStatus: 'synced',
+        authorId: 'system',
+        version: 1,
+        logicalOperator: 'INPUT',
+        logicalValue: true
+      }
+    ];
+
+    const defaultIdeas: MuseIdea[] = [
+      { id: 'muse-1', content: '使用 WebRTC 进行去中心化分布式元数据直接广播', createdAt: '今天 09:24' },
+      { id: 'muse-2', content: 'Swiss 极简网格排版系统：仅采用黑白对比与粗细线条，零多余圆角', createdAt: '昨天 19:40' },
+      { id: 'muse-3', content: '0ms 通讯底座：握手信息通过底层 P2P 网格自动绕过中心式服务器', createdAt: '前天 11:12' }
+    ];
+
+    setNodes(defaultNodes);
+    setIdeas(defaultIdeas);
+    localStorage.setItem('hearth_nodes', JSON.stringify(defaultNodes));
+    localStorage.setItem('hearth_ideas', JSON.stringify(defaultIdeas));
+
+    const defaultDocs = [
+      {
+        id: 'doc-1',
+        title: language === 'en' ? 'Oasis P2P Node Broadcast Spec' : 'Oasis P2P 去中心节点广播规范',
+        content: language === 'en' 
+          ? `Service endpoints must adhere to zero server footprint rules. Establish multi-hop WebRTC signaling pathways across distributed browsers. Peer routing requires NAT coordinate discovery via decentralized Gossip tables to avoid single-point outages. Node state locks use high-performance vector sync.`
+          : `业务终点必须坚持零中心化服务器驻留。在分布式的多端浏览器之间建立多跳 WebRTC 自洽信令。对等传输依赖 Gossip 协议表，剔除常规 SaaS 中继网卡保障高防灾表现。`,
+        wordCount: 45,
+        updatedAt: '2026/06/10'
+      },
+      {
+        id: 'doc-2',
+        title: language === 'en' ? 'Hearth Switzerland Typography Manifesto' : '赫斯瑞士版式极端自律设计白皮书',
+        content: language === 'en'
+          ? `Deselect visual clutter. Use strict grid margin divisions: 25px gaps, 2px borders, absolute sharp edges, high contrast. Pastes and cards are stripped of micro-shadow borders unless representing an active drag node. Color is used solely as functional telemetry indicator, not decor.`
+          : `主动丢弃一切花哨装饰。对版面进行硬质微划分，坚持等宽等距网格配给、纯对齐比例。彻底抛弃圆角、华而不实的微阴影投影和无力斑驳。对色彩的使用遵循严格的数据监控和 telemetry 指示作用。`,
+        wordCount: 44,
+        updatedAt: '2026/06/09'
+      }
+    ];
+    localStorage.setItem('hearth_muse_docs', JSON.stringify(defaultDocs));
+    
+    // Force reset custom event or storage trigger
+    window.dispatchEvent(new Event('storage'));
+
+    (window as any).playTactileChime?.('success');
+    window.dispatchEvent(new CustomEvent('heya-toast', {
+      detail: { 
+        message: language === 'en' 
+          ? 'High-Fideltiy demonstration star-map restored successfully!' 
+          : '高保真演示星图重置装载成功！赫斯拓扑网格已被洗礼重建。', 
+        type: 'success' 
+      }
+    }));
+  };
+
   return (
     <div className={`w-screen h-screen flex bg-[#fafafa] overflow-hidden text-slate-800 text-sm font-sans antialiased select-none ${swissTheme ? 'swiss-grid-active' : ''}`}>
       
@@ -825,6 +1015,25 @@ export default function App() {
                   <div className={`bg-white w-4.5 h-4.5 rounded-full shadow-md transform transition-transform duration-205 ${
                     audioSfx ? 'translate-x-5' : 'translate-x-0'
                   }`} />
+                </button>
+              </div>
+
+              {/* Demo Sandbox Restorer */}
+              <div className="pt-4 border-t border-slate-100 space-y-2">
+                <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+                  <span>{language === 'en' ? 'Demonstration Sandbox Seeder' : '高保真演示星图重置器'}</span>
+                </h4>
+                <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
+                  {language === 'en' 
+                    ? 'Instantly restore the full, professional interconnected node topography layout, ideas sandbox and grounded reference documents.'
+                    : '一键重置当前工作区！恢复完整、经过优化组织的 P2P 自适应节点星图和示例参考规格书，随时呈现最完美的视觉演示。'}
+                </p>
+                <button 
+                  onClick={handleResetDemoSandbox}
+                  className="w-full mt-1 py-2 bg-gradient-to-r from-indigo-500/90 via-purple-500/95 to-amber-500 hover:from-indigo-600 hover:to-amber-600 text-white text-[10.5px] font-black uppercase tracking-wider rounded-xl shadow-md transition-all duration-200 active:scale-98 flex items-center justify-center gap-1.5"
+                >
+                  <span>{language === 'en' ? 'Reset to High-Fidelity Demo Canvas' : '一键恢复官方高保真演示星态'}</span>
                 </button>
               </div>
 
