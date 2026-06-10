@@ -118,50 +118,50 @@ export default function Sidebar({
       </div>      {/* Heya AI Section */}
       <div className="px-5 pb-5">
         <button
-          onClick={() => setActiveTab('forge')}
+          onClick={() => setActiveTab('hey')}
           className={`w-full text-left p-4.5 rounded-2xl relative overflow-hidden transition-all duration-300 group border flex flex-col justify-between ${
-            activeTab === 'forge'
+            activeTab === 'hey'
               ? 'bg-[#03020c] text-white border-indigo-950 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
-              : 'bg-gradient-to-br from-[#0c0a24] via-[#050414] to-[#010103] hover:border-indigo-600/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] text-slate-100 border-indigo-950/40'
+              : 'bg-gradient-to-br from-[#0c0a24] via-[#050414] to-[#010103] hover:border-[#6366f1]/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] text-slate-100 border-indigo-950/40'
           }`}
-          title={language === 'en' ? 'Click to open Autonomous Agent Forge Studio' : '点击开启专职计算代理自主装配熔炉'}
+          title={language === 'en' ? 'Click to engage Hey Strategy Companion Portal' : '点击唤醒 Hey 战略AI伙伴控制台'}
         >
           {/* Pulsing deep purple/indigo space dust backdrop */}
           <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-500/10 via-violet-500/5 to-transparent rounded-2xl group-hover:scale-110 transition-transform duration-500" />
           
           <div className="w-full flex items-center justify-between mb-3 pointer-events-none relative z-10">
             <div className="flex items-center gap-1.5">
-              <Cpu className={`w-4 h-4 ${activeTab === 'forge' ? 'text-indigo-400' : 'text-indigo-450 animate-pulse'}`} />
+              <Sparkles className={`w-4 h-4 ${activeTab === 'hey' ? 'text-indigo-400 animate-pulse' : 'text-indigo-400 rotate-12 transition-transform duration-300'}`} />
               <span className="text-[10px] font-black tracking-widest uppercase text-indigo-300 font-mono">
-                {language === 'en' ? 'Agent Forge' : '决策代理熔炉'}
+                {language === 'en' ? 'Hey Companion' : 'Hey 核心伙伴'}
               </span>
             </div>
             
             <div className="flex items-center gap-1">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500" />
               </span>
-              <span className="text-[8px] font-mono font-black tracking-wider text-emerald-400">
-                PIPELINES
+              <span className="text-[8px] font-mono font-black tracking-wider text-indigo-400">
+                SOVEREIGN
               </span>
             </div>
           </div>
 
           <div className="pointer-events-none space-y-1 select-none relative z-10">
             <h4 className="text-xs font-black text-white uppercase tracking-tight">
-              {language === 'en' ? 'AUTONOMOUS AGENT STUDIO' : '常驻代理自主编排台'}
+              {language === 'en' ? 'PORTAL TO HEY AI' : 'Hey 联络交互空间'}
             </h4>
             <p className="text-[9.5px] font-bold leading-relaxed text-slate-400">
               {language === 'en' 
-                ? 'Design specialized pipelines, trace connection topologies & compile sovereign system agents onto Field Map!' 
-                : '绘制拓扑计算流、校验规则约束并在星图 Field Map 上一键播种装配专职常驻计算代理！'}
+                ? 'Co-pilot system topologies, brainstorm strategic goals & dispatch real-time commands with fluid companion AI!' 
+                : '与核心系统 AI 协同治理星图、激发灵感，并通过对话框瞬发全局控制与节点增删指令！'}
             </p>
           </div>
 
           <div className="w-full flex items-center justify-between mt-3.5 pt-3.5 border-t border-slate-900/60 pointer-events-none relative z-10">
-            <span className={`text-[9px] font-black tracking-widest uppercase ${activeTab === 'forge' ? 'text-indigo-400' : 'text-indigo-300'} flex items-center gap-1.5`}>
-              <span>{language === 'en' ? 'INITIATE ASSEMBLY' : '进入拓扑装配工坊'}</span>
+            <span className={`text-[9px] font-black tracking-widest uppercase ${activeTab === 'hey' ? 'text-indigo-400' : 'text-indigo-300'} flex items-center gap-1.5`}>
+              <span>{language === 'en' ? 'ENGAGE PORTAL' : '唤醒和联络 Hey'}</span>
               <span className="transform group-hover:translate-x-1 duration-200">→</span>
             </span>
             <span className="text-[8px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-indigo-950/40 border border-indigo-900/30 text-indigo-300">
