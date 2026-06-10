@@ -34,6 +34,7 @@ import MuseIdeation from './components/MuseIdeation';
 import OermosNetwork from './components/OermosNetwork';
 import RelationsTopology from './components/RelationsTopology';
 import ProjectSpace from './components/ProjectSpace';
+import HearthComponentRegistry from './components/HearthComponentRegistry';
 
 import { NodeData, MuseIdea, NodeType } from './types';
 import { translations } from './locales';
@@ -844,39 +845,16 @@ export default function App() {
 
           {/* TAB 3: Component Library listing config */}
           {activeTab === 'component' && (
-            <div className="flex-1 overflow-y-auto p-10 space-y-6 animate-in fade-in-20 duration-300">
-              <div>
-                <h2 className="text-xl font-extrabold text-[#0f172a]">Active Components Index - Hearth Library</h2>
-                <p className="text-xs text-slate-500 font-semibold mt-1">
-                  Manage logical structures, descriptions, and tag descriptors for components registered inside your active workspace map.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {nodes.map((n) => (
-                  <div key={n.id} className="bg-white border rounded-2xl p-5 hover:border-indigo-200 transition-all flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                          {n.type}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">Progress: {n.progress}%</span>
-                      </div>
-                      <h4 className="text-sm font-extrabold text-[#0f172a] mb-1.5">{n.title}</h4>
-                      <p className="text-xs text-slate-500 leading-relaxed font-semibold mb-4">{n.description}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1 border-t pt-3">
-                      {n.tags.map((tg, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-[#f8fafc] text-indigo-600 text-[9px] font-extrabold rounded-md border border-slate-100">
-                          #{tg}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <HearthComponentRegistry
+              nodes={nodes}
+              setNodes={setNodes}
+              language={language}
+              selectedIdFromMain={selectedNodeId || undefined}
+              onNavigateToNode={(nodeId) => {
+                setSelectedNodeId(nodeId);
+                setActiveTab('fieldmap');
+              }}
+            />
           )}
 
           {/* TAB 4: Explore (Research, inspiration, and grounding exploration field) */}

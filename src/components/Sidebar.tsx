@@ -42,7 +42,7 @@ export default function Sidebar({
   const menuItems = [
     { id: 'projectspace', label: 'Project Space', icon: Layers },
     { id: 'fieldmap', label: 'Field Map', icon: Map },
-    { id: 'component', label: 'Component', icon: Grid },
+    { id: 'component', label: language === 'en' ? 'Active Matrix' : '真态矩阵组件', icon: Grid },
     { id: 'forge', label: 'Forge', icon: Cpu },
     { id: 'muse', label: 'Muse', icon: Lightbulb },
     { id: 'explore', label: 'Explore', icon: Compass },
