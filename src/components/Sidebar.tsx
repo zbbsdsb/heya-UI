@@ -216,9 +216,13 @@ export default function Sidebar({
           <button 
             onClick={() => {
               (window as any).playTactileChime?.('click');
-              window.dispatchEvent(new CustomEvent('heya-toast', { detail: { message: language === 'en' ? 'Hearth Guide ADR-007 is locked to workspace local memory.' : '赫斯系统操作指南 ADR-007 协议已锁定防篡改内存。' } }));
+              setActiveTab('guide');
             }}
-            className="flex items-center justify-center w-9 h-9 text-slate-400 bg-[#f8fafc] hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-all" 
+            className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all ${
+              activeTab === 'guide'
+                ? 'bg-indigo-50 text-indigo-600 font-bold shadow-sm'
+                : 'text-slate-400 bg-[#f8fafc] hover:bg-slate-100 hover:text-slate-600'
+            }`}
             title={language === 'en' ? 'System Guide' : '指南'}
           >
             <BookOpen className="w-4 h-4" />

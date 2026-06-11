@@ -34,6 +34,7 @@ import MuseIdeation from './components/MuseIdeation';
 import OermosNetwork from './components/OermosNetwork';
 import WorkspaceToolList from './components/WorkspaceToolList';
 import ProjectSpace from './components/ProjectSpace';
+import HearthGuide from './components/HearthGuide';
 import HearthComponentRegistry from './components/HearthComponentRegistry';
 import ExploreRealmNavigator from './components/ExploreRealmNavigator';
 import DraggableToolPreview from './components/DraggableToolPreview';
@@ -884,6 +885,10 @@ export default function App() {
 
           {activeTab === 'oermos' && (
             <OermosNetwork language={language} />
+          )}
+
+          {activeTab === 'guide' && (
+            <HearthGuide language={language} />
           )}
 
           {activeTab === 'toollist' && (
