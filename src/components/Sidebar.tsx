@@ -71,11 +71,21 @@ export default function Sidebar({
           </div>
 
           {/* User Card */}
-          <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#f8fafc]/80 hover:bg-[#f1f5f9] cursor-pointer transition-all duration-200 border border-slate-100">
+          <div 
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              setActiveTab('profile');
+            }}
+            className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all duration-200 border ${
+              activeTab === 'profile'
+                ? 'bg-indigo-50/70 border-indigo-250 shadow-sm'
+                : 'bg-[#f8fafc]/80 hover:bg-[#f1f5f9] border-slate-100'
+            }`}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-indigo-100 shadow-sm relative">
                 <img 
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&auto=format&fit=crop&sat=-100" 
+                  src="/src/assets/images/ceaserzhao_avatar_1781142623800.png" 
                   alt="ceaserzhao avatar"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -90,7 +100,7 @@ export default function Sidebar({
                 </div>
               </div>
             </div>
-            <ChevronDown className="w-4 h-4 text-slate-400 mr-1" />
+            <ChevronDown className={`w-4 h-4 text-slate-400 mr-1 transition-transform ${activeTab === 'profile' ? 'rotate-180 text-indigo-600' : ''}`} />
           </div>
         </div>
 

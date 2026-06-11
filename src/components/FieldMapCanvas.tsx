@@ -38,7 +38,7 @@ import { translations, getLocalizedNode } from '../locales';
 
 // Team member avatars
 const AVATARS = [
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=128&auto=format&fit=crop&sat=-100", // ceaserzhao
+  "/src/assets/images/ceaserzhao_avatar_1781142623800.png", // ceaserzhao
   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=128&auto=format&fit=crop", // Ying
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=128&auto=format&fit=crop", // Alex
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop", // David

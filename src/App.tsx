@@ -35,6 +35,7 @@ import OermosNetwork from './components/OermosNetwork';
 import WorkspaceToolList from './components/WorkspaceToolList';
 import ProjectSpace from './components/ProjectSpace';
 import HearthGuide from './components/HearthGuide';
+import UserProfile from './components/UserProfile';
 import HearthComponentRegistry from './components/HearthComponentRegistry';
 import ExploreRealmNavigator from './components/ExploreRealmNavigator';
 import DraggableToolPreview from './components/DraggableToolPreview';
@@ -44,7 +45,7 @@ import { translations } from './locales';
 
 // Avatars for online collaboration representations
 const AVATARS = [
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=128&auto=format&fit=crop&sat=-100", // ceaserzhao
+  "/src/assets/images/ceaserzhao_avatar_1781142623800.png", // ceaserzhao
   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=128&auto=format&fit=crop", // Ying
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=128&auto=format&fit=crop", // Alex
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=128&auto=format&fit=crop", // David
@@ -885,6 +886,10 @@ export default function App() {
 
           {activeTab === 'oermos' && (
             <OermosNetwork language={language} />
+          )}
+
+          {activeTab === 'profile' && (
+            <UserProfile language={language} setActiveTab={setActiveTab} />
           )}
 
           {activeTab === 'guide' && (
