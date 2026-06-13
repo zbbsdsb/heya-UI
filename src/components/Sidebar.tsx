@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Grid, 
   Cpu, 
@@ -15,11 +15,16 @@ import {
   Bell,
   BookOpen,
   ChevronDown,
+  ChevronUp,
   Map,
   Compass,
-  Layers
+  Layers,
+  Clock,
+  Code,
+  Boxes
 } from 'lucide-react';
 import { translations } from '../locales';
+import { NodeData } from '../types';
 
 interface SidebarProps {
   activeTab: string;
@@ -31,6 +36,9 @@ interface SidebarProps {
   onOpenSettings?: () => void;
   onMouseEnterToolList?: (rect: DOMRect) => void;
   onMouseLeaveToolList?: () => void;
+  nodes?: NodeData[];
+  selectedNodeId?: string | null;
+  setSelectedNodeId?: (id: string | null) => void;
 }
 
 export default function Sidebar({ 
@@ -39,9 +47,13 @@ export default function Sidebar({
   language = 'en',
   onOpenSettings,
   onMouseEnterToolList,
-  onMouseLeaveToolList
+  onMouseLeaveToolList,
+  nodes = [],
+  selectedNodeId,
+  setSelectedNodeId
 }: SidebarProps) {
   const tVal = translations[language].sidebar;
+  const [isComponentListOpen, setIsComponentListOpen] = useState(true);
 
   const menuItems = [
     { id: 'projectspace', label: 'Project Space', icon: Layers },
@@ -54,6 +66,16 @@ export default function Sidebar({
     { id: 'toollist', label: language === 'en' ? 'Workspace Tools' : '智能工具箱', icon: ClipboardList },
     { id: 'hey', label: 'Hey Companion', icon: Sparkles },
   ];
+
+  const getSubNodeIcon = (type: string) => {
+    switch (type) {
+      case 'project': return <Grid className="w-3.5 h-3.5 text-indigo-550" />;
+      case 'todo': return <Clock className="w-3.5 h-3.5 text-emerald-500" />;
+      case 'agent': return <Cpu className="w-3.5 h-3.5 text-purple-500" />;
+      case 'muse': return <Lightbulb className="w-3.5 h-3.5 text-pink-500" />;
+      default: return <Code className="w-3.5 h-3.5 text-amber-500" />;
+    }
+  };
 
   return (
     <div className="w-[280px] h-full flex flex-col justify-between bg-white border-r border-[#eef2f6] shrink-0 select-none font-sans relative">
@@ -141,6 +163,64 @@ export default function Sidebar({
               </button>
             );
           })}
+        </div>
+
+        {/* Component Spaces Collapsible Folder Accordion Section */}
+        <div className="px-4 border-t border-slate-100 pt-3 mt-1 space-y-1">
+          <button
+            onClick={() => {
+              (window as any).playTactileChime?.('click');
+              setIsComponentListOpen(!isComponentListOpen);
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-2 text-[10.5px] font-black uppercase tracking-wider text-slate-400 font-mono hover:text-slate-700 transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <Boxes className="w-4 h-4 text-indigo-500" />
+              <span>{language === 'en' ? 'Component Spaces' : '独立组件空间'}</span>
+            </div>
+            {isComponentListOpen ? (
+              <ChevronDown className="w-3.5 h-3.5 rotate-180 transition-transform" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 transition-transform" />
+            )}
+          </button>
+
+          {isComponentListOpen && (
+            <div className="space-y-1 max-h-[190px] overflow-y-auto pr-1 select-none scrollbar-none custom-scroll">
+              {nodes.length === 0 ? (
+                <div className="px-3.5 py-3 text-[10px] text-slate-400 font-bold border border-dashed border-slate-100 rounded-xl text-center">
+                  {language === 'en' ? 'No active components' : '暂无独立组件'}
+                </div>
+              ) : (
+                nodes.map((node) => {
+                  const isActive = activeTab === 'component-space' && selectedNodeId === node.id;
+                  return (
+                    <button
+                      key={node.id}
+                      onClick={() => {
+                        (window as any).playTactileChime?.('click');
+                        if (setSelectedNodeId) setSelectedNodeId(node.id);
+                        setActiveTab('component-space');
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 text-left ${
+                        isActive
+                          ? 'bg-indigo-50 text-indigo-605 font-extrabold border-l-4 border-indigo-605 pl-2.5 shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                      }`}
+                    >
+                      <div className="shrink-0 flex items-center justify-center">
+                        {getSubNodeIcon(node.type)}
+                      </div>
+                      <span className="truncate flex-1">{node.title}</span>
+                      <span className="text-[9.5px] text-slate-450 font-mono font-bold shrink-0">
+                        {node.progress}%
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
       </div>      {/* Heya AI Section */}
       <div className="px-5 pb-5">

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Folder, 
   FolderOpen, 
@@ -25,7 +25,17 @@ import {
   Eye,
   EyeOff,
   Type,
-  X
+  X,
+  Send,
+  Sparkles,
+  Command,
+  Activity,
+  CheckCircle,
+  AlertTriangle,
+  RefreshCw,
+  Cpu,
+  Layers,
+  HelpCircle
 } from 'lucide-react';
 
 interface FileNode {
@@ -307,6 +317,45 @@ const fileTrees: Record<string, FileNode[]> = {
   ]
 };
 
+// Define visual internal topologies for each component type
+interface SubTopologyNode {
+  id: string;
+  label: string;
+  desc: string;
+  fileName: string; // Opens this file when clicked
+  x: number;
+  y: number;
+}
+
+const subTopologies: Record<string, SubTopologyNode[]> = {
+  project: [
+    { id: 'canvas', label: 'RegistryCanvas.tsx', desc: 'Spatially layout tactile visual graph mechanics', fileName: 'RegistryCanvas.tsx', x: 80, y: 70 },
+    { id: 'hub', label: 'HearthSovereignHub.tsx', desc: 'Sync telemetry, connections and system binders', fileName: 'HearthSovereignHub.tsx', x: 220, y: 70 },
+    { id: 'main', label: 'main.tsx', desc: 'Node runtime container and virtual engine entrypoint', fileName: 'main.tsx', x: 150, y: 150 },
+    { id: 'relay', label: 'signal_relay.go', desc: 'Physical signal routing pipeline proxy', fileName: 'signal_relay.go', x: 260, y: 150 }
+  ],
+  todo: [
+    { id: 'validate', label: '01_validate.rs', desc: 'Inbound cryptographic integrity validator', fileName: '01_validate.rs', x: 90, y: 70 },
+    { id: 'sandbox', label: '02_sandbox_exec.rs', desc: 'Firewalled execution container sandbox', fileName: '02_sandbox_exec.rs', x: 210, y: 70 },
+    { id: 'ci_cd', label: 'ci_cd_workflow.yml', desc: 'Automated workflow regression tester', fileName: 'ci_cd_workflow.yml', x: 150, y: 150 }
+  ],
+  agent: [
+    { id: 'seed', label: 'system_seed_inst.md', desc: 'Decentralized prompt core memory instructions', fileName: 'system_seed_inst.md', x: 80, y: 70 },
+    { id: 'loop', label: 'reflexive_loop.json', desc: 'Friction factor configuration variables', fileName: 'reflexive_loop.json', x: 220, y: 70 },
+    { id: 'cron', label: 'scheduler_cron.py', desc: 'Autonomic chronometers polling script', fileName: 'scheduler_cron.py', x: 150, y: 160 }
+  ],
+  muse: [
+    { id: 'canvas_sketch', label: 'creative_outbreak.canvas', desc: 'Chaotic vector thoughts and creative links', fileName: 'creative_outbreak.canvas', x: 90, y: 70 },
+    { id: 'unstructured', label: 'unstructured_draft.txt', desc: 'Plaintext sketchpad conceptual layouts', fileName: 'unstructured_draft.txt', x: 210, y: 70 },
+    { id: 'weights', label: 'divergence_factor.bin', desc: 'Physical neural divergent vector weights', fileName: 'divergence_factor.bin', x: 150, y: 150 }
+  ],
+  resource: [
+    { id: 'v001', label: 'v001_initial_schema.sql', desc: 'Structured logical database schema', fileName: 'v001_initial_schema.sql', x: 80, y: 70 },
+    { id: 'v002', label: 'v002_seeding_data.sql', desc: 'Relational initial seed coordinates', fileName: 'v002_seeding_data.sql', x: 210, y: 70 },
+    { id: 'r2', label: 'r2_bucket_config.json', desc: 'Cloudflare media buckets synchronization properties', fileName: 'r2_bucket_config.json', x: 150, y: 150 }
+  ]
+};
+
 interface HearthFolderExplorerProps {
   nodeType: string;
   nodeTitle: string;
@@ -319,6 +368,8 @@ export default function HearthFolderExplorer({
   language
 }: HearthFolderExplorerProps) {
   const currentTree = fileTrees[nodeType] || fileTrees.project;
+  const currentSubTopology = subTopologies[nodeType] || subTopologies.project;
+
   const [collapsedPaths, setCollapsedPaths] = useState<Record<string, boolean>>({});
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [fileSearch, setFileSearch] = useState('');
@@ -328,6 +379,84 @@ export default function HearthFolderExplorer({
   const [layoutMode, setLayoutMode] = useState<'side' | 'stacked' | 'code-only'>('side');
   const [fontSize, setFontSize] = useState<'xs' | 'sm' | 'base'>('xs');
 
+  // Multi-tab sub views: "editor" | "topology" | "ai"
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'editor' | 'topology' | 'ai'>('editor');
+
+  // Source code state persistent store
+  const [fileContents, setFileContents] = useState<Record<string, string>>({});
+  
+  // Simulated terminal compiler logger state
+  const [compileOutput, setCompileOutput] = useState<string[]>([]);
+  const [isCompiling, setIsCompiling] = useState(false);
+  const [compilationStatus, setCompilationStatus] = useState<'idle' | 'success' | 'failed'>('idle');
+
+  // AI workspace assistant state machine
+  const [workspaceChatHistory, setWorkspaceChatHistory] = useState<Array<{
+    sender: 'user' | 'assistant';
+    text: string;
+    codePatch?: {
+      targetFile: string;
+      patchSnippet: string;
+    }
+  }>>([
+    {
+      sender: 'assistant',
+      text: language === 'en' 
+        ? "Hello! I am your AI Code Assistant. I can help you analyze, implement new signal handshakes, or auto-refactor the active component's files. Select a file and ask or click code actions downstream!"
+        : "您好！我是 Hearth 内核 AI 辅助开发助手。我可以帮您审计代码逻辑、新增主权通讯特征，或者自动重构当前选中的逻辑。请先在左侧选择文件，然后与我对话！"
+    }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Seed default fileContents on initialization
+  useEffect(() => {
+    const defaultContents: Record<string, string> = {};
+    const extractContents = (list: FileNode[]) => {
+      list.forEach(node => {
+        if (node.type === 'file' && node.snippet) {
+          defaultContents[node.name] = node.snippet;
+        }
+        if (node.children) {
+          extractContents(node.children);
+        }
+      });
+    };
+    Object.values(fileTrees).forEach(tree => {
+      extractContents(tree);
+    });
+    setFileContents(defaultContents);
+  }, []);
+
+  // Set default selected file on mount/node type switch
+  useEffect(() => {
+    if (currentTree && currentTree.length > 0) {
+      // Find first file recursively
+      const findFirstFile = (list: FileNode[]): FileNode | null => {
+        for (const item of list) {
+          if (item.type === 'file') return item;
+          if (item.children) {
+            const res = findFirstFile(item.children);
+            if (res) return res;
+          }
+        }
+        return null;
+      };
+      const first = findFirstFile(currentTree);
+      if (first) {
+        setSelectedFile(first);
+      }
+    }
+  }, [nodeType, currentTree]);
+
+  // Scroll AI dialogue to bottom when logs update
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [workspaceChatHistory]);
+
   const loc = {
     en: {
       explorerTitle: 'Active Project Module Filesystem',
@@ -335,8 +464,8 @@ export default function HearthFolderExplorer({
       searchPlaceholder: 'Filter project files...',
       previewTitle: 'Sovereign Code Sandbox Audit',
       noFileText: 'Select any project file from the directory tree to projection preview.',
-      metaSize: 'PHYSICAL WEIGHT:',
-      metaCheck: 'INTEGRITY SIGNATURE:',
+      metaSize: 'PHYSICAL CODE VOLUME:',
+      metaCheck: 'INTEGRITY SHA-256 SIGNATURE:',
       backText: 'Clear Selector',
       layoutText: 'Layout Orientation',
       layoutSide: 'Split Dual-Pane',
@@ -345,16 +474,29 @@ export default function HearthFolderExplorer({
       fontSizeText: 'Text Scale',
       fullscreenEnter: 'Fullscreen IDE',
       fullscreenExit: 'Exit Fullscreen',
-      treeToggle: 'Toggle File Tree'
+      treeToggle: 'Toggle File Tree',
+      saveBtn: 'Save Source Code Checkpoint',
+      compileBtn: 'Run Secure Compiler Audit',
+      compileIdle: 'STABLE READY',
+      compiling: 'COMPILING KERNEL VECTOR...',
+      compilationLogs: 'Compiler System Diagnostics Console',
+      subTopologyTitle: 'Active Component Internal Topology Map',
+      subTopologyDesc: 'Click on sub-topology hardware nodes below to automatically focus and open their physical files in the source editor IDE.',
+      aiTitle: 'Autonomous AGI Code Assistant',
+      aiPlaceholder: 'Type co-programming direction (e.g. Add offline safety checks)...',
+      aiSend: 'Dispatch Prompt',
+      applyPatchText: '✨ Click to Inject AI Code Code Into Editor',
+      patchInjected: 'Physics patch successfully committed to editor.',
+      quickPrompts: 'Tactical Workspace Refactoring Prompts'
     },
     zh: {
-      explorerTitle: '当前挂载项目工程文件树 (Collapsible Filesystem)',
+      explorerTitle: '当前组件项目代码文件树 (Collapsible Filesystem)',
       explorerSub: '此组件节点物理打包物料文件。可点击折叠/打开文件夹树，选中文件进行安全阻断审计及源码预览。',
       searchPlaceholder: '输入文件名过滤检索...',
       previewTitle: '主机本地代码安全性审计沙盒 (Viewer)',
       noFileText: '请在左侧文件树中选中任何文件，以此加载指纹指认及物理源码审计。',
       metaSize: '物理字节体积:',
-      metaCheck: '哈希防篡改指纹:',
+      metaCheck: '物理密码学防篡改签名:',
       backText: '清除选择',
       layoutText: '视图布局方式',
       layoutSide: '左右双栏分屏',
@@ -363,13 +505,26 @@ export default function HearthFolderExplorer({
       fontSizeText: '字体缩放',
       fullscreenEnter: '进入全屏工作区',
       fullscreenExit: '退出全屏',
-      treeToggle: '树结构开关'
+      treeToggle: '树结构开关',
+      saveBtn: '保存本地代码快照',
+      compileBtn: '运行主权安全编译探测',
+      compileIdle: '内核就绪',
+      compiling: '源程序打包流校验中...',
+      compilationLogs: '主权内核本地编译终端跟踪堆栈',
+      subTopologyTitle: '此 Component 微结构系统物理拓扑图 (Topology)',
+      subTopologyDesc: '点击下方组件内部逻辑网络的各个物理节点，即可使代码编辑器自动寻址并秒级打开对应的源码脚本。',
+      aiTitle: 'AI 代码辅助与协处理器对话框 (AI Chat)',
+      aiPlaceholder: '键入协同问题（如：为此机制新增防注入安全过滤器）...',
+      aiSend: '发送指令',
+      applyPatchText: '✨ 点击将 AI 优化方案直接物尽其用写进编辑器',
+      patchInjected: 'AI 物理编译规约已自动写入。',
+      quickPrompts: 'AI 开发智能加速套件快捷项'
     }
   };
 
   const lVal = loc[language];
 
-  // Helper toggle
+  // Helper toggle paths
   const togglePath = (path: string) => {
     setCollapsedPaths(prev => ({
       ...prev,
@@ -377,7 +532,7 @@ export default function HearthFolderExplorer({
     }));
   };
 
-  // Helper to determine if file node matches filter
+  // Helper search checks
   const matchesSearch = (node: FileNode, query: string): boolean => {
     if (!query) return true;
     if (node.name.toLowerCase().includes(query.toLowerCase())) return true;
@@ -387,43 +542,244 @@ export default function HearthFolderExplorer({
     return false;
   };
 
-  // Render tree node recursively
+  // Helper to lookup file by name in tree
+  const findFileByFileName = (nodes: FileNode[], targetName: string): FileNode | null => {
+    for (const n of nodes) {
+      if (n.type === 'file' && n.name === targetName) {
+        return n;
+      }
+      if (n.children) {
+        const found = findFileByFileName(n.children, targetName);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // Handle clicking visual node from local topology
+  const handleTopologyNodeClick = (fileName: string) => {
+    if (typeof (window as any).playTactileChime === 'function') {
+      (window as any).playTactileChime('success');
+    }
+    const matched = findFileByFileName(currentTree, fileName);
+    if (matched) {
+      setSelectedFile(matched);
+      setActiveWorkspaceTab('editor');
+      // Dispatch toast
+      window.dispatchEvent(new CustomEvent('heya-toast', {
+        detail: { 
+          message: language === 'en' 
+            ? `Navigated to File: ${fileName} via Inner Topology Map` 
+            : `通过局部物理拓扑映射，自动跳转打开：${fileName}`, 
+          type: 'info' 
+        }
+      }));
+    }
+  };
+
+  // Run secure build compiler simulation
+  const handleCompileSovereign = () => {
+    if (!selectedFile) return;
+    if (typeof (window as any).playTactileChime === 'function') {
+      (window as any).playTactileChime('click');
+    }
+
+    setIsCompiling(true);
+    setCompilationStatus('idle');
+    setCompileOutput([
+      `[COMPILER] Initializing sovereign hardware sandboxing...`,
+      `[COMPILER] Locating active workspace node: ${nodeTitle}`,
+      `[COMPILER] Target file stream audit: ${selectedFile.name}`,
+    ]);
+
+    setTimeout(() => {
+      setCompileOutput(prev => [
+        ...prev,
+        `[COMPILER] Computing local file block checksum... Passed.`,
+        `[COMPILER] Verifying absence of non-orthodox external telemetry APIs... Verified.`,
+        `[COMPILER] Evaluating logical rules & anti-slop visual compliance...`
+      ]);
+    }, 600);
+
+    setTimeout(() => {
+      const activeCode = fileContents[selectedFile.name] || selectedFile.snippet || '';
+      const containsSyntaxError = activeCode.includes('ERROR_TRIGGER') || activeCode.includes('SyntaxError');
+
+      if (containsSyntaxError) {
+        setCompilationStatus('failed');
+        setCompileOutput(prev => [
+          ...prev,
+          `[CRITICAL CORRUPT] Code validation scan parsed fatal error values.`,
+          `[FATAL] Compilation aborted. Check for incomplete assignments or syntax typos!`
+        ]);
+        if (typeof (window as any).playTactileChime === 'function') {
+          (window as any).playTactileChime('alert');
+        }
+      } else {
+        setCompilationStatus('success');
+        setCompileOutput(prev => [
+          ...prev,
+          `[COMPILER] Building dependency graphs successfully (Depth: 3 layers).`,
+          `[COMPILER] COMPILE SUCCESSFUL. Cryptographic signature registered: SHA-256_${Math.floor(Math.random()*900000+100000)}`
+        ]);
+        if (typeof (window as any).playTactileChime === 'function') {
+          (window as any).playTactileChime('success');
+        }
+      }
+      setIsCompiling(false);
+    }, 1500);
+  };
+
+  // Save code changes manually
+  const handleSaveCode = () => {
+    if (typeof (window as any).playTactileChime === 'function') {
+      (window as any).playTactileChime('success');
+    }
+    window.dispatchEvent(new CustomEvent('heya-toast', {
+      detail: { 
+        message: language === 'en' 
+          ? 'Code checkpoint committed to container disk state.' 
+          : '代码文件本地快照已保存至在册系统目录！', 
+        type: 'success' 
+      }
+    }));
+  };
+
+  // Submit AI Prompt or preset routines
+  const handleDispatchAiPrompt = (customText?: string) => {
+    const textToSend = customText || chatInput;
+    if (!textToSend.trim() || !selectedFile) return;
+
+    if (typeof (window as any).playTactileChime === 'function') {
+      (window as any).playTactileChime('click');
+    }
+
+    const nextUserMsg = { sender: 'user' as const, text: textToSend };
+    setWorkspaceChatHistory(prev => [...prev, nextUserMsg]);
+    if (!customText) setChatInput('');
+
+    setIsAiLoading(true);
+
+    setTimeout(() => {
+      // Formulate a beautiful, high-fidelity custom code suggestion patch depending on active file and request
+      let generatedPatch = "";
+      let responseExp = "";
+
+      const lowerText = textToSend.toLowerCase();
+      const isRust = selectedFile.name.endsWith('.rs');
+      const isGo = selectedFile.name.endsWith('.go');
+      const isTs = selectedFile.name.endsWith('.ts') || selectedFile.name.endsWith('.tsx');
+
+      if (lowerText.includes('websocket') || lowerText.includes('socket') || lowerText.includes('信令')) {
+        if (isGo) {
+          responseExp = language === 'en'
+            ? `I have updated 'signal_relay.go' to support WebSockets. Added gorilla/websocket structures, managed socket handshakes, and established low-friction routing loops.`
+            : `我已重构了 'signal_relay.go' 以支持 WebSockets 反向连接。引入了标准双工 Socket 握手流并防止在离线场景下心跳崩溃。`;
+          generatedPatch = `package router\n\nimport (\n    "net/http"\n    "github.com/gorilla/websocket"\n)\n\nvar upgrader = websocket.Upgrader{\n    ReadBufferSize:  1024,\n    WriteBufferSize: 1024,\n}\n\nfunc RegisterRelayHandler(w http.ResponseWriter, r *http.Request) {\n    conn, err := upgrader.Upgrade(w, r, nil)\n    if err != nil {\n        return\n    }\n    defer conn.Close()\n    \n    // Sovereign duplex signal loop\n    for {\n        messageType, p, err := conn.ReadMessage()\n        if err != nil {\n            return\n        }\n        if err := conn.WriteMessage(messageType, p); err != nil {\n            return\n        }\n    }\n}`;
+        } else if (isTs) {
+          responseExp = language === 'en'
+            ? `Added highly resilient WebSocket fallback interfaces with reconnect backing schemas.`
+            : `新增了弹性 WebSocket 双向重连机制，当本地宿主意外断链时可实现 1.5 秒级自我修复逻辑。`;
+          generatedPatch = `import React, { useEffect, useState } from 'react';\n\nexport default function RegistryCanvas() {\n  const [wsState, setWsState] = useState('DISCONNECTED');\n  \n  useEffect(() => {\n    const socket = new WebSocket('ws://localhost:3000/api/relay');\n    socket.onopen = () => setWsState('STABLE');\n    socket.onclose = () => setWsState('RECONNECTING');\n    return () => socket.close();\n  }, []);\n\n  return (\n    <div className="p-4 bg-slate-900 border text-indigo-400 font-mono">\n      🛰️ Dual-Pipe Status: {wsState}\n    </div>\n  );\n}`;
+        } else {
+          responseExp = `WS protocol is not natively optimized for this specific file extension, but I injected a customized lightweight transport handler outline.`;
+          generatedPatch = `// WebSocket transport outline injected safely.\n// Managed context connections.`;
+        }
+      } else if (lowerText.includes('security') || lowerText.includes('assert') || lowerText.includes('安全')) {
+        if (isRust) {
+          responseExp = language === 'en'
+            ? `Hardened system-critical checks. Injected strict cryptographic validation guards, zero-copy buffer verification, and memory safety invariants.`
+            : `对关键程序段实施了高强度密码学边界断言保护。注入绝对可控的零拷贝缓存区拦截和 SHA-256 签名匹配锁。`;
+          generatedPatch = `pub fn validate_pipeline_stage() -> Result<(), CryptoError> {\n    println!("Initiating high-fidelity signature validation...");\n    \n    // SECURITY GUARD: Enforce maximum code block size thresholds\n    let memory_block_threshold = 4194304;\n    assert!(memory_block_threshold < 8388608, "CRITICAL ERROR: Memory buffer block violates physical limits!");\n    \n    verify_integrity_checksums()?;\n    Ok(())\n}`;
+        } else {
+          responseExp = language === 'en'
+            ? "Injected strict runtime boundary safety checks, error capture matrices, and telemetry protection bounds."
+            : "为所选代码增加了运行时逻辑边界卫氏断言、结构体深克隆异常捕捉以及抗沙盒击穿的安全隔离锁。";
+          generatedPatch = `// Enhanced cryptographic bounding assert block\ntry {\n  if (!process.env.GEMINI_API_KEY) {\n    console.warn("[SECURITY WARN] Proceeding under offline simulation vault.");\n  }\n  // Sandbox assertions verified.\n} catch (secureAuditErr) {\n  throw new Error("Security check failed!");\n}`;
+        }
+      } else {
+        // Fallback optimization
+        responseExp = language === 'en'
+          ? `Analyzed file '${selectedFile.name}'. Refactored visual aesthetics, modernized function headers, reduced nested loops to guarantee O(1) complexity, and enforced clean typography style conventions.`
+          : `已深入对 '${selectedFile.name}' 文件执行代码审查。重构了代码段可读性、删除无意义循环并使符合最苛刻的极简程序规则。`;
+        generatedPatch = `// Refactored and optimized cleanly for production compile\n` + (fileContents[selectedFile.name] || selectedFile.snippet || '');
+      }
+
+      setWorkspaceChatHistory(prev => [
+        ...prev,
+        {
+          sender: 'assistant',
+          text: responseExp,
+          codePatch: {
+            targetFile: selectedFile.name,
+            patchSnippet: generatedPatch
+          }
+        }
+      ]);
+      setIsAiLoading(false);
+      
+      if (typeof (window as any).playTactileChime === 'function') {
+        (window as any).playTactileChime('success');
+      }
+    }, 1500);
+  };
+
+  // Apply code patch from AI into editing state
+  const handleApplyAiPatch = (patchSnippet: string, targetFile: string) => {
+    setFileContents(prev => ({
+      ...prev,
+      [targetFile]: patchSnippet
+    }));
+    window.dispatchEvent(new CustomEvent('heya-toast', {
+      detail: { 
+        message: lVal.patchInjected, 
+        type: 'success' 
+      }
+    }));
+    if (typeof (window as any).playTactileChime === 'function') {
+      (window as any).playTactileChime('success');
+    }
+  };
+
+  // Render tree recursive file elements
   const renderFileSystemNode = (node: FileNode, currentPath: string, depth: number) => {
     const isFolder = node.type === 'folder';
     const hasChildren = node.children && node.children.length > 0;
     const path = `${currentPath}/${node.name}`;
     const isCollapsed = collapsedPaths[path] || false;
 
-    // Filter node if searching
     if (fileSearch && !matchesSearch(node, fileSearch)) {
       return null;
     }
 
     const itemPaddingLeft = `${depth * 14}px`;
+    const isSelected = selectedFile?.name === node.name;
 
     return (
-      <div key={path} className="select-none text-slate-350">
+      <div key={path} className="select-none text-slate-300">
         <div 
           onClick={() => {
-            (window as any).playTactileChime?.('click');
+            if (typeof (window as any).playTactileChime === 'function') {
+              (window as any).playTactileChime('click');
+            }
             if (isFolder) {
               togglePath(path);
             } else {
               setSelectedFile(node);
             }
           }}
-          className={`flex items-center justify-between py-1.5 px-3 rounded-lg hover:bg-slate-900/60 transition-colors cursor-pointer group ${
-            selectedFile?.name === node.name ? 'bg-indigo-950/40 text-amber-200 border-l-2 border-amber-500' : ''
+          className={`flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-indigo-950/20 transition-colors cursor-pointer group ${
+            isSelected ? 'bg-indigo-950/50 text-amber-300 border-l-2 border-indigo-500' : ''
           }`}
           style={{ paddingLeft: itemPaddingLeft }}
         >
           <div className="flex items-center gap-2 min-w-0">
             {isFolder ? (
-              <span className="text-slate-400">
-                {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              <span className="text-slate-500">
+                {isCollapsed ? <ChevronRight className="w-3" /> : <ChevronDown className="w-3" />}
               </span>
             ) : (
-              <span className="w-3.5" />
+              <span className="w-3" />
             )}
 
             <span className="shrink-0">
@@ -431,7 +787,7 @@ export default function HearthFolderExplorer({
                 isCollapsed ? (
                   <Folder className="w-4 h-4 text-indigo-400" />
                 ) : (
-                  <FolderOpen className="w-4 h-4 text-indigo-400 fill-indigo-400/10" />
+                  <FolderOpen className="w-4 h-4 text-indigo-400 fill-indigo-400/5" />
                 )
               ) : (
                 node.name.endsWith('.json') || node.name.endsWith('.toml') ? (
@@ -450,7 +806,7 @@ export default function HearthFolderExplorer({
           </div>
 
           {!isFolder && node.size && (
-            <span className="text-[8.5px] font-mono text-slate-550 shrink-0 select-none uppercase">
+            <span className="text-[8.5px] font-mono text-slate-500 shrink-0 select-none uppercase">
               {node.size}
             </span>
           )}
@@ -465,62 +821,49 @@ export default function HearthFolderExplorer({
     );
   };
 
-  // Dynamic styles and dimensions for layout customization
-  let treeColSpan = "md:col-span-5";
-  let codeColSpan = "md:col-span-7";
+  // Layout calculations
+  let leftTreeCol = "md:col-span-3";
+  let middleEditorCol = "md:col-span-6";
+  let rightConsoleCol = "md:col-span-3";
 
   if (layoutMode === 'stacked') {
-    treeColSpan = "md:col-span-12";
-    codeColSpan = "md:col-span-12";
+    leftTreeCol = "md:col-span-12";
+    middleEditorCol = "md:col-span-12";
+    rightConsoleCol = "md:col-span-12";
   } else if (layoutMode === 'code-only') {
-    treeColSpan = "hidden";
-    codeColSpan = "md:col-span-12";
-  } else { // 'side'
-    if (isFullscreen) {
-      treeColSpan = "md:col-span-4 lg:col-span-3";
-      codeColSpan = "md:col-span-8 lg:col-span-9";
-    } else {
-      treeColSpan = "md:col-span-5";
-      codeColSpan = "md:col-span-7";
-    }
+    leftTreeCol = "hidden";
+    middleEditorCol = "md:col-span-8";
+    rightConsoleCol = "md:col-span-4";
   }
-
-  const treeHeightClass = isFullscreen 
-    ? "h-[380px] md:h-[520px]" 
-    : "max-h-[220px]";
-
-  const codeHeightClass = isFullscreen 
-    ? "h-[320px] md:h-[460px]" 
-    : "max-h-[160px]";
 
   return (
     <div className={`transition-all duration-300 relative overflow-hidden ${
       isFullscreen 
-        ? 'fixed inset-0 bg-[#060714] z-[9999] p-8 md:p-12 overflow-y-auto flex flex-col justify-between space-y-6' 
+        ? 'fixed inset-0 bg-[#060714] z-[9999] p-8 md:p-10 flex flex-col justify-between space-y-6' 
         : 'bg-[#0b0c16] border border-slate-900 rounded-3xl p-6 shadow-xl space-y-4'
     }`}>
-      {/* Absolute ambient lights backdrops */}
+      {/* Background neon elements */}
       <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-600/5 blur-3xl rounded-full pointer-events-none" />
-      <div className="absolute left-1/3 bottom-0 w-80 h-80 bg-purple-600/5 blur-3xl rounded-full pointer-events-none" />
+      <div className="absolute left-1/3 bottom-0 w-80 h-80 bg-purple-605/5 blur-3xl rounded-full pointer-events-none" />
 
-      {/* 1. Header info & Premium Control Bar */}
+      {/* 1. Control Panel Header */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between pb-4 border-b border-indigo-950/45 gap-4">
         <div>
           <h4 className="text-xs font-black text-slate-350 uppercase tracking-widest flex items-center gap-1.5 flex-wrap">
-            <FolderOpen className="w-4 h-4 text-indigo-400" />
+            <Command className="w-4 h-4 text-indigo-400" />
             <span>{lVal.explorerTitle}</span>
             {isFullscreen ? (
               <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[8.5px] uppercase tracking-wider font-extrabold rounded animate-pulse">
-                ● FULLSCREEN WORKSPACE ACTIVE
+                ● FULLSCREEN VAULT ACTIVE
               </span>
             ) : (
-              <span className="px-2 py-0.5 bg-indigo-500/5 border border-indigo-500/10 text-slate-550 font-mono text-[8px] uppercase tracking-wider font-bold rounded">
-                ● MODULAR
+              <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-505/20 text-indigo-300 font-mono text-[8px] uppercase tracking-wider font-bold rounded">
+                ● COCKPIT
               </span>
             )}
           </h4>
-          <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">
-            {lVal.explorerSub} <span className="text-indigo-400 font-mono">[{nodeTitle}]</span>
+          <p className="text-[10px] text-slate-500 font-bold mt-1 leading-relaxed">
+            {lVal.explorerSub} <span className="text-indigo-400 font-mono font-black">[{nodeTitle}]</span>
           </p>
         </div>
 
@@ -531,7 +874,9 @@ export default function HearthFolderExplorer({
           <button
             type="button"
             onClick={() => {
-              (window as any).playTactileChime?.('click');
+              if (typeof (window as any).playTactileChime === 'function') {
+                (window as any).playTactileChime('click');
+              }
               setLayoutMode(prev => prev === 'code-only' ? 'side' : 'code-only');
             }}
             title={lVal.treeToggle}
@@ -546,11 +891,13 @@ export default function HearthFolderExplorer({
 
           <div className="h-4 w-[1px] bg-indigo-950/80" />
 
-          {/* Side by side layout */}
+          {/* Dual column configuration */}
           <button
             type="button"
             onClick={() => {
-              (window as any).playTactileChime?.('click');
+              if (typeof (window as any).playTactileChime === 'function') {
+                (window as any).playTactileChime('click');
+              }
               setLayoutMode('side');
             }}
             title={lVal.layoutSide}
@@ -563,11 +910,13 @@ export default function HearthFolderExplorer({
             <Columns2 className="w-3.5 h-3.5" />
           </button>
 
-          {/* Stacked layout */}
+          {/* Spanning layout */}
           <button
             type="button"
             onClick={() => {
-              (window as any).playTactileChime?.('click');
+              if (typeof (window as any).playTactileChime === 'function') {
+                (window as any).playTactileChime('click');
+              }
               setLayoutMode('stacked');
             }}
             title={lVal.layoutStacked}
@@ -582,15 +931,17 @@ export default function HearthFolderExplorer({
 
           <div className="h-4 w-[1px] bg-indigo-950/80" />
 
-          {/* Font scale toggler */}
+          {/* Size metrics slider */}
           <button
             type="button"
             onClick={() => {
-              (window as any).playTactileChime?.('click');
+              if (typeof (window as any).playTactileChime === 'function') {
+                (window as any).playTactileChime('click');
+              }
               setFontSize(prev => prev === 'xs' ? 'sm' : prev === 'sm' ? 'base' : 'xs');
             }}
             title={`${lVal.fontSizeText}: ${fontSize.toUpperCase()}`}
-            className="p-1 px-2 border border-slate-800 hover:border-slate-700 bg-slate-950/80 text-[9px] font-black font-mono text-slate-300 hover:text-white rounded-lg cursor-pointer flex items-center gap-1 active:scale-95 transition-all"
+            className="p-1 px-2 border border-slate-801 hover:border-slate-700 bg-slate-950/80 text-[9px] font-black font-mono text-slate-305 hover:text-white rounded-lg cursor-pointer flex items-center gap-1 active:scale-95 transition-all"
           >
             <Type className="w-3 h-3 text-indigo-400" />
             <span>{fontSize.toUpperCase()}</span>
@@ -598,11 +949,13 @@ export default function HearthFolderExplorer({
 
           <div className="h-4 w-[1px] bg-indigo-950/80" />
 
-          {/* Fullscreen Toggle */}
+          {/* Fullscreen controller */}
           <button
             type="button"
             onClick={() => {
-              (window as any).playTactileChime?.('click');
+              if (typeof (window as any).playTactileChime === 'function') {
+                (window as any).playTactileChime('click');
+              }
               setIsFullscreen(!isFullscreen);
             }}
             title={isFullscreen ? lVal.fullscreenExit : lVal.fullscreenEnter}
@@ -617,126 +970,451 @@ export default function HearthFolderExplorer({
         </div>
       </div>
 
-      {/* 2. Responsive Multi-Layout Split Engine */}
-      <div className={`grid grid-cols-1 md:grid-cols-12 gap-5 ${isFullscreen ? 'flex-1 min-h-0' : 'min-h-[260px]'}`}>
+      {/* 2. Three-Panel Space Cockpit */}
+      <div className={`grid grid-cols-1 md:grid-cols-12 gap-5 ${isFullscreen ? 'flex-1 min-h-0' : 'min-h-[460px]'}`}>
         
-        {/* Left Tree column */}
-        <div className={`${treeColSpan} bg-[#020205] ring-1 ring-indigo-950/50 p-4 rounded-2xl flex flex-col justify-between space-y-3 shadow-inner transition-all duration-300`}>
-          
-          {/* File Search */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder={lVal.searchPlaceholder}
-              value={fileSearch}
-              onChange={(e) => setFileSearch(e.target.value)}
-              className="w-full text-[10px] pl-8 pr-2.5 py-1.5 bg-slate-900 border border-indigo-950/40 rounded-lg text-slate-300 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
+        {/* ================= PANEL 1: COLLAPSIBLE FILESYSTEM BROWSER ================= */}
+        <div className={`${leftTreeCol} bg-[#020205] ring-1 ring-indigo-950/50 p-4 rounded-2xl flex flex-col justify-between space-y-3 shadow-inner`}>
+          <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
+            {/* Direct search query */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
+              <input 
+                type="text" 
+                placeholder={lVal.searchPlaceholder}
+                value={fileSearch}
+                onChange={(e) => setFileSearch(e.target.value)}
+                className="w-full text-[10px] pl-8 pr-2.5 py-1.5 bg-slate-900 border border-indigo-950/40 rounded-lg text-slate-300 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
 
-          {/* Directory node explorer */}
-          <div className={`flex-1 pr-1.5 custom-scroll space-y-0.5 overflow-y-auto ${treeHeightClass}`}>
-            {currentTree.map(node => renderFileSystemNode(node, '', 0))}
+            {/* Tree Nodes file item listing scroll */}
+            <div className="flex-1 overflow-y-auto pr-1.5 custom-scroll space-y-0.5">
+              {currentTree.map(node => renderFileSystemNode(node, '', 0))}
+            </div>
           </div>
           
           <div className="text-[8.5px] text-indigo-400 font-mono flex justify-between uppercase pt-2 border-t border-indigo-950/30">
-            <span>FILESYSTEM METRIC</span>
-            <span>TYPE: {nodeType.toUpperCase()}</span>
+            <span>HARDWARE CLASS</span>
+            <span>{nodeType.toUpperCase()}</span>
           </div>
         </div>
 
-        {/* Right Preview column */}
-        <div className={`${codeColSpan} bg-[#010103] border border-indigo-950/80 p-5 rounded-2xl flex flex-col justify-between transition-all duration-300 ${
-          isFullscreen ? 'h-full' : 'min-h-[240px]'
-        }`}>
+        {/* ================= PANEL 2: HIGH-FIDELITY INTERACTIVE EDITOR ================= */}
+        <div className={`${middleEditorCol} flex flex-col bg-[#010103] border border-indigo-950/85 rounded-2xl p-5 justify-between min-h-[380px]`}>
           {selectedFile ? (
-            <div className="flex flex-col justify-between h-full space-y-4 animate-in fade-in-25 duration-200">
+            <div className="flex-1 flex flex-col justify-between space-y-4">
               
-              {/* Header metrics */}
-              <div className="flex justify-between items-start pb-2 border-b border-indigo-950/45">
-                <div>
-                  <h5 className="text-[11px] font-mono font-black text-amber-300 flex items-center gap-1.5">
-                    <Code className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>{selectedFile.name}</span>
-                  </h5>
-                  <div className="text-[9px] text-slate-500 font-mono mt-0.5">
-                    {lVal.metaSize} <span className="text-slate-300 font-bold">{selectedFile.size || 'N/A'}</span>
+              {/* Active File Tab Headers */}
+              <div className="flex items-center justify-between pb-1.5 border-b border-indigo-950/45">
+                <div className="flex items-center gap-1.5">
+                  <div className="p-1 rounded bg-indigo-900/40 border border-indigo-500/25">
+                    <FileCode className="w-4 h-4 text-sky-400" />
+                  </div>
+                  <div>
+                    <h5 className="text-[11px] font-mono font-black text-amber-300 flex items-center gap-1.5">
+                      <span>{selectedFile.name}</span>
+                    </h5>
+                    <div className="text-[8.5px] text-slate-500 font-mono mt-0.5 uppercase tracking-tight">
+                      {lVal.metaSize} <span className="text-slate-300 font-bold">{selectedFile.size || 'N/A'}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Tree Quick Toggler for code-only setup */}
-                  {layoutMode === 'code-only' && (
-                    <button 
-                      onClick={() => {
-                        (window as any).playTactileChime?.('click');
-                        setLayoutMode('side');
-                      }}
-                      className="px-2 py-0.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded font-mono text-[8.5px] uppercase border border-indigo-500/20 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                    >
-                      <span>📂 {lVal.treeToggle}</span>
-                    </button>
-                  )}
-
-                  <button 
-                    onClick={() => setSelectedFile(null)}
-                    className="px-2 py-1 bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-slate-200 rounded font-mono text-[8.5px] uppercase border border-indigo-950/60 cursor-pointer transition-all active:scale-95"
+                {/* Sub Tab selection buttons inside the workspace */}
+                <div className="flex border border-indigo-950 bg-[#020205] p-1 rounded-xl gap-1">
+                  <button
+                    onClick={() => setActiveWorkspaceTab('editor')}
+                    className={`px-2.5 py-1 text-[9px] font-black uppercase rounded-lg transition-all cursor-pointer ${
+                      activeWorkspaceTab === 'editor' 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'text-slate-400 hover:text-white'
+                    }`}
                   >
-                    {lVal.backText}
+                    Code Editor
+                  </button>
+                  <button
+                    onClick={() => setActiveWorkspaceTab('topology')}
+                    className={`px-2.5 py-1 text-[9px] font-black uppercase rounded-lg transition-all cursor-pointer ${
+                      activeWorkspaceTab === 'topology' 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Inner TopologyMap
+                  </button>
+                  <button
+                    onClick={() => setActiveWorkspaceTab('ai')}
+                    className={`px-2.5 py-1 text-[9px] font-black uppercase rounded-lg transition-all cursor-pointer ${
+                      activeWorkspaceTab === 'ai' 
+                        ? 'bg-indigo-650 text-white' 
+                        : 'text-slate-400 hover:text-white text-center flex items-center gap-1'
+                    }`}
+                  >
+                    <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
+                    <span>AI Assistant</span>
                   </button>
                 </div>
               </div>
 
-              {/* Code Snippet with Beautiful line numbers & layout-adapted height */}
-              <div className={`flex-1 overflow-auto bg-[#04040a]/90 border border-indigo-950/60 rounded-xl p-4 ${codeHeightClass} custom-scroll`}>
-                {(() => {
-                  const rawSnippet = selectedFile.snippet || '// No preview available.';
-                  const snippetLines = rawSnippet.split('\n');
-                  return (
-                    <div className="flex font-mono leading-relaxed text-left">
-                      {/* Line Numbers column */}
-                      <div className="select-none text-slate-650 text-right pr-3.5 border-r border-indigo-950/40 shrink-0 font-mono text-[9px] space-y-1">
-                        {snippetLines.map((_, idx) => (
-                          <div key={idx} className="h-4.5">{idx + 1}</div>
+              {/* Render view contents depending on active tab selection */}
+              <div className="flex-1 flex flex-col min-h-0">
+                
+                {/* SUB TAB A: THE CODE EDITOR & WRITING PLATFORM */}
+                {activeWorkspaceTab === 'editor' && (
+                  <div className="flex-1 flex flex-col justify-between space-y-3 min-h-0">
+                    <div className="flex-1 flex border border-indigo-950/60 rounded-xl bg-[#04040a]/95 overflow-hidden p-3 font-mono leading-relaxed relative">
+                      {/* Interactive code write-area with row counters */}
+                      <div className="absolute top-1 left-1 font-mono text-[8px] text-slate-650 select-none">
+                        HEARTH SECURE SANDBOX EDIT MODE / WRITE CODE SAFELY
+                      </div>
+
+                      {/* Code Area row numbering column */}
+                      <div className="select-none text-slate-700 text-right pr-3 border-r border-indigo-950/40 shrink-0 font-mono text-[9.5px] space-y-1 pt-6">
+                        {Array.from({ length: Math.max(12, (fileContents[selectedFile.name] || selectedFile.snippet || '').split('\n').length) }).map((_, idx) => (
+                          <div key={idx} className="h-5">{idx + 1}</div>
                         ))}
                       </div>
-                      {/* Code body */}
-                      <pre className={`flex-1 pl-4 overflow-x-auto whitespace-pre font-mono text-indigo-200 space-y-1 ${
-                        fontSize === 'xs' ? 'text-[10px]' : fontSize === 'sm' ? 'text-xs md:text-[13px]' : 'text-sm md:text-[15px]'
-                      }`}>
-                        {snippetLines.map((line, idx) => (
-                          <div key={idx} className="h-4.5 hover:bg-indigo-500/5 px-1 rounded transition-colors whitespace-pre">
-                            <code>{line || ' '}</code>
+
+                      {/* Interactive Text Field for user typing inputs */}
+                      <textarea
+                        value={fileContents[selectedFile.name] !== undefined ? fileContents[selectedFile.name] : selectedFile.snippet}
+                        onChange={(e) => {
+                          setFileContents(prev => ({
+                            ...prev,
+                            [selectedFile.name]: e.target.value
+                          }));
+                        }}
+                        placeholder="// Write your sovereign program logic here..."
+                        style={{ resize: 'none' }}
+                        className={`flex-1 pl-4 bg-transparent text-indigo-150 outline-none font-mono focus:ring-0 focus:outline-none border-none pt-6 overflow-y-auto leading-5 ${
+                          fontSize === 'xs' ? 'text-[10px]' : fontSize === 'sm' ? 'text-xs md:text-[13px]' : 'text-sm md:text-[14px]'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Integrated diagnostics logs console output */}
+                    <div className="space-y-2">
+                      <div className="flex gap-2 items-center">
+                        <button
+                          onClick={handleSaveCode}
+                          className="px-4 py-2 bg-indigo-950/50 hover:bg-indigo-900/40 text-indigo-300 font-extrabold text-[10px] uppercase tracking-wide rounded-xl cursor-pointer border border-indigo-500/20 active:scale-95 transition-all text-center shrink-0"
+                        >
+                          {lVal.saveBtn}
+                        </button>
+                        <button
+                          onClick={handleCompileSovereign}
+                          disabled={isCompiling}
+                          className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          {isCompiling ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>{lVal.compiling}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5 text-indigo-100 fill-indigo-50" />
+                              <span>{lVal.compileBtn}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Simulated Compile trace output */}
+                      {compileOutput.length > 0 && (
+                        <div className="p-3 bg-[#020205] border border-indigo-950/80 rounded-xl font-mono text-[9px] text-[#8e9bb4] space-y-1 relative select-all max-h-[85px] overflow-y-auto animate-in slide-in-from-bottom-2">
+                          <div className="absolute right-3 top-2.5 flex items-center gap-1">
+                            {compilationStatus === 'success' && (
+                              <span className="text-emerald-500 font-bold uppercase tracking-widest flex items-center gap-1 text-[8.5px]">
+                                <CheckCircle className="w-3 h-3" /> SUCCESS
+                              </span>
+                            )}
+                            {compilationStatus === 'failed' && (
+                              <span className="text-rose-500 font-bold uppercase tracking-widest flex items-center gap-1 text-[8.5px]">
+                                <AlertTriangle className="w-3 h-3 animate-pulse" /> FAILED
+                              </span>
+                            )}
+                            {compilationStatus === 'idle' && (
+                              <span className="text-amber-500 font-bold uppercase tracking-widest animate-pulse text-[8.5px]">
+                                RUNNING...
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[8.5px] font-black text-indigo-400 block pb-1 border-b border-indigo-950/50 uppercase tracking-widest">
+                            {lVal.compilationLogs}
+                          </span>
+                          {compileOutput.map((log, idx) => (
+                            <div key={idx} className="leading-relaxed leading-4">{log}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* SUB TAB B: CHASSIS INNER SUB-TOPOLOGY DIAGRAM */}
+                {activeWorkspaceTab === 'topology' && (
+                  <div className="flex-1 flex flex-col justify-between space-y-4 min-h-0 py-2 animate-in fade-in duration-250">
+                    <div className="space-y-1 border-b border-indigo-950/30 pb-2">
+                      <span className="text-[11px] font-black text-slate-350 uppercase tracking-widest block font-mono">
+                        {lVal.subTopologyTitle}
+                      </span>
+                      <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                        {lVal.subTopologyDesc}
+                      </p>
+                    </div>
+
+                    {/* SVG Vector Interactive Topology Canvas Node Map */}
+                    <div className="flex-1 bg-[#020205] border border-indigo-950 p-4 rounded-xl relative flex items-center justify-center overflow-hidden h-[180px] md:h-[260px] cursor-crosshair">
+                      <div className="absolute inset-0 select-none pointer-events-none opacity-[0.03]" style={{
+                        backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
+                        backgroundSize: '15px 15px'
+                      }} />
+
+                      {/* Connective vectors */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                        {currentSubTopology.map((sub, idx) => {
+                          if (idx === 0) return null;
+                          const prev = currentSubTopology[idx - 1];
+                          const percentX1 = (prev.x / 350) * 100 + '%';
+                          const percentY1 = (prev.y / 220) * 100 + '%';
+                          const percentX2 = (sub.x / 350) * 100 + '%';
+                          const percentY2 = (sub.y / 220) * 100 + '%';
+
+                          return (
+                            <line 
+                              key={sub.id}
+                              x1={percentX1}
+                              y1={percentY1}
+                              x2={percentX2}
+                              y2={percentY2}
+                              stroke="#4338ca"
+                              strokeWidth="1.5"
+                              strokeDasharray="4 3"
+                            />
+                          );
+                        })}
+                      </svg>
+
+                      {currentSubTopology.map((subNode) => {
+                        const percentX = (subNode.x / 350) * 100;
+                        const percentY = (subNode.y / 220) * 100;
+                        const isNodeFileSelected = selectedFile?.name === subNode.fileName;
+
+                        return (
+                          <div
+                            key={subNode.id}
+                            style={{ left: `${percentX}%`, top: `${percentY}%` }}
+                            onClick={() => handleTopologyNodeClick(subNode.fileName)}
+                            className="absolute translate-x-[-50%] translate-y-[-50%] group cursor-pointer text-center z-12"
+                          >
+                            <span className={`relative flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-300 leading-none shadow shadow-inner ${
+                              isNodeFileSelected 
+                                ? 'bg-amber-400 border-amber-500 scale-125 ring-4 ring-amber-500/30' 
+                                : 'bg-slate-900 border-indigo-501 hover:bg-slate-800'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                isNodeFileSelected ? 'bg-slate-950' : 'bg-[#6366f1]'
+                              }`} />
+                            </span>
+
+                            {/* Tooltip bubble descriptors and labels */}
+                            <div className="absolute top-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-slate-950 border border-slate-800 text-[9px] font-bold text-slate-300 rounded px-2 py-0.5 pointer-events-none group-hover:scale-105 transition-all text-center">
+                              <div className="font-mono text-amber-300 flex items-center justify-center gap-1">
+                                {isNodeFileSelected && <span>✏️</span>}
+                                <span>{subNode.label}</span>
+                              </div>
+                              <div className="text-[8px] text-slate-500 max-w-[150px] overflow-hidden text-ellipsis block mt-0.5 leading-none">
+                                {subNode.desc}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* SUB TAB C: INTELLIGENT AI ASSISTANT CODE CHAT COPROCESSOR */}
+                {activeWorkspaceTab === 'ai' && (
+                  <div className="flex-1 flex flex-col justify-between space-y-3 min-h-0 py-2 animate-in fade-in duration-250">
+                    <div className="flex-1 bg-[#020205] border border-indigo-950 rounded-xl p-3 flex flex-col justify-between overflow-hidden min-h-[160px]">
+                      
+                      {/* Chat text panel log viewport list */}
+                      <div 
+                        ref={chatScrollRef}
+                        className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scroll max-h-[220px]"
+                      >
+                        {workspaceChatHistory.map((item, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`flex flex-col space-y-1 py-1 max-w-[90%] ${
+                              item.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'
+                            }`}
+                          >
+                            <span className="text-[8.5px] font-mono font-black text-slate-500 uppercase tracking-widest block select-none">
+                              {item.sender === 'user' ? 'Ceaserzhao' : 'Hearth Coprocessor AI'}
+                            </span>
+                            <div className={`p-2.5 rounded-xl text-xs font-semibold leading-relaxed ${
+                              item.sender === 'user' 
+                                ? 'bg-indigo-650 text-white rounded-tr-none' 
+                                : 'bg-[#0a0c16] text-[#beccd9] border border-indigo-950/80 rounded-tl-none'
+                            }`}>
+                              {item.text}
+                            </div>
+
+                            {/* Direct Inject logic code patch buttons rendered beautifully */}
+                            {item.codePatch && (
+                              <button
+                                onClick={() => handleApplyAiPatch(item.codePatch!.patchSnippet, item.codePatch!.targetFile)}
+                                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-extrabold uppercase tracking-wide rounded-lg cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all mt-1.5 shadow"
+                              >
+                                <Sparkles className="w-3 h-3 text-slate-950 fill-slate-950" />
+                                <span>{lVal.applyPatchText}</span>
+                              </button>
+                            )}
                           </div>
                         ))}
-                      </pre>
+
+                        {isAiLoading && (
+                          <div className="flex items-center gap-2 text-indigo-400 font-mono text-[10.5px] py-2">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Formulating sandbox logic refactoring...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Mini AI shortcuts block list */}
+                      <div className="pt-2 border-t border-indigo-950/45 space-y-1">
+                        <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wider font-mono">
+                          {lVal.quickPrompts}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            onClick={() => handleDispatchAiPrompt('✨ Refactor active code to support robust WebSocket relays')}
+                            className="px-2 py-0.5 bg-slate-900 hover:bg-indigo-950/50 border border-indigo-950 hover:border-indigo-805 text-slate-400 hover:text-indigo-250 text-[8.5px] font-black uppercase rounded font-mono transition-colors cursor-pointer"
+                          >
+                            + WEBSOCKET RELAY
+                          </button>
+                          <button
+                            onClick={() => handleDispatchAiPrompt('🛡️ Enforce strict security guards and memory safety assert-locks')}
+                            className="px-2 py-0.5 bg-slate-900 hover:bg-indigo-950/50 border border-indigo-950 hover:border-indigo-805 text-slate-400 hover:text-indigo-250 text-[8.5px] font-black uppercase rounded font-mono transition-colors cursor-pointer"
+                          >
+                            + SECURITY ASSERTS
+                          </button>
+                          <button
+                            onClick={() => handleDispatchAiPrompt('⚡ Optimize nested code paths to reduce CPU performance cycles')}
+                            className="px-2 py-0.5 bg-slate-900 hover:bg-indigo-950/50 border border-indigo-950 hover:border-indigo-805 text-slate-400 hover:text-indigo-250 text-[8.5px] font-black uppercase rounded font-mono transition-colors cursor-pointer"
+                          >
+                            + OPTIMISE PATHS
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  );
-                })()}
+
+                    {/* Chat field write-input send */}
+                    <div className="flex gap-2 relative">
+                      <input 
+                        type="text" 
+                        placeholder={lVal.aiPlaceholder}
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleDispatchAiPrompt()}
+                        className="flex-1 text-xs px-3.5 py-2.5 bg-slate-900 border border-indigo-950 text-[#beccd9] rounded-xl focus:bg-slate-950 focus:outline-none focus:border-indigo-505 font-bold pr-14"
+                      />
+                      <button 
+                        onClick={() => handleDispatchAiPrompt()}
+                        className="px-3 bg-indigo-605 hover:bg-indigo-700 text-white rounded-xl absolute right-1.5 top-1.5 bottom-1.5 flex items-center justify-center shadow transition-all active:scale-95 hover:scale-102 cursor-pointer"
+                      >
+                        <Send className="w-4 h-4 text-white fill-white/10" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               </div>
 
-              {/* Security info flag */}
-              <div className="bg-indigo-950/20 border border-indigo-500/5 p-2.5 rounded-xl text-[8.5px] font-mono space-y-1 text-slate-500">
-                <div>
-                  <span className="text-[#6366f1] font-black">{lVal.metaCheck}</span>
+              {/* Physical Checksum telemetry banner */}
+              <div className="bg-indigo-950/20 border border-indigo-500/5 p-2 rounded-xl text-[8px] font-mono space-y-1 text-slate-505 shrink-0">
+                <div className="flex justify-between items-center text-slate-550 leading-none">
+                  <span>{lVal.metaCheck}</span>
+                  <span className="text-indigo-400">STATUS: REPLICATED</span>
                 </div>
-                <div className="text-slate-300 select-all tracking-wider font-semibold">
+                <div className="text-slate-350 select-all tracking-wide font-black truncate leading-none">
                   {selectedFile.checksum || 'N/A'}
                 </div>
               </div>
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-3">
-              <div className="w-10 h-10 bg-indigo-950/50 rounded-xl flex items-center justify-center border border-indigo-850/60 text-indigo-400">
+              <div className="w-10 h-10 bg-indigo-950/50 rounded-xl flex items-center justify-center border border-indigo-850/60 text-indigo-405">
                 <FileCheck className="w-5 h-5 animate-pulse" />
               </div>
-              <p className="text-[9.5px] font-bold font-mono max-w-[200px] leading-relaxed text-slate-500">
+              <p className="text-[10px] font-black font-mono max-w-[200px] leading-relaxed text-slate-550 uppercase">
                 {lVal.noFileText}
               </p>
             </div>
           )}
         </div>
+
+        {/* ================= PANEL 3: TACTILE CONTROLLERS & DEMO SIMULATORS ================= */}
+        {layoutMode !== 'code-only' && (
+          <div className={`${rightConsoleCol} bg-[#020205] border border-indigo-950/70 p-4 rounded-2xl flex flex-col justify-between space-y-4 shadow-xl`}>
+            <div className="space-y-4 flex-1">
+              <div className="flex justify-between items-center pb-2 border-b border-indigo-950/40">
+                <span className="text-[9.5px] font-black uppercase tracking-widest text-[#8a9bb3] font-mono">
+                  HEARTH CONTROL BOARD
+                </span>
+                <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[8px] rounded uppercase tracking-wider font-extrabold animate-pulse">
+                  ONLINE
+                </span>
+              </div>
+
+              {/* Quick instructions and telemetry widget info */}
+              <div className="p-3 bg-indigo-950/15 border border-indigo-950 rounded-xl space-y-2">
+                <span className="text-[9.5px] font-black text-indigo-300 uppercase tracking-widest block font-mono">
+                  Sandbox Directives
+                </span>
+                <p className="text-[10px] text-slate-400 font-bold leading-normal">
+                  You are inside Heya's UI Prototype Laboratory. Feel free to modify files, trigger compiling diagnostics, view component inner topologies dynamically, or let our AI auto-refactor parameters on checkout threads!
+                </p>
+              </div>
+
+              {/* Hardware diagnostics meter */}
+              <div className="space-y-2.5">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block font-mono">
+                  Hardware Physical Signals
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 bg-slate-900 border border-indigo-950 rounded-xl text-center space-y-0.5">
+                    <span className="text-[8px] text-slate-500 block font-mono uppercase">Decouple Rate</span>
+                    <span className="text-xs font-black text-indigo-350 font-mono">98.4 Kb/s</span>
+                  </div>
+                  <div className="p-2.5 bg-slate-900 border border-indigo-950 rounded-xl text-center space-y-0.5">
+                    <span className="text-[8px] text-slate-500 block font-mono uppercase">Local Entropy</span>
+                    <span className="text-xs font-black text-pink-400 font-mono">0.042 λ</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Component specific system notes */}
+              <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                <span className="text-[8.5px] font-black text-amber-500 uppercase tracking-wider font-mono block mb-1">
+                  Orthodox Compliance Rule
+                </span>
+                <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">
+                  Decentralized nodes require SHA-256 validation signatures to bypass Hearth downstreams filters. Hit 'Run Secure Compiler Audit' to generate proper compliance signatures.
+                </p>
+              </div>
+            </div>
+
+            <div className="text-[8.5px] text-slate-600 font-mono uppercase text-center leading-none">
+              UI Prototype Laboratory v4.18
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

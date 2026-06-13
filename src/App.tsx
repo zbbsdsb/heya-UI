@@ -39,6 +39,7 @@ import UserProfile from './components/UserProfile';
 import HearthComponentRegistry from './components/HearthComponentRegistry';
 import ExploreRealmNavigator from './components/ExploreRealmNavigator';
 import DraggableToolPreview from './components/DraggableToolPreview';
+import ComponentSpaceView from './components/ComponentSpaceView';
 
 import { NodeData, MuseIdea, NodeType } from './types';
 import { translations } from './locales';
@@ -770,6 +771,9 @@ export default function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onMouseEnterToolList={handleMouseEnterToolList}
         onMouseLeaveToolList={handleMouseLeaveToolList}
+        nodes={nodes}
+        selectedNodeId={selectedNodeId}
+        setSelectedNodeId={setSelectedNodeId}
       />
 
       {/* 2. Main content block routing */}
@@ -913,6 +917,17 @@ export default function App() {
                 setSelectedNodeId(nodeId);
                 setActiveTab('fieldmap');
               }}
+            />
+          )}
+
+          {activeTab === 'component-space' && selectedNodeId && (
+            <ComponentSpaceView 
+              nodes={nodes}
+              setNodes={setNodes}
+              selectedNodeId={selectedNodeId}
+              setSelectedNodeId={setSelectedNodeId}
+              language={language}
+              setActiveTab={setActiveTab}
             />
           )}
 
